@@ -51,27 +51,27 @@ const providers: ProviderConfig[] = [
 function StatusBadge({ status }: { status: string | null }) {
   if (!status) {
     return (
-      <span className="inline-flex items-center rounded-full border border-slate-200 px-2.5 py-0.5 text-xs font-medium text-[#64748B]">
+      <span className="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
         未接続
       </span>
     );
   }
   if (status === "active") {
     return (
-      <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-[#059669]">
+      <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-success">
         有効
       </span>
     );
   }
   if (status === "inactive") {
     return (
-      <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-[#64748B]">
+      <span className="inline-flex items-center rounded-full border border-border bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
         無効
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-medium text-[#DC2626]">
+    <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-medium text-danger">
       エラー
     </span>
   );
@@ -156,27 +156,27 @@ function IntegrationCard({ provider, integration }: IntegrationCardProps) {
   };
 
   return (
-    <div className="rounded-lg border border-slate-200 p-5">
+    <div className="rounded-lg border border-border p-5">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="text-base font-semibold text-[#1E293B]">
+            <h3 className="text-base font-semibold text-foreground">
               {provider.name}
             </h3>
             <StatusBadge status={integration?.status || null} />
             {provider.comingSoon && (
-              <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-[#2563EB]">
+              <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-accent-color">
                 Coming Soon
               </span>
             )}
           </div>
-          <p className="mt-1 text-sm text-[#64748B]">{provider.description}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{provider.description}</p>
         </div>
       </div>
 
       {provider.comingSoon ? (
         <div className="mt-4">
-          <p className="text-sm text-[#64748B]">
+          <p className="text-sm text-muted-foreground">
             この連携は現在開発中です。OAuth認証の設定が完了次第、利用可能になります。
           </p>
         </div>
@@ -185,7 +185,7 @@ function IntegrationCard({ provider, integration }: IntegrationCardProps) {
           <div>
             <label
               htmlFor={`webhook-${provider.key}`}
-              className="block text-sm font-medium text-[#1E293B] mb-1"
+              className="block text-sm font-medium text-foreground mb-1"
             >
               Webhook URL
             </label>
@@ -207,7 +207,7 @@ function IntegrationCard({ provider, integration }: IntegrationCardProps) {
           {message && (
             <p
               className={`text-sm ${
-                message.type === "success" ? "text-[#059669]" : "text-[#DC2626]"
+                message.type === "success" ? "text-success" : "text-danger"
               }`}
             >
               {message.text}
@@ -218,7 +218,7 @@ function IntegrationCard({ provider, integration }: IntegrationCardProps) {
             <Button
               onClick={handleSave}
               disabled={isPending || !webhookUrl}
-              className="bg-[#0C025F] text-white hover:bg-[#0C025F]/90"
+              className="bg-primary text-white hover:bg-primary/90"
             >
               {isPending ? "保存中..." : "保存"}
             </Button>
@@ -244,7 +244,7 @@ function IntegrationCard({ provider, integration }: IntegrationCardProps) {
                   variant="outline"
                   onClick={handleDelete}
                   disabled={isPending}
-                  className="text-[#DC2626] hover:text-[#DC2626] border-red-200 hover:bg-red-50"
+                  className="text-danger hover:text-danger border-red-200 hover:bg-red-50"
                 >
                   削除
                 </Button>

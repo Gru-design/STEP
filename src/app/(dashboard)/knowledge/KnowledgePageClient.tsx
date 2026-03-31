@@ -163,14 +163,14 @@ export function KnowledgePageClient({
       {/* Search bar & new post button */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
             placeholder="ナレッジを検索..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleSearchKeyDown}
-            className="pl-10 border-slate-200"
+            className="pl-10 border-border"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -182,7 +182,7 @@ export function KnowledgePageClient({
                 setSearchQuery("");
                 setPosts(initialPosts);
               }}
-              className="border-slate-200"
+              className="border-border"
             >
               クリア
             </Button>
@@ -192,13 +192,13 @@ export function KnowledgePageClient({
             size="sm"
             onClick={handleSearch}
             disabled={searching}
-            className="border-slate-200"
+            className="border-border"
           >
             {searching ? "検索中..." : "検索"}
           </Button>
           <Button
             onClick={() => setShowNewPostDialog(true)}
-            className="bg-[#0C025F] hover:bg-[#0C025F]/90 text-white"
+            className="bg-primary hover:bg-primary/90 text-white"
           >
             <Plus className="mr-1 h-4 w-4" />
             新規投稿
@@ -213,8 +213,8 @@ export function KnowledgePageClient({
             onClick={() => setSelectedTag(null)}
             className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
               selectedTag === null
-                ? "border-[#2563EB] bg-[#2563EB] text-white"
-                : "border-slate-200 bg-white text-[#64748B] hover:bg-[#F0F4FF]"
+                ? "border-accent-color bg-accent-color text-white"
+                : "border-border bg-white text-muted-foreground hover:bg-muted"
             }`}
           >
             すべて
@@ -227,8 +227,8 @@ export function KnowledgePageClient({
               }
               className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
                 selectedTag === tag
-                  ? "border-[#2563EB] bg-[#2563EB] text-white"
-                  : "border-slate-200 bg-white text-[#64748B] hover:bg-[#F0F4FF]"
+                  ? "border-accent-color bg-accent-color text-white"
+                  : "border-border bg-white text-muted-foreground hover:bg-muted"
               }`}
             >
               {tag}
@@ -239,9 +239,9 @@ export function KnowledgePageClient({
 
       {/* Post list */}
       {filteredPosts.length === 0 ? (
-        <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-[#F0F4FF]">
-          <BookOpen className="h-8 w-8 text-[#64748B]" />
-          <p className="mt-2 text-sm text-[#64748B]">
+        <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted">
+          <BookOpen className="h-8 w-8 text-muted-foreground" />
+          <p className="mt-2 text-sm text-muted-foreground">
             {searchQuery
               ? "検索結果が見つかりませんでした"
               : "ナレッジ投稿はまだありません"}
@@ -257,19 +257,19 @@ export function KnowledgePageClient({
             return (
               <div
                 key={post.id}
-                className="rounded-lg border border-slate-200 bg-white"
+                className="rounded-lg border border-border bg-white"
               >
                 <button
                   onClick={() =>
                     setExpandedPostId(isExpanded ? null : post.id)
                   }
-                  className="flex w-full items-start justify-between px-5 py-4 text-left hover:bg-[#F0F4FF]/50 transition-colors"
+                  className="flex w-full items-start justify-between px-5 py-4 text-left hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-base font-semibold text-[#0C025F] truncate">
+                    <h3 className="text-base font-semibold text-primary truncate">
                       {post.title}
                     </h3>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[#64748B]">
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span>{post.user_name}</span>
                       <span>|</span>
                       <span>{formatDateJP(post.created_at)}</span>
@@ -280,7 +280,7 @@ export function KnowledgePageClient({
                         {post.tags.map((tag) => (
                           <span
                             key={tag}
-                            className="inline-flex items-center rounded-md border border-slate-200 bg-[#F0F4FF] px-2 py-0.5 text-xs text-[#0C025F]"
+                            className="inline-flex items-center rounded-md border border-border bg-muted px-2 py-0.5 text-xs text-primary"
                           >
                             {tag}
                           </span>
@@ -289,24 +289,24 @@ export function KnowledgePageClient({
                     )}
                     {/* Body preview when collapsed */}
                     {!isExpanded && (
-                      <p className="mt-2 text-sm text-[#64748B] line-clamp-2">
+                      <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
                         {post.body}
                       </p>
                     )}
                   </div>
                   <div className="ml-3 flex-shrink-0 pt-1">
                     {isExpanded ? (
-                      <ChevronUp className="h-4 w-4 text-[#64748B]" />
+                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
                     ) : (
-                      <ChevronDown className="h-4 w-4 text-[#64748B]" />
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
                     )}
                   </div>
                 </button>
 
                 {/* Expanded body */}
                 {isExpanded && (
-                  <div className="border-t border-slate-200 px-5 py-4">
-                    <div className="prose prose-sm max-w-none text-[#1E293B] whitespace-pre-wrap">
+                  <div className="border-t border-border px-5 py-4">
+                    <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
                       {post.body}
                     </div>
                     {canDelete && (
@@ -318,7 +318,7 @@ export function KnowledgePageClient({
                             e.stopPropagation();
                             handleDelete(post.id);
                           }}
-                          className="border-[#DC2626] text-[#DC2626] hover:bg-red-50"
+                          className="border-danger text-danger hover:bg-red-50"
                         >
                           <Trash2 className="mr-1 h-3 w-3" />
                           削除
@@ -336,10 +336,10 @@ export function KnowledgePageClient({
       {/* New post dialog */}
       {showNewPostDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="relative mx-4 w-full max-w-xl rounded-lg border border-slate-200 bg-white">
+          <div className="relative mx-4 w-full max-w-xl rounded-lg border border-border bg-white">
             {/* Dialog header */}
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-              <h2 className="text-lg font-semibold text-[#0C025F]">
+            <div className="flex items-center justify-between border-b border-border px-6 py-4">
+              <h2 className="text-lg font-semibold text-primary">
                 新規ナレッジ投稿
               </h2>
               <button
@@ -347,7 +347,7 @@ export function KnowledgePageClient({
                   setShowNewPostDialog(false);
                   setFormError(null);
                 }}
-                className="rounded-lg p-2 text-[#64748B] hover:bg-[#F0F4FF] transition-colors"
+                className="rounded-lg p-2 text-muted-foreground hover:bg-muted transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -356,47 +356,47 @@ export function KnowledgePageClient({
             {/* Dialog body */}
             <div className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-[#1E293B]">
-                  タイトル <span className="text-[#DC2626]">*</span>
+                <Label className="text-sm font-medium text-foreground">
+                  タイトル <span className="text-danger">*</span>
                 </Label>
                 <Input
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   placeholder="ナレッジのタイトル"
-                  className="border-slate-200"
+                  className="border-border"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-[#1E293B]">
-                  本文 <span className="text-[#DC2626]">*</span>
+                <Label className="text-sm font-medium text-foreground">
+                  本文 <span className="text-danger">*</span>
                 </Label>
                 <Textarea
                   value={newBody}
                   onChange={(e) => setNewBody(e.target.value)}
                   placeholder="ナレッジの内容を記述してください"
                   rows={8}
-                  className="border-slate-200"
+                  className="border-border"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-[#1E293B]">
+                <Label className="text-sm font-medium text-foreground">
                   タグ
                 </Label>
                 <Input
                   value={newTags}
                   onChange={(e) => setNewTags(e.target.value)}
                   placeholder="カンマ区切りでタグを入力（例: 営業,テクニック,新人向け）"
-                  className="border-slate-200"
+                  className="border-border"
                 />
-                <p className="text-xs text-[#64748B]">
+                <p className="text-xs text-muted-foreground">
                   カンマ（,）で区切って複数のタグを追加できます
                 </p>
               </div>
 
               {formError && (
-                <p className="text-sm text-[#DC2626]">{formError}</p>
+                <p className="text-sm text-danger">{formError}</p>
               )}
 
               <div className="flex items-center justify-end gap-3 pt-2">
@@ -407,14 +407,14 @@ export function KnowledgePageClient({
                     setFormError(null);
                   }}
                   disabled={creating}
-                  className="border-slate-200"
+                  className="border-border"
                 >
                   キャンセル
                 </Button>
                 <Button
                   onClick={handleCreatePost}
                   disabled={creating}
-                  className="bg-[#0C025F] hover:bg-[#0C025F]/90 text-white"
+                  className="bg-primary hover:bg-primary/90 text-white"
                 >
                   {creating ? "投稿中..." : "投稿する"}
                 </Button>

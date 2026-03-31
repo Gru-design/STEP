@@ -168,9 +168,9 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
   return (
     <div className="flex h-screen overflow-hidden bg-white">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:border-r lg:border-slate-200 bg-white">
-        <div className="flex h-14 items-center border-b border-slate-200 px-6">
-          <Link href="/dashboard" className="text-xl font-bold text-[#0C025F]">
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:border-r lg:border-border bg-white">
+        <div className="flex h-14 items-center border-b border-border px-6">
+          <Link href="/dashboard" className="text-xl font-bold text-primary">
             STEP
           </Link>
         </div>
@@ -184,8 +184,8 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
                 href={item.href}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   active
-                    ? "bg-[#F0F4FF] text-[#0C025F]"
-                    : "text-[#64748B] hover:bg-[#F0F4FF] hover:text-[#0C025F]"
+                    ? "bg-muted text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-primary"
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -199,7 +199,7 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
       {/* Main content area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex h-14 items-center justify-between border-b border-slate-200 px-4 lg:px-6 bg-white">
+        <header className="flex h-14 items-center justify-between border-b border-border px-4 lg:px-6 bg-white">
           <div className="flex items-center gap-3">
             {/* Mobile hamburger */}
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
@@ -210,8 +210,8 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-64 p-0">
-                <SheetHeader className="border-b border-slate-200 px-6 py-4">
-                  <SheetTitle className="text-xl font-bold text-[#0C025F]">
+                <SheetHeader className="border-b border-border px-6 py-4">
+                  <SheetTitle className="text-xl font-bold text-primary">
                     STEP
                   </SheetTitle>
                 </SheetHeader>
@@ -226,8 +226,8 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
                         onClick={() => setSheetOpen(false)}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                           active
-                            ? "bg-[#F0F4FF] text-[#0C025F]"
-                            : "text-[#64748B] hover:bg-[#F0F4FF] hover:text-[#0C025F]"
+                            ? "bg-muted text-primary"
+                            : "text-muted-foreground hover:bg-muted hover:text-primary"
                         }`}
                       >
                         <Icon className="h-5 w-5" />
@@ -242,7 +242,7 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
             {/* Mobile logo */}
             <Link
               href="/"
-              className="text-xl font-bold text-[#0C025F] lg:hidden"
+              className="text-xl font-bold text-primary lg:hidden"
             >
               STEP
             </Link>
@@ -261,18 +261,18 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
                     {user.name?.charAt(0) ?? "U"}
                   </AvatarFallback>
                 </Avatar>
-                <span className="hidden sm:inline-block text-sm font-medium text-[#1E293B]">
+                <span className="hidden sm:inline-block text-sm font-medium text-foreground">
                   {user.name}
                 </span>
-                <ChevronDown className="h-4 w-4 text-[#64748B]" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium">{user.name}</p>
-                  <p className="text-xs text-[#64748B]">{user.email}</p>
-                  <p className="text-xs text-[#64748B]">
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                  <p className="text-xs text-muted-foreground">
                     {roleLabels[user.role]}
                   </p>
                 </div>
@@ -287,7 +287,7 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleLogout}
-                className="cursor-pointer text-[#DC2626] focus:text-[#DC2626]"
+                className="cursor-pointer text-danger focus:text-danger"
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 ログアウト

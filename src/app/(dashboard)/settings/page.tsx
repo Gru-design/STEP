@@ -29,7 +29,7 @@ export default async function SettingsPage() {
   if (!["admin", "super_admin"].includes(user.role)) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-[#DC2626] font-medium">
+        <p className="text-danger font-medium">
           アクセス権限がありません
         </p>
       </div>
@@ -45,7 +45,7 @@ export default async function SettingsPage() {
   if (!tenant) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-[#DC2626]">
+        <p className="text-danger">
           テナント情報の取得に失敗しました
         </p>
       </div>
@@ -54,7 +54,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold text-[#0C025F]">テナント設定</h1>
+      <h1 className="text-2xl font-bold text-primary">テナント設定</h1>
       <SettingsForm tenant={tenant as Tenant} />
     </div>
   );

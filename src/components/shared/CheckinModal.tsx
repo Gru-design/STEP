@@ -86,25 +86,25 @@ export function CheckinModal({ userId, tenantId }: CheckinModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="relative mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-slate-200 bg-white">
+      <div className="relative mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-border bg-white">
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-white px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F0F4FF]">
-              <Sparkles className="h-5 w-5 text-[#2563EB]" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+              <Sparkles className="h-5 w-5 text-accent-color" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[#0C025F]">
+              <h2 className="text-lg font-semibold text-primary">
                 チェックインを始める
               </h2>
-              <p className="text-sm text-[#64748B]">
+              <p className="text-sm text-muted-foreground">
                 今週のコンディションを教えてください
               </p>
             </div>
           </div>
           <button
             onClick={handleDismiss}
-            className="rounded-lg p-2 text-[#64748B] hover:bg-[#F0F4FF] transition-colors"
+            className="rounded-lg p-2 text-muted-foreground hover:bg-muted transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -121,7 +121,7 @@ export function CheckinModal({ userId, tenantId }: CheckinModalProps) {
           )}
 
           {error && (
-            <p className="text-sm text-[#DC2626]">{error}</p>
+            <p className="text-sm text-danger">{error}</p>
           )}
 
           <div className="flex items-center justify-end gap-3 pt-2">
@@ -129,14 +129,14 @@ export function CheckinModal({ userId, tenantId }: CheckinModalProps) {
               variant="outline"
               onClick={handleDismiss}
               disabled={submitting}
-              className="border-slate-200"
+              className="border-border"
             >
               あとで
             </Button>
             <Button
               onClick={handleSubmit}
               disabled={submitting}
-              className="bg-[#0C025F] hover:bg-[#0C025F]/90 text-white"
+              className="bg-primary hover:bg-primary/90 text-white"
             >
               {submitting ? "送信中..." : "チェックイン送信"}
             </Button>

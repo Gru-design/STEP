@@ -79,13 +79,13 @@ export default async function ReportsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#0C025F]">日報フィード</h1>
-          <p className="mt-1 text-sm text-[#64748B]">
+          <h1 className="text-2xl font-bold text-primary">日報フィード</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             チームメンバーの日報を確認できます
           </p>
         </div>
         <Link href="/reports/new">
-          <Button className="bg-[#0C025F] hover:bg-[#0C025F]/90 text-white">
+          <Button className="bg-primary hover:bg-primary/90 text-white">
             <Plus className="mr-1 h-4 w-4" />
             日報を書く
           </Button>

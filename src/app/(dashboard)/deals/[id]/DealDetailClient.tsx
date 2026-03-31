@@ -30,10 +30,10 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  active: "bg-[#DBEAFE] text-[#2563EB]",
-  won: "bg-emerald-50 text-[#059669]",
-  lost: "bg-red-50 text-[#DC2626]",
-  hold: "bg-amber-50 text-[#D97706]",
+  active: "bg-primary-muted text-accent-color",
+  won: "bg-emerald-50 text-success",
+  lost: "bg-red-50 text-danger",
+  hold: "bg-warning/5 text-warning",
 };
 
 function formatYen(value: number | null): string {
@@ -107,12 +107,12 @@ export function DealDetailClient({
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="mb-1 text-sm text-[#64748B]">{deal.company}</div>
-          <h1 className="text-2xl font-bold text-[#0C025F]">
+          <div className="mb-1 text-sm text-muted-foreground">{deal.company}</div>
+          <h1 className="text-2xl font-bold text-primary">
             {deal.title || "（無題）"}
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-3">
-            <span className="font-mono text-lg font-semibold text-[#0C025F]">
+            <span className="font-mono text-lg font-semibold text-primary">
               {formatYen(deal.value)}
             </span>
             <span
@@ -120,11 +120,11 @@ export function DealDetailClient({
             >
               {statusLabels[deal.status]}
             </span>
-            <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-[#1E293B]">
+            <span className="rounded-full border border-border px-3 py-1 text-xs font-medium text-foreground">
               {stage.name}
             </span>
             {deal.due_date && (
-              <span className="text-xs text-[#64748B]">
+              <span className="text-xs text-muted-foreground">
                 期限:{" "}
                 {new Date(deal.due_date).toLocaleDateString("ja-JP")}
               </span>
@@ -154,7 +154,7 @@ export function DealDetailClient({
           <Button
             variant="outline"
             size="sm"
-            className="text-[#DC2626] hover:bg-red-50"
+            className="text-danger hover:bg-red-50"
             onClick={handleDelete}
           >
             削除
@@ -164,9 +164,9 @@ export function DealDetailClient({
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Persona Section */}
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <div className="rounded-lg border border-border bg-white p-4">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base font-bold text-[#0C025F]">
+            <h2 className="text-base font-bold text-primary">
               ペルソナ情報
             </h2>
             {!isEditing && (
@@ -230,13 +230,13 @@ export function DealDetailClient({
                   rows={2}
                 />
               </div>
-              {error && <p className="text-sm text-[#DC2626]">{error}</p>}
+              {error && <p className="text-sm text-danger">{error}</p>}
               <div className="flex gap-2">
                 <Button
                   onClick={handleSavePersona}
                   disabled={saving}
                   size="sm"
-                  className="bg-[#0C025F] text-white hover:bg-[#0C025F]/90"
+                  className="bg-primary text-white hover:bg-primary/90"
                 >
                   {saving ? "保存中..." : "保存"}
                 </Button>
@@ -259,7 +259,7 @@ export function DealDetailClient({
               {!persona.name &&
                 !persona.position &&
                 !persona.decision_points && (
-                  <p className="text-[#64748B]">
+                  <p className="text-muted-foreground">
                     ペルソナ情報が未登録です
                   </p>
                 )}
@@ -268,26 +268,26 @@ export function DealDetailClient({
         </div>
 
         {/* Stage History Timeline */}
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <h2 className="mb-4 text-base font-bold text-[#0C025F]">
+        <div className="rounded-lg border border-border bg-white p-4">
+          <h2 className="mb-4 text-base font-bold text-primary">
             ステージ履歴
           </h2>
           {history.length === 0 ? (
-            <p className="text-sm text-[#64748B]">履歴なし</p>
+            <p className="text-sm text-muted-foreground">履歴なし</p>
           ) : (
             <div className="space-y-0">
               {history.map((entry, index) => (
                 <div key={entry.id} className="flex gap-3">
                   {/* Timeline line */}
                   <div className="flex flex-col items-center">
-                    <div className="h-3 w-3 rounded-full border-2 border-[#2563EB] bg-white" />
+                    <div className="h-3 w-3 rounded-full border-2 border-accent-color bg-white" />
                     {index < history.length - 1 && (
                       <div className="w-0.5 flex-1 bg-slate-200" />
                     )}
                   </div>
                   {/* Content */}
                   <div className="pb-4">
-                    <div className="text-sm text-[#1E293B]">
+                    <div className="text-sm text-foreground">
                       {entry.from_stage_name ? (
                         <>
                           <span className="font-medium">
@@ -307,7 +307,7 @@ export function DealDetailClient({
                         </>
                       )}
                     </div>
-                    <div className="text-xs text-[#64748B]">
+                    <div className="text-xs text-muted-foreground">
                       {new Date(entry.changed_at).toLocaleString("ja-JP", {
                         year: "numeric",
                         month: "short",
@@ -331,8 +331,8 @@ function InfoRow({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
   return (
     <div>
-      <span className="font-medium text-[#64748B]">{label}:</span>{" "}
-      <span className="text-[#1E293B]">{value}</span>
+      <span className="font-medium text-muted-foreground">{label}:</span>{" "}
+      <span className="text-foreground">{value}</span>
     </div>
   );
 }

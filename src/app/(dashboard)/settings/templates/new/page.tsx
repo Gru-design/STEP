@@ -29,7 +29,7 @@ export default async function NewTemplatePage() {
   if (!["admin", "super_admin"].includes(user.role)) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-[#DC2626] font-medium">
+        <p className="text-danger font-medium">
           アクセス権限がありません
         </p>
       </div>
@@ -38,7 +38,7 @@ export default async function NewTemplatePage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <h1 className="text-2xl font-bold text-[#0C025F]">
+      <h1 className="text-2xl font-bold text-primary">
         新規テンプレート作成
       </h1>
       <NewTemplateForm />

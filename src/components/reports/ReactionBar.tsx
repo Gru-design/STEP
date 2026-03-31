@@ -72,10 +72,10 @@ export function ReactionBar({
               size="sm"
               disabled={isPending}
               onClick={() => handleReaction(type)}
-              className={`h-8 gap-1 border-slate-200 px-2.5 text-sm ${
+              className={`h-8 gap-1 border-border px-2.5 text-sm ${
                 isActive
-                  ? "bg-[#F0F4FF] border-[#2563EB] text-[#2563EB]"
-                  : "hover:bg-[#F0F4FF]"
+                  ? "bg-muted border-accent-color text-accent-color"
+                  : "hover:bg-muted"
               }`}
               title={label}
             >
@@ -92,7 +92,7 @@ export function ReactionBar({
           variant="ghost"
           size="sm"
           onClick={() => setShowCommentInput(!showCommentInput)}
-          className="h-8 text-[#64748B] hover:text-[#1E293B]"
+          className="h-8 text-muted-foreground hover:text-foreground"
         >
           <MessageCircle className="h-4 w-4" />
         </Button>
@@ -104,7 +104,7 @@ export function ReactionBar({
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             placeholder="コメントを入力..."
-            className="border-slate-200 text-sm"
+            className="border-border text-sm"
             onKeyDown={(e) => {
               if (e.key === "Enter") handleCommentSubmit();
             }}
@@ -114,7 +114,7 @@ export function ReactionBar({
             size="sm"
             disabled={isPending || !comment.trim()}
             onClick={handleCommentSubmit}
-            className="bg-[#0C025F] hover:bg-[#0C025F]/90 text-white"
+            className="bg-primary hover:bg-primary/90 text-white"
           >
             送信
           </Button>
@@ -122,15 +122,15 @@ export function ReactionBar({
       )}
 
       {reactions.filter((r) => r.comment).length > 0 && (
-        <div className="space-y-2 pl-2 border-l-2 border-slate-200">
+        <div className="space-y-2 pl-2 border-l-2 border-border">
           {reactions
             .filter((r) => r.comment)
             .map((r) => (
               <div key={r.id} className="text-sm">
-                <span className="text-[#64748B]">
+                <span className="text-muted-foreground">
                   {REACTION_EMOJIS.find((e) => e.type === r.type)?.emoji}{" "}
                 </span>
-                <span className="text-[#1E293B]">{r.comment}</span>
+                <span className="text-foreground">{r.comment}</span>
               </div>
             ))}
         </div>

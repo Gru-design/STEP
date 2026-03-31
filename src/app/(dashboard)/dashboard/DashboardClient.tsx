@@ -87,16 +87,16 @@ function MemberDashboard({ stats }: { stats: MemberStats }) {
         {/* Today's submission */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-[#64748B]">本日の日報</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">本日の日報</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
               <span
                 className={`h-3 w-3 rounded-full ${
-                  stats.submittedToday ? "bg-[#059669]" : "bg-[#DC2626]"
+                  stats.submittedToday ? "bg-success" : "bg-danger"
                 }`}
               />
-              <span className="text-base font-semibold text-[#1E293B]">
+              <span className="text-base font-semibold text-foreground">
                 {stats.submittedToday ? "提出済み" : "未提出"}
               </span>
             </div>
@@ -106,33 +106,33 @@ function MemberDashboard({ stats }: { stats: MemberStats }) {
         {/* Streak */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-[#64748B]">連続提出</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">連続提出</CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="font-mono text-2xl font-bold text-[#0C025F]">
+            <span className="font-mono text-2xl font-bold text-primary">
               {stats.streak}
             </span>
-            <span className="ml-1 text-sm text-[#64748B]">日</span>
+            <span className="ml-1 text-sm text-muted-foreground">日</span>
           </CardContent>
         </Card>
 
         {/* Level + XP */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-[#64748B]">レベル</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">レベル</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
-              <span className="font-mono text-2xl font-bold text-[#0C025F]">
+              <span className="font-mono text-2xl font-bold text-primary">
                 Lv.{stats.level}
               </span>
-              <span className="text-xs text-[#64748B]">
+              <span className="text-xs text-muted-foreground">
                 {stats.xp} / {stats.xpForNextLevel} XP
               </span>
             </div>
-            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[#DBEAFE]">
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-primary-muted">
               <div
-                className="h-full rounded-full bg-[#2563EB] transition-all"
+                className="h-full rounded-full bg-accent-color transition-all"
                 style={{ width: `${xpProgress}%` }}
               />
             </div>
@@ -142,22 +142,22 @@ function MemberDashboard({ stats }: { stats: MemberStats }) {
         {/* KPI Count */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-[#64748B]">今週のKPI</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">今週のKPI</CardTitle>
           </CardHeader>
           <CardContent>
             {stats.weeklyKPIs.length > 0 ? (
               <div className="space-y-1">
                 {stats.weeklyKPIs.slice(0, 3).map((kpi) => (
                   <div key={kpi.label} className="flex justify-between text-sm">
-                    <span className="text-[#64748B]">{kpi.label}</span>
-                    <span className="font-mono font-medium text-[#1E293B]">
+                    <span className="text-muted-foreground">{kpi.label}</span>
+                    <span className="font-mono font-medium text-foreground">
                       {kpi.value}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-[#64748B]">データなし</p>
+              <p className="text-sm text-muted-foreground">データなし</p>
             )}
           </CardContent>
         </Card>
@@ -167,7 +167,7 @@ function MemberDashboard({ stats }: { stats: MemberStats }) {
       {stats.recentBadges.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base text-[#0C025F]">
+            <CardTitle className="text-base text-primary">
               最近のバッジ
             </CardTitle>
           </CardHeader>
@@ -176,14 +176,14 @@ function MemberDashboard({ stats }: { stats: MemberStats }) {
               {stats.recentBadges.map((badge) => (
                 <div
                   key={badge.name}
-                  className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2"
+                  className="flex items-center gap-2 rounded-lg border border-border px-3 py-2"
                 >
                   <span className="text-lg">{badge.icon}</span>
                   <div>
-                    <div className="text-sm font-medium text-[#1E293B]">
+                    <div className="text-sm font-medium text-foreground">
                       {badge.name}
                     </div>
-                    <div className="text-xs text-[#64748B]">
+                    <div className="text-xs text-muted-foreground">
                       {new Date(badge.earnedAt).toLocaleDateString("ja-JP")}
                     </div>
                   </div>
@@ -214,12 +214,12 @@ function ManagerDashboard({ stats }: { stats: ManagerStats }) {
         {/* Today's rate */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-[#64748B]">
+            <CardTitle className="text-sm text-muted-foreground">
               本日の提出率
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="font-mono text-3xl font-bold text-[#0C025F]">
+            <span className="font-mono text-3xl font-bold text-primary">
               {stats.todaySubmissionRate}%
             </span>
           </CardContent>
@@ -228,12 +228,12 @@ function ManagerDashboard({ stats }: { stats: ManagerStats }) {
         {/* Week rate */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-[#64748B]">
+            <CardTitle className="text-sm text-muted-foreground">
               今週の提出率
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="font-mono text-3xl font-bold text-[#0C025F]">
+            <span className="font-mono text-3xl font-bold text-primary">
               {stats.weekSubmissionRate}%
             </span>
           </CardContent>
@@ -242,19 +242,19 @@ function ManagerDashboard({ stats }: { stats: ManagerStats }) {
         {/* Pending nudges */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-[#64748B]">
+            <CardTitle className="text-sm text-muted-foreground">
               未対応ナッジ
             </CardTitle>
           </CardHeader>
           <CardContent>
             <span
               className={`font-mono text-3xl font-bold ${
-                stats.pendingNudges > 0 ? "text-[#D97706]" : "text-[#059669]"
+                stats.pendingNudges > 0 ? "text-warning" : "text-success"
               }`}
             >
               {stats.pendingNudges}
             </span>
-            <span className="ml-1 text-sm text-[#64748B]">件</span>
+            <span className="ml-1 text-sm text-muted-foreground">件</span>
           </CardContent>
         </Card>
       </div>
@@ -262,7 +262,7 @@ function ManagerDashboard({ stats }: { stats: ManagerStats }) {
       {/* Team members list */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base text-[#0C025F]">
+          <CardTitle className="text-base text-primary">
             メンバー提出状況
           </CardTitle>
           <Button variant="outline" size="sm" onClick={handleExport}>
@@ -276,13 +276,13 @@ function ManagerDashboard({ stats }: { stats: ManagerStats }) {
                 key={member.id}
                 className="flex items-center justify-between py-2"
               >
-                <span className="text-sm text-[#1E293B]">{member.name}</span>
+                <span className="text-sm text-foreground">{member.name}</span>
                 <Badge
                   variant={member.submitted ? "default" : "destructive"}
                   className={
                     member.submitted
-                      ? "bg-emerald-50 text-[#059669] hover:bg-emerald-50"
-                      : "bg-red-50 text-[#DC2626] hover:bg-red-50"
+                      ? "bg-emerald-50 text-success hover:bg-emerald-50"
+                      : "bg-red-50 text-danger hover:bg-red-50"
                   }
                 >
                   {member.submitted ? "提出済み" : "未提出"}
@@ -290,7 +290,7 @@ function ManagerDashboard({ stats }: { stats: ManagerStats }) {
               </div>
             ))}
             {stats.teamMembers.length === 0 && (
-              <p className="py-4 text-center text-sm text-[#64748B]">
+              <p className="py-4 text-center text-sm text-muted-foreground">
                 メンバーがいません
               </p>
             )}
@@ -302,23 +302,23 @@ function ManagerDashboard({ stats }: { stats: ManagerStats }) {
       {stats.weeklyTrends.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base text-[#0C025F]">
+            <CardTitle className="text-base text-primary">
               提出率推移（過去4週）
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={240}>
               <LineChart data={stats.weeklyTrends}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" />
                 <XAxis
                   dataKey="week"
-                  tick={{ fontSize: 12, fill: "#64748B" }}
-                  axisLine={{ stroke: "#e2e8f0" }}
+                  tick={{ fontSize: 12, fill: "#78716C" }}
+                  axisLine={{ stroke: "#E7E5E4" }}
                 />
                 <YAxis
                   domain={[0, 100]}
-                  tick={{ fontSize: 12, fill: "#64748B" }}
-                  axisLine={{ stroke: "#e2e8f0" }}
+                  tick={{ fontSize: 12, fill: "#78716C" }}
+                  axisLine={{ stroke: "#E7E5E4" }}
                   tickFormatter={(v: number) => `${v}%`}
                 />
                 <Tooltip
@@ -332,9 +332,9 @@ function ManagerDashboard({ stats }: { stats: ManagerStats }) {
                 <Line
                   type="monotone"
                   dataKey="rate"
-                  stroke="#2563EB"
+                  stroke="#0D9488"
                   strokeWidth={2}
-                  dot={{ r: 4, fill: "#2563EB" }}
+                  dot={{ r: 4, fill: "#0D9488" }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -362,12 +362,12 @@ function AdminDashboard({ stats }: { stats: AdminStats }) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-[#64748B]">
+            <CardTitle className="text-sm text-muted-foreground">
               総ユーザー数
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="font-mono text-3xl font-bold text-[#0C025F]">
+            <span className="font-mono text-3xl font-bold text-primary">
               {stats.totalUsers}
             </span>
           </CardContent>
@@ -375,12 +375,12 @@ function AdminDashboard({ stats }: { stats: AdminStats }) {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-[#64748B]">
+            <CardTitle className="text-sm text-muted-foreground">
               全体提出率
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="font-mono text-3xl font-bold text-[#0C025F]">
+            <span className="font-mono text-3xl font-bold text-primary">
               {stats.submissionRate}%
             </span>
           </CardContent>
@@ -388,12 +388,12 @@ function AdminDashboard({ stats }: { stats: AdminStats }) {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-[#64748B]">
+            <CardTitle className="text-sm text-muted-foreground">
               アクティブ案件
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="font-mono text-3xl font-bold text-[#2563EB]">
+            <span className="font-mono text-3xl font-bold text-accent-color">
               {stats.activeDeals}
             </span>
           </CardContent>
@@ -401,7 +401,7 @@ function AdminDashboard({ stats }: { stats: AdminStats }) {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-[#64748B]">
+            <CardTitle className="text-sm text-muted-foreground">
               乖離アラート
             </CardTitle>
           </CardHeader>
@@ -409,13 +409,13 @@ function AdminDashboard({ stats }: { stats: AdminStats }) {
             <span
               className={`font-mono text-3xl font-bold ${
                 stats.deviationAlerts.length > 0
-                  ? "text-[#D97706]"
-                  : "text-[#059669]"
+                  ? "text-warning"
+                  : "text-success"
               }`}
             >
               {stats.deviationAlerts.length}
             </span>
-            <span className="ml-1 text-sm text-[#64748B]">件</span>
+            <span className="ml-1 text-sm text-muted-foreground">件</span>
           </CardContent>
         </Card>
       </div>
@@ -423,7 +423,7 @@ function AdminDashboard({ stats }: { stats: AdminStats }) {
       {/* Teams overview */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base text-[#0C025F]">
+          <CardTitle className="text-base text-primary">
             チーム概要
           </CardTitle>
           <Button variant="outline" size="sm" onClick={handleExport}>
@@ -438,28 +438,28 @@ function AdminDashboard({ stats }: { stats: AdminStats }) {
                 className="flex items-center justify-between py-3"
               >
                 <div>
-                  <span className="text-sm font-medium text-[#1E293B]">
+                  <span className="text-sm font-medium text-foreground">
                     {team.name}
                   </span>
-                  <span className="ml-2 text-xs text-[#64748B]">
+                  <span className="ml-2 text-xs text-muted-foreground">
                     {team.memberCount}名
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-24 overflow-hidden rounded-full bg-[#DBEAFE]">
+                  <div className="h-2 w-24 overflow-hidden rounded-full bg-primary-muted">
                     <div
-                      className="h-full rounded-full bg-[#2563EB]"
+                      className="h-full rounded-full bg-accent-color"
                       style={{ width: `${team.submissionRate}%` }}
                     />
                   </div>
-                  <span className="w-12 text-right font-mono text-sm text-[#1E293B]">
+                  <span className="w-12 text-right font-mono text-sm text-foreground">
                     {team.submissionRate}%
                   </span>
                 </div>
               </div>
             ))}
             {stats.teamsOverview.length === 0 && (
-              <p className="py-4 text-center text-sm text-[#64748B]">
+              <p className="py-4 text-center text-sm text-muted-foreground">
                 チームが登録されていません
               </p>
             )}
@@ -471,7 +471,7 @@ function AdminDashboard({ stats }: { stats: AdminStats }) {
       {stats.deviationAlerts.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base text-[#D97706]">
+            <CardTitle className="text-base text-warning">
               乖離アラート
             </CardTitle>
           </CardHeader>
@@ -480,17 +480,17 @@ function AdminDashboard({ stats }: { stats: AdminStats }) {
               {stats.deviationAlerts.map((alert, i) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2"
+                  className="flex items-center justify-between rounded-lg border border-warning/30 bg-warning/5 px-3 py-2"
                 >
                   <div className="text-sm">
-                    <span className="font-medium text-[#1E293B]">
+                    <span className="font-medium text-foreground">
                       {alert.goalName}
                     </span>
-                    <span className="ml-2 text-[#64748B]">
+                    <span className="ml-2 text-muted-foreground">
                       ({alert.ownerName})
                     </span>
                   </div>
-                  <span className="font-mono text-sm font-semibold text-[#D97706]">
+                  <span className="font-mono text-sm font-semibold text-warning">
                     -{alert.deviation}%
                   </span>
                 </div>
@@ -504,7 +504,7 @@ function AdminDashboard({ stats }: { stats: AdminStats }) {
       {stats.funnelStages.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base text-[#0C025F]">
+            <CardTitle className="text-base text-primary">
               ファネル概要
             </CardTitle>
           </CardHeader>
@@ -536,8 +536,8 @@ export function DashboardClient({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#0C025F]">ダッシュボード</h1>
-        <p className="mt-1 text-sm text-[#64748B]">
+        <h1 className="text-2xl font-bold text-primary">ダッシュボード</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           {user.name}さん ({roleLabels[role]})
         </p>
       </div>
@@ -549,7 +549,7 @@ export function DashboardClient({
       {(role === "manager" || role === "admin" || role === "super_admin") &&
         managerStats && (
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-[#0C025F]">
+            <h2 className="text-lg font-bold text-primary">
               チーム管理
             </h2>
             <ManagerDashboard stats={managerStats} />
@@ -559,7 +559,7 @@ export function DashboardClient({
       {/* Admin view */}
       {(role === "admin" || role === "super_admin") && adminStats && (
         <div className="space-y-4">
-          <h2 className="text-lg font-bold text-[#0C025F]">
+          <h2 className="text-lg font-bold text-primary">
             全体管理
           </h2>
           <AdminDashboard stats={adminStats} />

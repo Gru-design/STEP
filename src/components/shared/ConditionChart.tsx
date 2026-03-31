@@ -34,8 +34,8 @@ function CustomTooltip({
   if (!active || !payload || payload.length === 0) return null;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
-      <p className="font-medium text-[#1E293B] mb-1">{label}</p>
+    <div className="rounded-lg border border-border bg-white px-3 py-2 text-sm">
+      <p className="font-medium text-foreground mb-1">{label}</p>
       {payload.map((entry) => (
         <p key={entry.dataKey} style={{ color: entry.color }}>
           {entry.dataKey === "individual" ? "個人" : "チーム平均"}:{" "}
@@ -49,7 +49,7 @@ function CustomTooltip({
 export function ConditionChart({ data }: ConditionChartProps) {
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[200px] text-sm text-[#64748B]">
+      <div className="flex items-center justify-center h-[200px] text-sm text-muted-foreground">
         モチベーションデータがありません
       </div>
     );
@@ -64,14 +64,14 @@ export function ConditionChart({ data }: ConditionChartProps) {
         <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
         <XAxis
           dataKey="date"
-          tick={{ fontSize: 12, fill: "#64748B" }}
+          tick={{ fontSize: 12, fill: "#78716C" }}
           tickLine={false}
           axisLine={{ stroke: "#E2E8F0" }}
         />
         <YAxis
           domain={[1, 5]}
           ticks={[1, 2, 3, 4, 5]}
-          tick={{ fontSize: 12, fill: "#64748B" }}
+          tick={{ fontSize: 12, fill: "#78716C" }}
           tickLine={false}
           axisLine={{ stroke: "#E2E8F0" }}
         />
@@ -85,9 +85,9 @@ export function ConditionChart({ data }: ConditionChartProps) {
         <Line
           type="monotone"
           dataKey="individual"
-          stroke="#2563EB"
+          stroke="#0D9488"
           strokeWidth={2}
-          dot={{ fill: "#2563EB", r: 3 }}
+          dot={{ fill: "#0D9488", r: 3 }}
           activeDot={{ r: 5 }}
           name="individual"
         />

@@ -24,10 +24,10 @@ const roleLabels: Record<Role, string> = {
 };
 
 const roleBadgeColors: Record<Role, string> = {
-  super_admin: "bg-[#DC2626] text-white",
-  admin: "bg-[#0C025F] text-white",
-  manager: "bg-[#2563EB] text-white",
-  member: "bg-[#F0F4FF] text-[#0C025F]",
+  super_admin: "bg-danger text-white",
+  admin: "bg-primary text-white",
+  manager: "bg-accent-color text-white",
+  member: "bg-muted text-primary",
 };
 
 interface KpiSummaryItem {
@@ -69,21 +69,21 @@ function ApprovalStatusBadge({ status }: { status: string }) {
   switch (status) {
     case "approved":
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-[#059669]">
+        <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-success">
           <CheckCircle className="h-3 w-3" />
           承認
         </span>
       );
     case "rejected":
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-[#DC2626]">
+        <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-danger">
           <XCircle className="h-3 w-3" />
           差戻し
         </span>
       );
     case "submitted":
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-[#2563EB]">
+        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-accent-color">
           <Clock className="h-3 w-3" />
           申請中
         </span>
@@ -105,18 +105,18 @@ function SubmissionRateBar({
   const percentage = Math.round(rate * 100);
   const barColor =
     percentage >= 80
-      ? "bg-[#059669]"
+      ? "bg-success"
       : percentage >= 50
-        ? "bg-[#D97706]"
-        : "bg-[#DC2626]";
+        ? "bg-warning"
+        : "bg-danger";
 
   return (
     <div>
       <div className="flex items-baseline justify-between mb-2">
-        <span className="text-2xl font-mono font-bold text-[#0C025F]">
+        <span className="text-2xl font-mono font-bold text-primary">
           {percentage}%
         </span>
-        <span className="text-sm text-[#64748B]">
+        <span className="text-sm text-muted-foreground">
           {submitted} / {expected} 日
         </span>
       </div>
@@ -172,10 +172,10 @@ export function OneOnOneClient({
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold text-[#0C025F]">1on1 アジェンダ</h1>
+          <h1 className="text-2xl font-bold text-primary">1on1 アジェンダ</h1>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-[#64748B]">{dateStr}</span>
+          <span className="text-sm text-muted-foreground">{dateStr}</span>
           <Button variant="outline" onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" />
             印刷
@@ -185,7 +185,7 @@ export function OneOnOneClient({
 
       {/* Print header (visible only in print) */}
       <div className="hidden print:block mb-4">
-        <h1 className="text-xl font-bold text-[#0C025F]">
+        <h1 className="text-xl font-bold text-primary">
           1on1 アジェンダ - {dateStr}
         </h1>
       </div>
@@ -193,7 +193,7 @@ export function OneOnOneClient({
       {/* Target Member */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold text-[#0C025F]">
+          <CardTitle className="text-sm font-semibold text-primary">
             対象メンバー
           </CardTitle>
         </CardHeader>
@@ -206,7 +206,7 @@ export function OneOnOneClient({
               </AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="text-lg font-semibold text-[#1E293B]">
+              <h3 className="text-lg font-semibold text-foreground">
                 {targetUser.name}
               </h3>
               <div className="flex items-center gap-2 mt-1">
@@ -216,9 +216,9 @@ export function OneOnOneClient({
                   {roleLabels[targetUser.role]}
                 </span>
                 {teamName && (
-                  <span className="text-xs text-[#64748B]">{teamName}</span>
+                  <span className="text-xs text-muted-foreground">{teamName}</span>
                 )}
-                <span className="text-xs text-[#64748B]">
+                <span className="text-xs text-muted-foreground">
                   Lv.{level} / {xp.toLocaleString()} XP
                 </span>
               </div>
@@ -227,7 +227,7 @@ export function OneOnOneClient({
                   href={targetUser.calendar_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 mt-2 text-sm text-[#2563EB] hover:underline print:hidden"
+                  className="inline-flex items-center gap-1 mt-2 text-sm text-accent-color hover:underline print:hidden"
                 >
                   <Calendar className="h-3.5 w-3.5" />
                   1on1予約リンク
@@ -243,22 +243,22 @@ export function OneOnOneClient({
         {/* KPI Summary */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-[#0C025F]">
+            <CardTitle className="text-sm font-semibold text-primary">
               今週のKPI
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             {kpiSummary.length === 0 ? (
-              <p className="text-sm text-[#64748B]">KPIデータがありません</p>
+              <p className="text-sm text-muted-foreground">KPIデータがありません</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-200">
-                      <th className="text-left py-2 font-medium text-[#64748B]">
+                    <tr className="border-b border-border">
+                      <th className="text-left py-2 font-medium text-muted-foreground">
                         項目
                       </th>
-                      <th className="text-right py-2 font-medium text-[#64748B]">
+                      <th className="text-right py-2 font-medium text-muted-foreground">
                         実績
                       </th>
                     </tr>
@@ -269,11 +269,11 @@ export function OneOnOneClient({
                         key={kpi.key}
                         className="border-b border-slate-100 last:border-0"
                       >
-                        <td className="py-2 text-[#1E293B]">{kpi.label}</td>
-                        <td className="py-2 text-right font-mono font-semibold text-[#0C025F]">
+                        <td className="py-2 text-foreground">{kpi.label}</td>
+                        <td className="py-2 text-right font-mono font-semibold text-primary">
                           {kpi.value.toLocaleString()}
                           {kpi.unit && (
-                            <span className="text-xs text-[#64748B] ml-0.5">
+                            <span className="text-xs text-muted-foreground ml-0.5">
                               {kpi.unit}
                             </span>
                           )}
@@ -290,7 +290,7 @@ export function OneOnOneClient({
         {/* Submission Rate */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-[#0C025F]">
+            <CardTitle className="text-sm font-semibold text-primary">
               提出状況
             </CardTitle>
           </CardHeader>
@@ -307,7 +307,7 @@ export function OneOnOneClient({
       {/* Motivation Chart */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold text-[#0C025F]">
+          <CardTitle className="text-sm font-semibold text-primary">
             モチベーション推移（過去4週間）
           </CardTitle>
         </CardHeader>
@@ -319,13 +319,13 @@ export function OneOnOneClient({
       {/* Approval History */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold text-[#0C025F]">
+          <CardTitle className="text-sm font-semibold text-primary">
             承認履歴
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
           {approvalHistory.length === 0 ? (
-            <p className="text-sm text-[#64748B]">承認履歴がありません</p>
+            <p className="text-sm text-muted-foreground">承認履歴がありません</p>
           ) : (
             <div className="space-y-3">
               {approvalHistory.map((item) => {
@@ -334,15 +334,15 @@ export function OneOnOneClient({
                 return (
                   <div
                     key={item.id}
-                    className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-[#F0F4FF] transition-colors"
+                    className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-muted transition-colors"
                   >
-                    <span className="text-xs text-[#64748B] font-mono w-12">
+                    <span className="text-xs text-muted-foreground font-mono w-12">
                       {dateLabel}
                     </span>
-                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-[#64748B]">
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-muted-foreground">
                       {item.type === "plan" ? "計画" : "案件"}
                     </span>
-                    <span className="flex-1 text-sm text-[#1E293B] truncate">
+                    <span className="flex-1 text-sm text-foreground truncate">
                       {item.title}
                     </span>
                     <ApprovalStatusBadge status={item.status} />
@@ -357,7 +357,7 @@ export function OneOnOneClient({
       {/* 1on1 Memo */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold text-[#0C025F]">
+          <CardTitle className="text-sm font-semibold text-primary">
             1on1メモ
           </CardTitle>
         </CardHeader>
@@ -366,9 +366,9 @@ export function OneOnOneClient({
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
             placeholder="1on1で話したいこと、確認事項などをメモしてください..."
-            className="w-full min-h-[120px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-[#1E293B] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-y"
+            className="w-full min-h-[120px] rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent resize-y"
           />
-          <p className="text-xs text-[#64748B] mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             メモはブラウザに自動保存されます
           </p>
         </CardContent>

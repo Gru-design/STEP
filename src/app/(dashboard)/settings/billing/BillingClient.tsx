@@ -92,7 +92,7 @@ export function BillingClient({
       return (
         <button
           disabled
-          className="w-full py-2 px-4 rounded-lg border border-slate-200 text-gray text-sm cursor-not-allowed"
+          className="w-full py-2 px-4 rounded-lg border border-border text-gray text-sm cursor-not-allowed"
         >
           現在のプラン
         </button>
@@ -103,7 +103,7 @@ export function BillingClient({
       return (
         <button
           disabled
-          className="w-full py-2 px-4 rounded-lg border border-slate-200 text-gray text-sm cursor-not-allowed"
+          className="w-full py-2 px-4 rounded-lg border border-border text-gray text-sm cursor-not-allowed"
         >
           ダウングレード
         </button>
@@ -132,7 +132,7 @@ export function BillingClient({
         className={`w-full py-2 px-4 rounded-lg text-sm transition-colors ${
           isUpgrade
             ? "bg-accent text-white hover:bg-accent/90"
-            : "border border-slate-200 text-dark hover:bg-mid-bg"
+            : "border border-border text-dark hover:bg-mid-bg"
         } ${loading === plan ? "opacity-50 cursor-wait" : ""}`}
       >
         {loading === plan
@@ -165,7 +165,7 @@ export function BillingClient({
               className={`border rounded-lg p-5 flex flex-col ${
                 isCurrent
                   ? "border-accent bg-blue-50/50"
-                  : "border-slate-200"
+                  : "border-border"
               }`}
             >
               {isCurrent && (
@@ -217,7 +217,7 @@ export function BillingClient({
 
       {/* Manage subscription button */}
       {currentPlan !== "free" && (
-        <div className="border border-slate-200 rounded-lg p-6 mb-10">
+        <div className="border border-border rounded-lg p-6 mb-10">
           <h3 className="font-bold text-navy mb-2">サブスクリプション管理</h3>
           <p className="text-sm text-gray mb-4">
             お支払い方法の変更、請求書の確認、サブスクリプションのキャンセルができます。
@@ -225,7 +225,7 @@ export function BillingClient({
           <button
             onClick={handleManageSubscription}
             disabled={loading !== null}
-            className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-dark hover:bg-mid-bg transition-colors"
+            className="px-4 py-2 rounded-lg border border-border text-sm text-dark hover:bg-mid-bg transition-colors"
           >
             {loading ? "処理中..." : "Stripe ポータルを開く"}
           </button>
@@ -234,10 +234,10 @@ export function BillingClient({
 
       {/* Feature comparison table */}
       <h2 className="text-lg font-bold text-navy mb-4">機能比較表</h2>
-      <div className="border border-slate-200 rounded-lg overflow-x-auto">
+      <div className="border border-border rounded-lg overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 bg-light-bg">
+            <tr className="border-b border-border bg-light-bg">
               <th className="text-left p-3 font-medium text-navy">機能</th>
               {PLAN_ORDER.map((plan) => (
                 <th
@@ -252,7 +252,7 @@ export function BillingClient({
             </tr>
           </thead>
           <tbody>
-            <tr className="border-b border-slate-200">
+            <tr className="border-b border-border">
               <td className="p-3 text-dark">最大ユーザー数</td>
               {PLAN_ORDER.map((plan) => (
                 <td
@@ -266,7 +266,7 @@ export function BillingClient({
               ))}
             </tr>
             {ALL_FEATURES.map((feature) => (
-              <tr key={feature} className="border-b border-slate-200 last:border-b-0">
+              <tr key={feature} className="border-b border-border last:border-b-0">
                 <td className="p-3 text-dark">
                   {FEATURE_DISPLAY_NAMES[feature] || feature}
                 </td>

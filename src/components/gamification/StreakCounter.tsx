@@ -7,7 +7,7 @@ interface StreakCounterProps {
 function getStreakColor(streak: number): string {
   if (streak >= 30) return "bg-red-100 text-red-700 border-red-300";
   if (streak >= 7) return "bg-orange-100 text-orange-700 border-orange-300";
-  return "bg-gray-100 text-[#64748B] border-gray-300";
+  return "bg-gray-100 text-muted-foreground border-gray-300";
 }
 
 export function StreakCounter({ streak }: StreakCounterProps) {

@@ -90,8 +90,8 @@ export default async function GoalsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#0C025F]">目標管理</h1>
-        <p className="text-sm text-[#64748B] mt-1">
+        <h1 className="text-2xl font-bold text-primary">目標管理</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           会社・部門・チーム・個人の目標をツリー構造で管理します
         </p>
       </div>

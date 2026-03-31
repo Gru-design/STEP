@@ -40,8 +40,8 @@ export default async function BadgeCatalogPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[#0C025F]">バッジカタログ</h1>
-        <span className="rounded-lg border border-slate-200 bg-[#F0F4FF] px-3 py-1.5 text-sm font-medium text-[#1E293B]">
+        <h1 className="text-2xl font-bold text-primary">バッジカタログ</h1>
+        <span className="rounded-lg border border-border bg-muted px-3 py-1.5 text-sm font-medium text-foreground">
           獲得済み: {earnedCount} / {totalCount}
         </span>
       </div>

@@ -59,7 +59,7 @@ function SectionRenderer({
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-base font-semibold text-[#0C025F]">
+        <h3 className="text-base font-semibold text-primary">
           {section.label}
         </h3>
         <Separator className="mt-2" />
@@ -96,9 +96,9 @@ function FieldRenderer({
 
   return (
     <div className="space-y-1.5">
-      <Label className="text-sm font-medium text-[#1E293B]">
+      <Label className="text-sm font-medium text-foreground">
         {field.label}
-        {field.required && <span className="ml-1 text-[#DC2626]">*</span>}
+        {field.required && <span className="ml-1 text-danger">*</span>}
       </Label>
       {renderField(field, value, onChange, readOnly)}
     </div>
@@ -123,7 +123,7 @@ function renderField(
           value={(value as string) ?? ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder={field.placeholder}
-          className="border-slate-200"
+          className="border-border"
         />
       );
 
@@ -134,7 +134,7 @@ function renderField(
           onChange={(e) => onChange(e.target.value)}
           placeholder={field.placeholder}
           rows={4}
-          className="border-slate-200"
+          className="border-border"
         />
       );
 
@@ -148,10 +148,10 @@ function renderField(
             placeholder={field.placeholder}
             min={field.min}
             max={field.max}
-            className="border-slate-200 font-mono"
+            className="border-border font-mono"
           />
           {field.unit && (
-            <span className="text-sm text-[#64748B] whitespace-nowrap">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
               {field.unit}
             </span>
           )}
@@ -163,7 +163,7 @@ function renderField(
         <select
           value={(value as string) ?? ""}
           onChange={(e) => onChange(e.target.value)}
-          className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-1"
+          className="flex h-10 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
         >
           <option value="">
             {field.placeholder ?? "選択してください"}
@@ -191,7 +191,7 @@ function renderField(
           type="date"
           value={(value as string) ?? ""}
           onChange={(e) => onChange(e.target.value)}
-          className="border-slate-200"
+          className="border-border"
         />
       );
 
@@ -206,7 +206,7 @@ function renderField(
 
     case "file":
       return (
-        <div className="flex items-center gap-2 rounded-lg border border-dashed border-slate-200 p-4">
+        <div className="flex items-center gap-2 rounded-lg border border-dashed border-border p-4">
           <Input
             type="file"
             onChange={() => {}}
@@ -222,7 +222,7 @@ function renderField(
           value={(value as string) ?? ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder={field.placeholder ?? "https://"}
-          className="border-slate-200"
+          className="border-border"
         />
       );
 
@@ -248,7 +248,7 @@ function ReadOnlyValue({
   value: unknown;
 }) {
   if (value === null || value === undefined || value === "") {
-    return <p className="text-sm text-[#64748B]">--</p>;
+    return <p className="text-sm text-muted-foreground">--</p>;
   }
 
   switch (field.type) {
@@ -261,12 +261,12 @@ function ReadOnlyValue({
               key={i}
               className={`h-5 w-5 ${
                 i < rating
-                  ? "fill-[#D97706] text-[#D97706]"
+                  ? "fill-[#D97706] text-warning"
                   : "text-slate-200"
               }`}
             />
           ))}
-          <span className="ml-2 text-sm font-mono text-[#1E293B]">
+          <span className="ml-2 text-sm font-mono text-foreground">
             {rating}/{field.max ?? 5}
           </span>
         </div>
@@ -280,7 +280,7 @@ function ReadOnlyValue({
           {items.map((item) => (
             <span
               key={item}
-              className="inline-flex items-center rounded-md border border-slate-200 bg-[#F0F4FF] px-2 py-0.5 text-xs text-[#0C025F]"
+              className="inline-flex items-center rounded-md border border-border bg-muted px-2 py-0.5 text-xs text-primary"
             >
               {item}
             </span>
@@ -291,17 +291,17 @@ function ReadOnlyValue({
 
     case "textarea":
       return (
-        <p className="text-sm text-[#1E293B] whitespace-pre-wrap">
+        <p className="text-sm text-foreground whitespace-pre-wrap">
           {value as string}
         </p>
       );
 
     case "number":
       return (
-        <p className="text-sm font-mono text-[#1E293B]">
+        <p className="text-sm font-mono text-foreground">
           {value as number}
           {field.unit && (
-            <span className="ml-1 text-[#64748B]">{field.unit}</span>
+            <span className="ml-1 text-muted-foreground">{field.unit}</span>
           )}
         </p>
       );
@@ -312,7 +312,7 @@ function ReadOnlyValue({
           href={value as string}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-[#2563EB] underline break-all"
+          className="text-sm text-accent-color underline break-all"
         >
           {value as string}
         </a>
@@ -321,21 +321,21 @@ function ReadOnlyValue({
     case "repeater": {
       const rows = value as Record<string, unknown>[];
       if (!rows || rows.length === 0) {
-        return <p className="text-sm text-[#64748B]">--</p>;
+        return <p className="text-sm text-muted-foreground">--</p>;
       }
       return (
         <div className="space-y-2">
           {rows.map((row, i) => (
             <div
               key={i}
-              className="rounded-lg border border-slate-200 p-3 space-y-1"
+              className="rounded-lg border border-border p-3 space-y-1"
             >
               {field.fields?.map((childField) => (
                 <div key={childField.key} className="flex items-baseline gap-2">
-                  <span className="text-xs text-[#64748B]">
+                  <span className="text-xs text-muted-foreground">
                     {childField.label}:
                   </span>
-                  <span className="text-sm text-[#1E293B]">
+                  <span className="text-sm text-foreground">
                     {String(row[childField.key] ?? "--")}
                   </span>
                 </div>
@@ -347,7 +347,7 @@ function ReadOnlyValue({
     }
 
     default:
-      return <p className="text-sm text-[#1E293B]">{String(value)}</p>;
+      return <p className="text-sm text-foreground">{String(value)}</p>;
   }
 }
 
@@ -376,9 +376,9 @@ function MultiCheckbox({
             type="checkbox"
             checked={value.includes(opt)}
             onChange={() => toggle(opt)}
-            className="h-4 w-4 rounded border-slate-200 text-[#2563EB] focus:ring-[#2563EB]"
+            className="h-4 w-4 rounded border-border text-accent-color focus:ring-ring"
           />
-          <span className="text-sm text-[#1E293B]">{opt}</span>
+          <span className="text-sm text-foreground">{opt}</span>
         </label>
       ))}
     </div>
@@ -403,19 +403,19 @@ function RatingInput({
             key={i}
             type="button"
             onClick={() => onChange(starValue === value ? 0 : starValue)}
-            className="rounded p-0.5 transition-colors hover:bg-[#F0F4FF]"
+            className="rounded p-0.5 transition-colors hover:bg-muted"
           >
             <Star
               className={`h-6 w-6 ${
                 i < value
-                  ? "fill-[#D97706] text-[#D97706]"
-                  : "text-slate-200 hover:text-[#D97706]"
+                  ? "fill-[#D97706] text-warning"
+                  : "text-slate-200 hover:text-warning"
               }`}
             />
           </button>
         );
       })}
-      <span className="ml-2 text-sm font-mono text-[#64748B]">
+      <span className="ml-2 text-sm font-mono text-muted-foreground">
         {value}/{max}
       </span>
     </div>
@@ -456,10 +456,10 @@ function RepeaterField({
       {value.map((row, index) => (
         <div
           key={index}
-          className="rounded-lg border border-slate-200 p-4 space-y-3"
+          className="rounded-lg border border-border p-4 space-y-3"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-[#64748B]">
+            <span className="text-xs font-medium text-muted-foreground">
               #{index + 1}
             </span>
             <Button
@@ -467,17 +467,17 @@ function RepeaterField({
               variant="ghost"
               size="sm"
               onClick={() => removeRow(index)}
-              className="h-7 w-7 p-0 text-[#DC2626] hover:text-[#DC2626] hover:bg-red-50"
+              className="h-7 w-7 p-0 text-danger hover:text-danger hover:bg-red-50"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
           {childFields.map((childField) => (
             <div key={childField.key} className="space-y-1.5">
-              <Label className="text-sm text-[#1E293B]">
+              <Label className="text-sm text-foreground">
                 {childField.label}
                 {childField.required && (
-                  <span className="ml-1 text-[#DC2626]">*</span>
+                  <span className="ml-1 text-danger">*</span>
                 )}
               </Label>
               {renderField(
@@ -495,7 +495,7 @@ function RepeaterField({
         variant="outline"
         size="sm"
         onClick={addRow}
-        className="border-slate-200"
+        className="border-border"
       >
         <Plus className="mr-1 h-4 w-4" />
         行を追加

@@ -47,10 +47,10 @@ const levelLabels: Record<GoalLevel, string> = {
 };
 
 const levelColors: Record<GoalLevel, string> = {
-  company: "bg-[#0C025F] text-white",
-  department: "bg-[#2563EB] text-white",
-  team: "bg-[#059669] text-white",
-  individual: "bg-[#D97706] text-white",
+  company: "bg-primary text-white",
+  department: "bg-accent-color text-white",
+  team: "bg-success text-white",
+  individual: "bg-warning text-white",
 };
 
 interface GoalNode extends Goal {
@@ -126,7 +126,7 @@ function GoalNodeRow({
   return (
     <>
       <div
-        className="flex items-center gap-2 py-2 px-3 border-b border-slate-200 hover:bg-[#F0F4FF] transition-colors"
+        className="flex items-center gap-2 py-2 px-3 border-b border-border hover:bg-muted transition-colors"
         style={{ paddingLeft: `${depth * 24 + 12}px` }}
       >
         {/* Expand/collapse */}
@@ -137,9 +137,9 @@ function GoalNodeRow({
         >
           {hasChildren ? (
             expanded ? (
-              <ChevronDown className="h-4 w-4 text-[#64748B]" />
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
             ) : (
-              <ChevronRight className="h-4 w-4 text-[#64748B]" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
             )
           ) : (
             <span className="w-4" />
@@ -154,7 +154,7 @@ function GoalNodeRow({
         </span>
 
         {/* Name */}
-        <span className="text-sm font-medium text-[#1E293B] truncate flex-1 min-w-0">
+        <span className="text-sm font-medium text-foreground truncate flex-1 min-w-0">
           {node.name}
         </span>
 
@@ -164,28 +164,28 @@ function GoalNodeRow({
             <div
               className={`h-full rounded-full transition-all ${
                 progressRate >= 100
-                  ? "bg-[#059669]"
+                  ? "bg-success"
                   : progressRate >= 50
-                    ? "bg-[#2563EB]"
-                    : "bg-[#D97706]"
+                    ? "bg-accent-color"
+                    : "bg-warning"
               }`}
               style={{ width: `${Math.min(progressRate, 100)}%` }}
             />
           </div>
-          <span className="text-xs text-[#64748B] font-mono w-12 text-right">
+          <span className="text-xs text-muted-foreground font-mono w-12 text-right">
             {progressRate.toFixed(1)}%
           </span>
         </div>
 
         {/* Values */}
-        <span className="text-xs text-[#64748B] font-mono shrink-0 w-24 text-right">
+        <span className="text-xs text-muted-foreground font-mono shrink-0 w-24 text-right">
           {actualValue} / {targetValue}
         </span>
 
         {/* Delete */}
         <button
           onClick={() => onDelete(node.id)}
-          className="text-[#64748B] hover:text-[#DC2626] p-1 shrink-0"
+          className="text-muted-foreground hover:text-danger p-1 shrink-0"
           title="削除"
         >
           <Trash2 className="h-4 w-4" />
@@ -262,14 +262,14 @@ export function GoalsTreeView({
   };
 
   return (
-    <div className="border border-slate-200 rounded-lg overflow-hidden">
+    <div className="border border-border rounded-lg overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-[#F0F4FF]">
-        <h2 className="text-sm font-semibold text-[#0C025F]">目標ツリー</h2>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted">
+        <h2 className="text-sm font-semibold text-primary">目標ツリー</h2>
         {canCreate && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" className="bg-[#0C025F] hover:bg-[#0C025F]/90">
+              <Button size="sm" className="bg-primary hover:bg-primary/90">
                 <Plus className="h-4 w-4 mr-1" />
                 目標作成
               </Button>
@@ -326,7 +326,7 @@ export function GoalsTreeView({
                     name="kpi_field_key"
                     placeholder="例: recommendation_count"
                   />
-                  <p className="text-xs text-[#64748B]">
+                  <p className="text-xs text-muted-foreground">
                     日報テンプレートのフィールドキーを指定すると自動集計されます
                   </p>
                 </div>
@@ -422,7 +422,7 @@ export function GoalsTreeView({
                 </div>
 
                 {error && (
-                  <p className="text-sm text-[#DC2626]">{error}</p>
+                  <p className="text-sm text-danger">{error}</p>
                 )}
 
                 <div className="flex justify-end gap-2 pt-2">
@@ -436,7 +436,7 @@ export function GoalsTreeView({
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="bg-[#0C025F] hover:bg-[#0C025F]/90"
+                    className="bg-primary hover:bg-primary/90"
                   >
                     {isSubmitting ? "作成中..." : "作成"}
                   </Button>
@@ -448,7 +448,7 @@ export function GoalsTreeView({
       </div>
 
       {/* Column headers */}
-      <div className="flex items-center gap-2 py-2 px-3 border-b border-slate-200 bg-slate-50 text-xs text-[#64748B] font-medium">
+      <div className="flex items-center gap-2 py-2 px-3 border-b border-border bg-slate-50 text-xs text-muted-foreground font-medium">
         <span className="flex-1 pl-8">目標名</span>
         <span className="w-48 text-center">進捗</span>
         <span className="w-24 text-right">実績 / 目標</span>
@@ -457,7 +457,7 @@ export function GoalsTreeView({
 
       {/* Tree */}
       {tree.length === 0 ? (
-        <div className="py-12 text-center text-sm text-[#64748B]">
+        <div className="py-12 text-center text-sm text-muted-foreground">
           目標がまだ作成されていません
         </div>
       ) : (

@@ -26,10 +26,10 @@ const typeLabels: Record<TemplateType, string> = {
 };
 
 const typeBadgeColors: Record<TemplateType, string> = {
-  daily: "bg-[#2563EB] text-white border-transparent",
-  weekly: "bg-[#059669] text-white border-transparent",
-  plan: "bg-[#D97706] text-white border-transparent",
-  checkin: "bg-[#0C025F] text-white border-transparent",
+  daily: "bg-accent-color text-white border-transparent",
+  weekly: "bg-success text-white border-transparent",
+  plan: "bg-warning text-white border-transparent",
+  checkin: "bg-primary text-white border-transparent",
 };
 
 function formatDate(dateStr: string) {
@@ -78,8 +78,8 @@ export function TemplateListClient({ templates }: TemplateListClientProps) {
   return (
     <>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[#0C025F]">テンプレート管理</h1>
-        <Button asChild className="bg-[#0C025F] text-white hover:bg-[#0C025F]/90">
+        <h1 className="text-2xl font-bold text-primary">テンプレート管理</h1>
+        <Button asChild className="bg-primary text-white hover:bg-primary/90">
           <Link href="/settings/templates/new">
             <Plus className="mr-2 h-4 w-4" />
             新規作成
@@ -98,8 +98,8 @@ export function TemplateListClient({ templates }: TemplateListClientProps) {
 
         <TabsContent value={activeTab} className="mt-4">
           {filteredTemplates.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-slate-200 bg-[#F0F4FF] py-12">
-              <p className="text-[#64748B]">テンプレートがありません</p>
+            <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-muted py-12">
+              <p className="text-muted-foreground">テンプレートがありません</p>
               <Button asChild variant="outline" className="mt-4">
                 <Link href="/settings/templates/new">
                   <Plus className="mr-2 h-4 w-4" />
@@ -113,7 +113,7 @@ export function TemplateListClient({ templates }: TemplateListClientProps) {
                 <Card key={template.id}>
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-base font-semibold text-[#1E293B] line-clamp-1">
+                      <CardTitle className="text-base font-semibold text-foreground line-clamp-1">
                         {template.name}
                       </CardTitle>
                       <div className="flex shrink-0 gap-1.5">
@@ -126,7 +126,7 @@ export function TemplateListClient({ templates }: TemplateListClientProps) {
                           variant={template.is_published ? "default" : "outline"}
                           className={
                             template.is_published
-                              ? "bg-[#059669] text-white border-transparent"
+                              ? "bg-success text-white border-transparent"
                               : ""
                           }
                         >
@@ -136,7 +136,7 @@ export function TemplateListClient({ templates }: TemplateListClientProps) {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center gap-3 text-xs text-[#64748B]">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>v{template.version}</span>
                       <span>作成: {formatDate(template.created_at)}</span>
                     </div>
@@ -186,7 +186,7 @@ export function TemplateListClient({ templates }: TemplateListClientProps) {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 text-xs text-[#DC2626] hover:text-[#DC2626]"
+                        className="h-8 text-xs text-danger hover:text-danger"
                         disabled={isPending}
                         onClick={() => setDeleteTarget(template)}
                       >
@@ -225,7 +225,7 @@ export function TemplateListClient({ templates }: TemplateListClientProps) {
               キャンセル
             </Button>
             <Button
-              className="bg-[#DC2626] text-white hover:bg-[#DC2626]/90"
+              className="bg-danger text-white hover:bg-danger/90"
               onClick={handleDelete}
               disabled={isPending}
             >

@@ -265,12 +265,12 @@ export function TemplateBuilder({
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold text-[#0C025F]">
+          <h2 className="text-lg font-semibold text-primary">
             {templateName}
           </h2>
-          <span className="rounded-full bg-[#F0F4FF] px-2.5 py-0.5 text-xs font-medium text-[#0C025F]">
+          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-primary">
             {TEMPLATE_TYPE_LABELS[templateType]}
           </span>
         </div>
@@ -295,7 +295,7 @@ export function TemplateBuilder({
 
       {/* Tabs: Builder / Preview */}
       <Tabs defaultValue="builder" className="flex flex-1 flex-col overflow-hidden">
-        <div className="border-b border-slate-200 px-4 pt-2">
+        <div className="border-b border-border px-4 pt-2">
           <TabsList>
             <TabsTrigger value="builder">ビルダー</TabsTrigger>
             <TabsTrigger value="preview">プレビュー</TabsTrigger>
@@ -311,7 +311,7 @@ export function TemplateBuilder({
           >
             <div className="flex h-full">
               {/* Left Panel - Field Palette */}
-              <div className="hidden w-56 shrink-0 overflow-y-auto border-r border-slate-200 p-3 md:block">
+              <div className="hidden w-56 shrink-0 overflow-y-auto border-r border-border p-3 md:block">
                 <FieldPalette onAddField={handleAddField} />
               </div>
 
@@ -343,11 +343,11 @@ export function TemplateBuilder({
                   ))}
 
                   {sections.length === 0 && (
-                    <div className="rounded-lg border-2 border-dashed border-slate-200 px-4 py-12 text-center">
-                      <p className="mb-2 text-sm text-[#64748B]">
+                    <div className="rounded-lg border-2 border-dashed border-border px-4 py-12 text-center">
+                      <p className="mb-2 text-sm text-muted-foreground">
                         まだセクションがありません
                       </p>
-                      <p className="text-xs text-[#64748B]">
+                      <p className="text-xs text-muted-foreground">
                         下のボタンでセクションを追加するか、左パネルからフィールドを追加してください
                       </p>
                     </div>
@@ -366,7 +366,7 @@ export function TemplateBuilder({
               </div>
 
               {/* Right Panel - Field Properties (desktop) */}
-              <div className="hidden w-72 shrink-0 overflow-y-auto border-l border-slate-200 p-3 lg:block">
+              <div className="hidden w-72 shrink-0 overflow-y-auto border-l border-border p-3 lg:block">
                 <FieldProperties
                   field={selectedField}
                   onUpdate={handleUpdateField}
@@ -381,18 +381,18 @@ export function TemplateBuilder({
         <TabsContent value="preview" className="flex-1 overflow-y-auto m-0 p-4">
           <div className="mx-auto max-w-2xl space-y-6">
             {sections.length === 0 ? (
-              <div className="rounded-lg border-2 border-dashed border-slate-200 px-4 py-12 text-center">
-                <p className="text-sm text-[#64748B]">
+              <div className="rounded-lg border-2 border-dashed border-border px-4 py-12 text-center">
+                <p className="text-sm text-muted-foreground">
                   フィールドを追加するとプレビューが表示されます
                 </p>
               </div>
             ) : (
               sections.map((section) => (
                 <div key={section.id} className="space-y-4">
-                  <h3 className="text-base font-semibold text-[#0C025F]">
+                  <h3 className="text-base font-semibold text-primary">
                     {section.label}
                   </h3>
-                  <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4">
+                  <div className="space-y-4 rounded-lg border border-border bg-white p-4">
                     {section.fields.map((field) => (
                       <FieldRenderer
                         key={field.key}
@@ -401,7 +401,7 @@ export function TemplateBuilder({
                       />
                     ))}
                     {section.fields.length === 0 && (
-                      <p className="text-sm text-[#64748B]">
+                      <p className="text-sm text-muted-foreground">
                         フィールドがありません
                       </p>
                     )}

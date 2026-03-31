@@ -101,8 +101,8 @@ export function SettingsForm({ tenant }: SettingsFormProps) {
                 ))}
               </SelectContent>
             </Select>
-            <div className="rounded-lg border border-slate-200 bg-[#F0F4FF] p-3">
-              <p className="text-sm text-[#1E293B]">
+            <div className="rounded-lg border border-border bg-muted p-3">
+              <p className="text-sm text-foreground">
                 {visibilityOptions.find((o) => o.value === visibility)
                   ?.description ?? ""}
               </p>
@@ -113,8 +113,8 @@ export function SettingsForm({ tenant }: SettingsFormProps) {
             <p
               className={`text-sm ${
                 message.type === "success"
-                  ? "text-[#059669]"
-                  : "text-[#DC2626]"
+                  ? "text-success"
+                  : "text-danger"
               }`}
             >
               {message.text}

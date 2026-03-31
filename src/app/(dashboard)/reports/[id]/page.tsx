@@ -56,11 +56,11 @@ export default async function ReportDetailPage({
   const statusLabels: Record<string, { label: string; color: string }> = {
     draft: {
       label: "下書き",
-      color: "text-[#D97706] border-[#D97706]",
+      color: "text-warning border-warning",
     },
     submitted: {
       label: "提出済み",
-      color: "text-[#059669] border-[#059669]",
+      color: "text-success border-success",
     },
   };
 
@@ -78,14 +78,14 @@ export default async function ReportDetailPage({
         </Avatar>
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl font-bold text-[#0C025F]">
+            <h1 className="text-xl font-bold text-primary">
               {user.name as string}
             </h1>
             <Badge variant="outline" className={statusInfo.color}>
               {statusInfo.label}
             </Badge>
           </div>
-          <div className="mt-1 flex items-center gap-3 text-sm text-[#64748B]">
+          <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
             <span>{entry.report_date as string}</span>
             <span>{template.name as string}</span>
           </div>
@@ -95,9 +95,9 @@ export default async function ReportDetailPage({
       <Separator />
 
       {/* Report content */}
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardHeader className="pb-2">
-          <h2 className="text-base font-semibold text-[#0C025F]">
+          <h2 className="text-base font-semibold text-primary">
             {template.name as string}
           </h2>
         </CardHeader>
@@ -112,7 +112,7 @@ export default async function ReportDetailPage({
       </Card>
 
       {/* Reactions */}
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardContent className="p-4">
           <ReactionBar
             entryId={id}

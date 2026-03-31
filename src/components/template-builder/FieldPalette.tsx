@@ -44,7 +44,7 @@ interface FieldPaletteProps {
 export function FieldPalette({ onAddField }: FieldPaletteProps) {
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-[#0C025F]">フィールド</h3>
+      <h3 className="text-sm font-semibold text-primary">フィールド</h3>
       <div className="grid grid-cols-2 gap-2">
         {FIELD_TYPES.map(({ type, icon: Icon, label }) => (
           <button
@@ -52,10 +52,10 @@ export function FieldPalette({ onAddField }: FieldPaletteProps) {
             type="button"
             onClick={() => onAddField(type)}
             className={cn(
-              "flex flex-col items-center gap-1.5 rounded-lg border border-slate-200 bg-white p-3",
-              "text-[#1E293B] transition-colors",
-              "hover:border-[#2563EB] hover:bg-[#F0F4FF] hover:text-[#2563EB]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0C025F] focus-visible:ring-offset-2"
+              "flex flex-col items-center gap-1.5 rounded-lg border border-border bg-white p-3",
+              "text-foreground transition-colors",
+              "hover:border-accent-color hover:bg-muted hover:text-accent-color",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             )}
           >
             <Icon className="h-5 w-5" />

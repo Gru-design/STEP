@@ -69,7 +69,7 @@ export default async function DealDetailPage({ params }: PageProps) {
     <div className="space-y-4">
       <Link
         href="/deals"
-        className="inline-flex items-center text-sm text-[#2563EB] hover:underline"
+        className="inline-flex items-center text-sm text-accent-color hover:underline"
       >
         ← 案件一覧に戻る
       </Link>

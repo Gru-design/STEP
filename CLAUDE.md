@@ -93,19 +93,25 @@ step/
 
 ## デザインシステム
 
-### カラー
+### カラー (Split-Complementary / 60-30-10)
 
-| 名前 | HEX | 用途 |
-|------|------|------|
-| Navy | #0C025F | プライマリ、ヘッダー、見出し |
-| Accent | #2563EB | リンク、ボタン、アクセント |
-| Light BG | #F0F4FF | カード背景、セクション背景 |
-| Mid BG | #DBEAFE | ホバー、選択状態 |
-| Dark | #1E293B | 本文テキスト |
-| Gray | #64748B | サブテキスト、プレースホルダー |
-| Success | #059669 | 成功、目標達成 |
-| Warning | #D97706 | 警告、注意 |
-| Danger | #DC2626 | エラー、アラート |
+**デザイン理論**: Teal を軸にした Split-Complementary 配色。温かみのある Stone 系ニュートラルで軽やかさを演出。
+
+| 名前 | HEX | CSS変数 | 用途 |
+|------|------|---------|------|
+| Primary | #0D9488 | `--color-primary` | ボタン、見出し、ナビ active |
+| Primary Hover | #0F766E | `--color-primary-hover` | ホバー状態 |
+| Primary Light | #CCFBF1 | `--color-primary-light` | 選択背景、active 背景 |
+| Primary Muted | #99F6E4 | `--color-primary-muted` | プログレスバー背景 |
+| Accent | #F97316 | `--color-accent-color` | CTA、通知、ゲーミフィケーション |
+| Background | #FFFFFF | `--color-background` | ページ背景 |
+| Muted | #F5F5F4 | `--color-muted` | セクション背景、ホバー |
+| Border | #E7E5E4 | `--color-border` | ボーダー |
+| Foreground | #1C1917 | `--color-foreground` | 本文テキスト |
+| Muted FG | #78716C | `--color-muted-foreground` | サブテキスト |
+| Success | #16A34A | `--color-success` | 成功、目標達成 |
+| Warning | #D97706 | `--color-warning` | 警告、注意 |
+| Danger | #DC2626 | `--color-danger` | エラー、アラート |
 
 ### タイポグラフィ
 
@@ -115,9 +121,9 @@ step/
 
 ### UIルール
 
-- シャドウは使用しない。ボーダー (border-slate-200) で階層を表現
-- カードは角丸 rounded-lg + border
-- ボタンはプライマリ (Navy) とセカンダリ (outline)
+- カードは `rounded-xl` + `border-border` + `shadow-sm` で軽やかな奥行き
+- ボタンは `rounded-xl` + `h-11` (44px タップターゲット)
+- `text-primary` / `text-muted-foreground` 等の CSS 変数クラスを使用（ハードコード hex 禁止）
 - モバイルファースト設計。ブレークポイント: sm:640 md:768 lg:1024
 
 ## データベース設計原則

@@ -29,7 +29,7 @@ export default async function TemplatesPage() {
   if (!["admin", "super_admin"].includes(user.role)) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-[#DC2626] font-medium">
+        <p className="text-danger font-medium">
           アクセス権限がありません
         </p>
       </div>

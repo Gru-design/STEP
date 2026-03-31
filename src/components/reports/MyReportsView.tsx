@@ -29,7 +29,7 @@ export function MyReportsView({ entries }: MyReportsViewProps) {
       <ContributionHeatmap entries={entries} />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="border border-slate-200 bg-white">
+        <TabsList className="border border-border bg-white">
           <TabsTrigger value="calendar" className="gap-1.5">
             <CalendarDays className="h-4 w-4" />
             カレンダー
@@ -90,9 +90,9 @@ function ContributionHeatmap({ entries }: { entries: MyReportEntry[] }) {
   }
 
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardContent className="p-4">
-        <p className="text-sm font-medium text-[#1E293B] mb-3">
+        <p className="text-sm font-medium text-foreground mb-3">
           提出状況 (過去90日)
         </p>
         <div className="flex gap-1 overflow-x-auto pb-2">
@@ -108,7 +108,7 @@ function ContributionHeatmap({ entries }: { entries: MyReportEntry[] }) {
             </div>
           ))}
         </div>
-        <div className="mt-2 flex items-center gap-2 text-xs text-[#64748B]">
+        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
           <span>少</span>
           <div className="h-3 w-3 rounded-sm bg-slate-100" />
           <div className="h-3 w-3 rounded-sm bg-emerald-200" />
@@ -167,21 +167,21 @@ function CalendarView({
   const weekDays = ["日", "月", "火", "水", "木", "金", "土"];
 
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={prevMonth}
-            className="text-sm text-[#2563EB] hover:underline"
+            className="text-sm text-accent-color hover:underline"
           >
             前月
           </button>
-          <span className="text-sm font-semibold text-[#0C025F]">
+          <span className="text-sm font-semibold text-primary">
             {monthLabel}
           </span>
           <button
             onClick={nextMonth}
-            className="text-sm text-[#2563EB] hover:underline"
+            className="text-sm text-accent-color hover:underline"
           >
             翌月
           </button>
@@ -191,7 +191,7 @@ function CalendarView({
           {weekDays.map((d) => (
             <div
               key={d}
-              className="text-center text-xs font-medium text-[#64748B] pb-1"
+              className="text-center text-xs font-medium text-muted-foreground pb-1"
             >
               {d}
             </div>
@@ -225,16 +225,16 @@ function CalendarView({
                 disabled={dayEntries.length === 0}
                 className={`relative flex h-10 items-center justify-center rounded-lg text-sm transition-colors ${
                   dayEntries.length > 0
-                    ? "cursor-pointer hover:bg-[#F0F4FF]"
+                    ? "cursor-pointer hover:bg-muted"
                     : "cursor-default"
                 }`}
               >
-                <span className="text-[#1E293B]">{day}</span>
+                <span className="text-foreground">{day}</span>
                 {hasSubmitted && (
-                  <span className="absolute bottom-1 h-1.5 w-1.5 rounded-full bg-[#059669]" />
+                  <span className="absolute bottom-1 h-1.5 w-1.5 rounded-full bg-success" />
                 )}
                 {!hasSubmitted && hasDraft && (
-                  <span className="absolute bottom-1 h-1.5 w-1.5 rounded-full bg-[#D97706]" />
+                  <span className="absolute bottom-1 h-1.5 w-1.5 rounded-full bg-warning" />
                 )}
               </button>
             );
@@ -256,19 +256,19 @@ function ListView({
     draft: {
       label: "下書き",
       variant: "outline",
-      className: "text-[#D97706] border-[#D97706]",
+      className: "text-warning border-warning",
     },
     submitted: {
       label: "提出済み",
       variant: "outline",
-      className: "text-[#059669] border-[#059669]",
+      className: "text-success border-success",
     },
   };
 
   if (entries.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
-        <p className="text-sm text-[#64748B]">日報がまだありません</p>
+        <p className="text-sm text-muted-foreground">日報がまだありません</p>
       </div>
     );
   }
@@ -280,15 +280,15 @@ function ListView({
         return (
           <Card
             key={entry.id}
-            className="cursor-pointer border-slate-200 transition-colors hover:bg-[#F0F4FF]"
+            className="cursor-pointer border-border transition-colors hover:bg-muted"
             onClick={() => onClickEntry(entry.id)}
           >
             <CardContent className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
-                <span className="text-sm font-mono text-[#1E293B]">
+                <span className="text-sm font-mono text-foreground">
                   {entry.report_date}
                 </span>
-                <span className="text-sm text-[#64748B]">
+                <span className="text-sm text-muted-foreground">
                   {entry.template_name}
                 </span>
               </div>

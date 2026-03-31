@@ -57,8 +57,8 @@ export default async function MyReportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#0C025F]">マイ日報</h1>
-        <p className="mt-1 text-sm text-[#64748B]">
+        <h1 className="text-2xl font-bold text-primary">マイ日報</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           自分の日報の提出状況を確認できます
         </p>
       </div>

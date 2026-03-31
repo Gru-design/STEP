@@ -58,7 +58,7 @@ export default function LoginPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-[#0C025F]">ログイン</CardTitle>
+        <CardTitle className="text-primary">ログイン</CardTitle>
         <CardDescription>
           メールアドレスとパスワードを入力してください。
         </CardDescription>
@@ -66,7 +66,7 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
           {error && (
-            <div className="rounded-lg border border-[#DC2626]/20 bg-[#DC2626]/5 px-4 py-3 text-sm text-[#DC2626]">
+            <div className="rounded-lg border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
               {error}
             </div>
           )}
@@ -97,7 +97,7 @@ export default function LoginPage() {
           <div className="text-right">
             <Link
               href="/forgot-password"
-              className="text-sm text-[#2563EB] hover:underline"
+              className="text-sm text-accent-color hover:underline"
             >
               パスワードを忘れた方
             </Link>
@@ -107,11 +107,11 @@ export default function LoginPage() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "ログイン中..." : "ログイン"}
           </Button>
-          <p className="text-center text-sm text-[#64748B]">
+          <p className="text-center text-sm text-muted-foreground">
             アカウントをお持ちでない方は{" "}
             <Link
               href="/signup"
-              className="text-[#2563EB] hover:underline"
+              className="text-accent-color hover:underline"
             >
               アカウントを作成
             </Link>

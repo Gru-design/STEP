@@ -21,7 +21,7 @@ export function FieldProperties({
   if (!field) {
     return (
       <div className="flex h-full items-center justify-center p-4">
-        <p className="text-sm text-[#64748B]">フィールドを選択してください</p>
+        <p className="text-sm text-muted-foreground">フィールドを選択してください</p>
       </div>
     );
   }
@@ -37,7 +37,7 @@ export function FieldProperties({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-[#0C025F]">
+      <h3 className="text-sm font-semibold text-primary">
         フィールド設定
       </h3>
 
@@ -45,7 +45,7 @@ export function FieldProperties({
 
       {/* Label */}
       <div className="space-y-1.5">
-        <Label className="text-xs text-[#64748B]">ラベル</Label>
+        <Label className="text-xs text-muted-foreground">ラベル</Label>
         <Input
           value={field.label}
           onChange={(e) => update({ label: e.target.value })}
@@ -53,19 +53,19 @@ export function FieldProperties({
       </div>
 
       {/* Required */}
-      <label className="flex items-center gap-2 text-sm text-[#1E293B]">
+      <label className="flex items-center gap-2 text-sm text-foreground">
         <input
           type="checkbox"
           checked={field.required}
           onChange={(e) => update({ required: e.target.checked })}
-          className="h-4 w-4 rounded border-slate-300 text-[#2563EB] focus:ring-[#0C025F]"
+          className="h-4 w-4 rounded border-slate-300 text-accent-color focus:ring-ring"
         />
         必須フィールド
       </label>
 
       {/* Placeholder */}
       <div className="space-y-1.5">
-        <Label className="text-xs text-[#64748B]">プレースホルダー</Label>
+        <Label className="text-xs text-muted-foreground">プレースホルダー</Label>
         <Input
           value={field.placeholder ?? ""}
           onChange={(e) =>
@@ -78,7 +78,7 @@ export function FieldProperties({
       {/* Unit (number only) */}
       {showUnit && (
         <div className="space-y-1.5">
-          <Label className="text-xs text-[#64748B]">単位</Label>
+          <Label className="text-xs text-muted-foreground">単位</Label>
           <Input
             value={field.unit ?? ""}
             onChange={(e) => update({ unit: e.target.value || undefined })}
@@ -91,7 +91,7 @@ export function FieldProperties({
       {showMinMax && (
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1.5">
-            <Label className="text-xs text-[#64748B]">最小値</Label>
+            <Label className="text-xs text-muted-foreground">最小値</Label>
             <Input
               type="number"
               value={field.min ?? ""}
@@ -103,7 +103,7 @@ export function FieldProperties({
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-[#64748B]">最大値</Label>
+            <Label className="text-xs text-muted-foreground">最大値</Label>
             <Input
               type="number"
               value={field.max ?? ""}
@@ -120,7 +120,7 @@ export function FieldProperties({
       {/* Options (select) */}
       {showOptions && (
         <div className="space-y-2">
-          <Label className="text-xs text-[#64748B]">選択肢</Label>
+          <Label className="text-xs text-muted-foreground">選択肢</Label>
           <div className="space-y-1.5">
             {(field.options ?? []).map((option, index) => (
               <div key={index} className="flex items-center gap-1.5">
@@ -141,7 +141,7 @@ export function FieldProperties({
                     );
                     update({ options: updated });
                   }}
-                  className="shrink-0 rounded p-1 text-[#64748B] transition-colors hover:bg-red-50 hover:text-[#DC2626]"
+                  className="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-red-50 hover:text-danger"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -171,7 +171,7 @@ export function FieldProperties({
         type="button"
         variant="outline"
         onClick={onDelete}
-        className="w-full border-[#DC2626] text-[#DC2626] hover:bg-red-50 hover:text-[#DC2626]"
+        className="w-full border-danger text-danger hover:bg-red-50 hover:text-danger"
       >
         <Trash2 className="mr-1.5 h-4 w-4" />
         フィールドを削除

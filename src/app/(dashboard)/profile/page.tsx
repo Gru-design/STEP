@@ -130,7 +130,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-[#64748B]">読み込み中...</p>
+        <p className="text-muted-foreground">読み込み中...</p>
       </div>
     );
   }
@@ -138,7 +138,7 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-[#DC2626]">
+        <p className="text-danger">
           ユーザー情報の取得に失敗しました
         </p>
       </div>
@@ -147,7 +147,7 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold text-[#0C025F]">プロフィール</h1>
+      <h1 className="text-2xl font-bold text-primary">プロフィール</h1>
 
       {/* Gamification Section */}
       <Card>
@@ -157,7 +157,7 @@ export default function ProfilePage() {
               {levelData ? (
                 <LevelBadge level={levelData.level} xp={levelData.xp} />
               ) : (
-                <span className="text-sm text-[#64748B]">Lv.1 - 0 XP</span>
+                <span className="text-sm text-muted-foreground">Lv.1 - 0 XP</span>
               )}
             </div>
             <StreakCounter streak={streak} />
@@ -165,7 +165,7 @@ export default function ProfilePage() {
 
           {earnedBadges.length > 0 && (
             <div>
-              <h3 className="mb-2 text-sm font-medium text-[#1E293B]">獲得バッジ</h3>
+              <h3 className="mb-2 text-sm font-medium text-foreground">獲得バッジ</h3>
               <BadgeDisplay badges={earnedBadges} />
             </div>
           )}
@@ -196,7 +196,7 @@ export default function ProfilePage() {
                 value={user.email}
                 readOnly
                 disabled
-                className="bg-[#F0F4FF]"
+                className="bg-muted"
               />
             </div>
 
@@ -230,7 +230,7 @@ export default function ProfilePage() {
                 defaultValue={user.calendar_url ?? ""}
                 placeholder="https://calendly.com/your-name"
               />
-              <p className="text-xs text-[#64748B]">
+              <p className="text-xs text-muted-foreground">
                 CalendlyやGoogle
                 Calendarの予約ページURLを設定すると、プロフィールカードから1on1の予約ができます
               </p>
@@ -251,8 +251,8 @@ export default function ProfilePage() {
               <p
                 className={`text-sm ${
                   message.type === "success"
-                    ? "text-[#059669]"
-                    : "text-[#DC2626]"
+                    ? "text-success"
+                    : "text-danger"
                 }`}
               >
                 {message.text}

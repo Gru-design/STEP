@@ -69,7 +69,7 @@ export default function SignupPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-[#0C025F]">アカウントを作成</CardTitle>
+        <CardTitle className="text-primary">アカウントを作成</CardTitle>
         <CardDescription>
           チームの日報管理を始めましょう。
         </CardDescription>
@@ -77,7 +77,7 @@ export default function SignupPage() {
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
           {error && (
-            <div className="rounded-lg border border-[#DC2626]/20 bg-[#DC2626]/5 px-4 py-3 text-sm text-[#DC2626]">
+            <div className="rounded-lg border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
               {error}
             </div>
           )}
@@ -133,11 +133,11 @@ export default function SignupPage() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "登録中..." : "アカウントを作成"}
           </Button>
-          <p className="text-center text-sm text-[#64748B]">
+          <p className="text-center text-sm text-muted-foreground">
             既にアカウントをお持ちの方は{" "}
             <Link
               href="/login"
-              className="text-[#2563EB] hover:underline"
+              className="text-accent-color hover:underline"
             >
               ログインはこちら
             </Link>

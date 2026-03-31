@@ -142,7 +142,7 @@ export default function LandingPage() {
               {FEATURES.map((feature) => (
                 <div
                   key={feature.title}
-                  className="border border-slate-200 rounded-lg p-6 hover:border-accent/30 transition-colors"
+                  className="border border-border rounded-lg p-6 hover:border-accent-color/30 transition-colors"
                 >
                   <div className="text-accent mb-4">{feature.icon}</div>
                   <h4 className="text-lg font-bold text-navy mb-2">
@@ -179,7 +179,7 @@ export default function LandingPage() {
                     className={`border rounded-lg p-6 bg-white flex flex-col relative ${
                       isPopular
                         ? "border-accent"
-                        : "border-slate-200"
+                        : "border-border"
                     }`}
                   >
                     {isPopular && (
@@ -286,7 +286,7 @@ export default function LandingPage() {
               ].map((testimonial) => (
                 <div
                   key={testimonial.company}
-                  className="border border-slate-200 rounded-lg p-6 text-left"
+                  className="border border-border rounded-lg p-6 text-left"
                 >
                   <p className="text-dark text-sm leading-relaxed mb-4">
                     &ldquo;{testimonial.quote}&rdquo;
@@ -323,7 +323,7 @@ export default function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-[#0a0250] text-white/60 py-12">
+      <footer className="bg-primary-hover text-white/60 py-12">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
             <div>

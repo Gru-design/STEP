@@ -60,24 +60,24 @@ export function ReportFeed({ entries, members }: ReportFeedProps) {
       {/* Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2">
-          <label className="text-sm text-[#64748B] whitespace-nowrap">
+          <label className="text-sm text-muted-foreground whitespace-nowrap">
             日付
           </label>
           <Input
             type="date"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
-            className="border-slate-200 w-auto"
+            className="border-border w-auto"
           />
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-sm text-[#64748B] whitespace-nowrap">
+          <label className="text-sm text-muted-foreground whitespace-nowrap">
             メンバー
           </label>
           <select
             value={memberFilter}
             onChange={(e) => setMemberFilter(e.target.value)}
-            className="flex h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-1"
+            className="flex h-10 rounded-lg border border-border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
           >
             <option value="">全員</option>
             {members.map((m) => (
@@ -93,7 +93,7 @@ export function ReportFeed({ entries, members }: ReportFeedProps) {
               setDateFilter("");
               setMemberFilter("");
             }}
-            className="text-sm text-[#2563EB] hover:underline"
+            className="text-sm text-accent-color hover:underline"
           >
             フィルターをリセット
           </button>
@@ -104,14 +104,14 @@ export function ReportFeed({ entries, members }: ReportFeedProps) {
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <FileText className="h-12 w-12 text-slate-200 mb-3" />
-          <p className="text-sm text-[#64748B]">日報がまだありません</p>
+          <p className="text-sm text-muted-foreground">日報がまだありません</p>
         </div>
       ) : (
         <div className="space-y-3">
           {filtered.map((entry) => (
             <Card
               key={entry.id}
-              className="cursor-pointer border-slate-200 transition-colors hover:bg-[#F0F4FF]"
+              className="cursor-pointer border-border transition-colors hover:bg-muted"
               onClick={() => router.push(`/reports/${entry.id}`)}
             >
               <CardContent className="flex items-start gap-3 p-4">
@@ -123,21 +123,21 @@ export function ReportFeed({ entries, members }: ReportFeedProps) {
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium text-[#1E293B]">
+                    <span className="text-sm font-medium text-foreground">
                       {entry.user_name}
                     </span>
                     <Badge
                       variant="outline"
-                      className="text-xs border-slate-200"
+                      className="text-xs border-border"
                     >
                       {entry.template_name}
                     </Badge>
-                    <span className="text-xs text-[#64748B]">
+                    <span className="text-xs text-muted-foreground">
                       {entry.report_date}
                     </span>
                   </div>
                   {getPreviewText(entry.data) && (
-                    <p className="mt-1 text-sm text-[#64748B] truncate">
+                    <p className="mt-1 text-sm text-muted-foreground truncate">
                       {getPreviewText(entry.data)}
                     </p>
                   )}

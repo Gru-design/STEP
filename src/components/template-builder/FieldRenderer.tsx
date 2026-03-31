@@ -54,16 +54,16 @@ export function FieldRenderer({
 function BuilderView({ field }: { field: TemplateField }) {
   return (
     <div className="flex items-center gap-2">
-      <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-[#64748B]" />
+      <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground" />
       <div className="flex min-w-0 flex-1 items-center gap-2">
-        <span className="truncate text-sm font-medium text-[#1E293B]">
+        <span className="truncate text-sm font-medium text-foreground">
           {field.label}
         </span>
         <Badge variant="secondary" className="shrink-0 text-[10px]">
           {FIELD_TYPE_LABELS[field.type] ?? field.type}
         </Badge>
         {field.required && (
-          <span className="shrink-0 text-xs font-medium text-[#DC2626]">
+          <span className="shrink-0 text-xs font-medium text-danger">
             必須
           </span>
         )}
@@ -87,7 +87,7 @@ function PreviewView({
   if (field.type === "section") {
     return (
       <div className="pt-2">
-        <h4 className="mb-1 text-sm font-semibold text-[#0C025F]">
+        <h4 className="mb-1 text-sm font-semibold text-primary">
           {field.label}
         </h4>
         <Separator />
@@ -99,10 +99,10 @@ function PreviewView({
   if (field.type === "repeater") {
     return (
       <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-[#1E293B]">
+        <Label className="text-sm font-medium text-foreground">
           {field.label}
           {field.required && (
-            <span className="ml-1 text-[#DC2626]">*</span>
+            <span className="ml-1 text-danger">*</span>
           )}
         </Label>
         <RepeaterField
@@ -117,10 +117,10 @@ function PreviewView({
 
   return (
     <div className="space-y-1.5">
-      <Label className="text-sm font-medium text-[#1E293B]">
+      <Label className="text-sm font-medium text-foreground">
         {field.label}
         {field.required && (
-          <span className="ml-1 text-[#DC2626]">*</span>
+          <span className="ml-1 text-danger">*</span>
         )}
       </Label>
       {renderInput(field, value, handleChange)}
@@ -166,7 +166,7 @@ function renderInput(
             className="flex-1"
           />
           {field.unit && (
-            <span className="shrink-0 text-sm text-[#64748B]">
+            <span className="shrink-0 text-sm text-muted-foreground">
               {field.unit}
             </span>
           )}
@@ -201,7 +201,7 @@ function renderInput(
             return (
               <label
                 key={opt}
-                className="flex cursor-pointer items-center gap-2 text-sm text-[#1E293B]"
+                className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
               >
                 <input
                   type="checkbox"
@@ -212,14 +212,14 @@ function renderInput(
                       : [...selected, opt];
                     onChange(next);
                   }}
-                  className="h-4 w-4 rounded border-slate-300 text-[#2563EB] focus:ring-[#0C025F]"
+                  className="h-4 w-4 rounded border-slate-300 text-accent-color focus:ring-ring"
                 />
                 {opt}
               </label>
             );
           })}
           {(field.options ?? []).length === 0 && (
-            <p className="text-xs text-[#64748B]">選択肢が設定されていません</p>
+            <p className="text-xs text-muted-foreground">選択肢が設定されていません</p>
           )}
         </div>
       );
@@ -244,13 +244,13 @@ function renderInput(
               key={star}
               type="button"
               onClick={() => onChange(star === current ? 0 : star)}
-              className="rounded p-0.5 transition-colors hover:bg-[#F0F4FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0C025F]"
+              className="rounded p-0.5 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <StarIcon
                 className={cn(
                   "h-6 w-6",
                   star <= current
-                    ? "fill-[#D97706] text-[#D97706]"
+                    ? "fill-[#D97706] text-warning"
                     : "text-slate-300"
                 )}
               />
@@ -264,8 +264,8 @@ function renderInput(
       return (
         <div
           className={cn(
-            "flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-200 p-6",
-            "text-[#64748B] transition-colors hover:border-[#2563EB] hover:bg-[#F0F4FF]"
+            "flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border p-6",
+            "text-muted-foreground transition-colors hover:border-accent-color hover:bg-muted"
           )}
         >
           <Upload className="mb-2 h-8 w-8" />

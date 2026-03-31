@@ -130,25 +130,25 @@ export function AdminDashboard({
       {/* Stats cards */}
       {stats && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="border border-slate-200 rounded-lg p-5">
+          <div className="border border-border rounded-lg p-5">
             <p className="text-sm text-gray mb-1">総テナント数</p>
             <p className="text-3xl font-bold font-mono text-navy">
               {stats.totalTenants}
             </p>
           </div>
-          <div className="border border-slate-200 rounded-lg p-5">
+          <div className="border border-border rounded-lg p-5">
             <p className="text-sm text-gray mb-1">総ユーザー数</p>
             <p className="text-3xl font-bold font-mono text-navy">
               {stats.totalUsers}
             </p>
           </div>
-          <div className="border border-slate-200 rounded-lg p-5">
+          <div className="border border-border rounded-lg p-5">
             <p className="text-sm text-gray mb-1">プラン別</p>
             <div className="flex flex-wrap gap-2 mt-1">
               {PLAN_OPTIONS.map((plan) => (
                 <span
                   key={plan}
-                  className="text-xs px-2 py-1 rounded border border-slate-200 text-dark"
+                  className="text-xs px-2 py-1 rounded border border-border text-dark"
                 >
                   {PLAN_DISPLAY_NAMES[plan]}:{" "}
                   <span className="font-mono font-bold">
@@ -188,12 +188,12 @@ export function AdminDashboard({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-accent"
+            className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-accent"
           />
           <button
             onClick={handleSearch}
             disabled={isPending}
-            className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-dark hover:bg-mid-bg transition-colors"
+            className="px-4 py-2 rounded-lg border border-border text-sm text-dark hover:bg-mid-bg transition-colors"
           >
             検索
           </button>
@@ -209,7 +209,7 @@ export function AdminDashboard({
       {/* Create tenant dialog */}
       {showCreateDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg border border-slate-200 w-full max-w-md p-6">
+          <div className="bg-white rounded-lg border border-border w-full max-w-md p-6">
             <h3 className="text-lg font-bold text-navy mb-4">
               新規テナント作成
             </h3>
@@ -224,7 +224,7 @@ export function AdminDashboard({
                   onChange={(e) =>
                     setNewTenant((prev) => ({ ...prev, name: e.target.value }))
                   }
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-accent"
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-accent"
                   placeholder="株式会社サンプル"
                 />
               </div>
@@ -240,7 +240,7 @@ export function AdminDashboard({
                       plan: e.target.value as PlanType,
                     }))
                   }
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-accent"
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-accent"
                 >
                   {PLAN_OPTIONS.map((plan) => (
                     <option key={plan} value={plan}>
@@ -262,7 +262,7 @@ export function AdminDashboard({
                       adminName: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-accent"
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-accent"
                   placeholder="田中 太郎"
                 />
               </div>
@@ -279,7 +279,7 @@ export function AdminDashboard({
                       adminEmail: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-accent"
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-accent"
                   placeholder="admin@example.com"
                 />
               </div>
@@ -287,7 +287,7 @@ export function AdminDashboard({
             <div className="flex gap-3 mt-6 justify-end">
               <button
                 onClick={() => setShowCreateDialog(false)}
-                className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-dark hover:bg-mid-bg transition-colors"
+                className="px-4 py-2 rounded-lg border border-border text-sm text-dark hover:bg-mid-bg transition-colors"
               >
                 キャンセル
               </button>
@@ -304,10 +304,10 @@ export function AdminDashboard({
       )}
 
       {/* Tenant table */}
-      <div className="border border-slate-200 rounded-lg overflow-x-auto">
+      <div className="border border-border rounded-lg overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 bg-light-bg">
+            <tr className="border-b border-border bg-light-bg">
               <th className="text-left p-3 font-medium text-navy">
                 テナント名
               </th>
@@ -333,7 +333,7 @@ export function AdminDashboard({
               tenants.map((tenant) => (
                 <tr
                   key={tenant.id}
-                  className="border-b border-slate-200 last:border-b-0 hover:bg-light-bg/50"
+                  className="border-b border-border last:border-b-0 hover:bg-light-bg/50"
                 >
                   <td className="p-3 text-dark font-medium">{tenant.name}</td>
                   <td className="p-3">
@@ -346,7 +346,7 @@ export function AdminDashboard({
                         )
                       }
                       disabled={isPending}
-                      className="px-2 py-1 border border-slate-200 rounded text-xs focus:outline-none focus:border-accent"
+                      className="px-2 py-1 border border-border rounded text-xs focus:outline-none focus:border-accent"
                     >
                       {PLAN_OPTIONS.map((plan) => (
                         <option key={plan} value={plan}>
