@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import type { User } from "@/types/database";
 import { DashboardClient } from "./DashboardClient";
@@ -20,7 +21,8 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const { data: dbUser } = await supabase
+  const adminClient = createAdminClient();
+  const { data: dbUser } = await adminClient
     .from("users")
     .select("*")
     .eq("id", authUser.id)
