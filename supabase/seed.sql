@@ -104,3 +104,178 @@ INSERT INTO team_members (team_id, user_id, role) VALUES
 -- 営業第二チーム: 山田健太
 INSERT INTO team_members (team_id, user_id, role) VALUES
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '66666666-6666-6666-6666-666666666666', 'member');
+
+-- ============================================================
+-- Phase 1: Preset Templates
+-- ============================================================
+
+-- RA コンサルタント向け日報テンプレート
+INSERT INTO report_templates (id, tenant_id, name, type, target_roles, schema, is_system, is_published, version)
+VALUES (
+  'cccccccc-cccc-cccc-cccc-cccccccccccc',
+  '11111111-1111-1111-1111-111111111111',
+  'RAコンサルタント日報',
+  'daily',
+  '{"member","manager"}',
+  '{
+    "sections": [
+      {
+        "id": "activity",
+        "label": "活動実績",
+        "fields": [
+          {"key": "new_approach_count", "type": "number", "label": "新規アプローチ件数", "required": true, "unit": "件"},
+          {"key": "meeting_records", "type": "repeater", "label": "商談記録", "required": false, "fields": [
+            {"key": "company_name", "type": "text", "label": "企業名", "required": true},
+            {"key": "status", "type": "select_single", "label": "ステータス", "required": true, "options": ["初回接触","ヒアリング済","提案中","条件交渉","成約","失注"]},
+            {"key": "memo", "type": "textarea", "label": "メモ", "required": false}
+          ]},
+          {"key": "hearing_count", "type": "number", "label": "求人ヒアリング件数", "required": true, "unit": "件"},
+          {"key": "recommendation_count", "type": "number", "label": "推薦数", "required": true, "unit": "件"}
+        ]
+      },
+      {
+        "id": "reflection",
+        "label": "振り返り",
+        "fields": [
+          {"key": "insights", "type": "textarea", "label": "所感・気づき", "required": true, "placeholder": "今日の気づきや学びを記入してください"},
+          {"key": "tomorrow_plan", "type": "textarea", "label": "明日の予定", "required": true},
+          {"key": "motivation", "type": "rating", "label": "モチベーション", "required": true, "min": 1, "max": 5}
+        ]
+      }
+    ]
+  }',
+  true,
+  true,
+  1
+);
+
+-- CA キャリアアドバイザー向け日報テンプレート
+INSERT INTO report_templates (id, tenant_id, name, type, target_roles, schema, is_system, is_published, version)
+VALUES (
+  'dddddddd-dddd-dddd-dddd-dddddddddddd',
+  '11111111-1111-1111-1111-111111111111',
+  'CAキャリアアドバイザー日報',
+  'daily',
+  '{"member","manager"}',
+  '{
+    "sections": [
+      {
+        "id": "interview",
+        "label": "面談実績",
+        "fields": [
+          {"key": "new_interview_count", "type": "number", "label": "新規面談数", "required": true, "unit": "件"},
+          {"key": "interview_records", "type": "repeater", "label": "面談記録", "required": false, "fields": [
+            {"key": "candidate_name", "type": "text", "label": "求職者名", "required": true},
+            {"key": "phase", "type": "select_single", "label": "フェーズ", "required": true, "options": ["初回面談","書類作成","応募中","面接中","内定","入社","辞退"]},
+            {"key": "memo", "type": "textarea", "label": "メモ", "required": false}
+          ]},
+          {"key": "doc_pass_count", "type": "number", "label": "書類選考通過", "required": true, "unit": "件"},
+          {"key": "interview_set_count", "type": "number", "label": "面接設定", "required": true, "unit": "件"},
+          {"key": "offer_count", "type": "number", "label": "内定数", "required": true, "unit": "件"}
+        ]
+      },
+      {
+        "id": "reflection",
+        "label": "振り返り",
+        "fields": [
+          {"key": "insights", "type": "textarea", "label": "所感・気づき", "required": true, "placeholder": "今日の気づきや学びを記入してください"},
+          {"key": "tomorrow_plan", "type": "textarea", "label": "明日の予定", "required": true},
+          {"key": "motivation", "type": "rating", "label": "モチベーション", "required": true, "min": 1, "max": 5}
+        ]
+      }
+    ]
+  }',
+  true,
+  true,
+  1
+);
+
+-- チェックインテンプレート
+INSERT INTO report_templates (id, tenant_id, name, type, target_roles, schema, is_system, is_published, version)
+VALUES (
+  'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
+  '11111111-1111-1111-1111-111111111111',
+  '月曜チェックイン',
+  'checkin',
+  '{"member","manager"}',
+  '{
+    "sections": [
+      {
+        "id": "checkin",
+        "label": "チェックイン",
+        "fields": [
+          {"key": "weekend_rating", "type": "rating", "label": "週末どうだった？", "required": true, "min": 1, "max": 5},
+          {"key": "weekend_comment", "type": "textarea", "label": "週末のコメント", "required": false, "placeholder": "良かったことや気になったことがあれば"},
+          {"key": "recommendation", "type": "textarea", "label": "チームにおすすめしたいこと", "required": false, "placeholder": "本、記事、お店など何でも"},
+          {"key": "motivation_comment", "type": "textarea", "label": "今週の意気込み", "required": true, "placeholder": "今週頑張りたいことを書いてください"}
+        ]
+      }
+    ]
+  }',
+  true,
+  true,
+  1
+);
+
+-- 週次計画テンプレート
+INSERT INTO report_templates (id, tenant_id, name, type, target_roles, schema, is_system, is_published, version)
+VALUES (
+  'ffffffff-ffff-ffff-ffff-ffffffffffff',
+  '11111111-1111-1111-1111-111111111111',
+  '週次行動計画',
+  'plan',
+  '{"member","manager"}',
+  '{
+    "sections": [
+      {
+        "id": "plan",
+        "label": "今週の計画",
+        "fields": [
+          {"key": "focus_items", "type": "textarea", "label": "今週の重点項目", "required": true, "placeholder": "今週特に注力するポイント"},
+          {"key": "approach_list", "type": "repeater", "label": "アプローチ予定リスト", "required": false, "fields": [
+            {"key": "company", "type": "text", "label": "企業名", "required": true},
+            {"key": "action", "type": "text", "label": "アクション", "required": true},
+            {"key": "due_date", "type": "date", "label": "期日", "required": false}
+          ]},
+          {"key": "follow_list", "type": "repeater", "label": "フォロー案件リスト", "required": false, "fields": [
+            {"key": "deal_name", "type": "text", "label": "案件名", "required": true},
+            {"key": "next_action", "type": "text", "label": "ネクストアクション", "required": true},
+            {"key": "due_date", "type": "date", "label": "期日", "required": false}
+          ]}
+        ]
+      }
+    ]
+  }',
+  true,
+  true,
+  1
+);
+
+-- ============================================================
+-- Phase 3: Badge Seed Data
+-- ============================================================
+
+INSERT INTO badges (name, description, icon, condition, rarity) VALUES
+  ('ファーストステップ', '初めて日報を提出しました', '🚀', '{"type": "first_report"}', 'common'),
+  ('7日連続', '7日間連続で日報を提出しました', '🔥', '{"type": "streak", "days": 7}', 'common'),
+  ('30日連続', '30日間連続で日報を提出しました', '💪', '{"type": "streak", "days": 30}', 'rare'),
+  ('100日連続', '100日間連続で日報を提出しました', '👑', '{"type": "streak", "days": 100}', 'epic'),
+  ('月間目標達成', '月間目標を達成しました', '🎯', '{"type": "monthly_goal"}', 'rare'),
+  ('ナレッジ初投稿', '初めてナレッジを投稿しました', '📝', '{"type": "first_knowledge"}', 'common'),
+  ('リアクション50回', 'リアクションを50回送信しました', '👏', '{"type": "reaction_count", "count": 50}', 'rare'),
+  ('全員からリアクション', 'チーム全員からリアクションを受けました', '🌟', '{"type": "all_reactions"}', 'epic'),
+  ('四半期MVP', '四半期MVPに選ばれました', '🏆', '{"type": "quarterly_mvp"}', 'legendary');
+
+-- ============================================================
+-- Phase 4: Pipeline Stages (RA向けパイプライン8ステージ)
+-- ============================================================
+
+INSERT INTO pipeline_stages (id, tenant_id, name, sort_order) VALUES
+  ('11111111-0000-0000-0001-000000000001', '11111111-1111-1111-1111-111111111111', 'アプローチ', 1),
+  ('11111111-0000-0000-0001-000000000002', '11111111-1111-1111-1111-111111111111', 'ヒアリング', 2),
+  ('11111111-0000-0000-0001-000000000003', '11111111-1111-1111-1111-111111111111', '求人受注', 3),
+  ('11111111-0000-0000-0001-000000000004', '11111111-1111-1111-1111-111111111111', '推薦', 4),
+  ('11111111-0000-0000-0001-000000000005', '11111111-1111-1111-1111-111111111111', '書類通過', 5),
+  ('11111111-0000-0000-0001-000000000006', '11111111-1111-1111-1111-111111111111', '面接', 6),
+  ('11111111-0000-0000-0001-000000000007', '11111111-1111-1111-1111-111111111111', '内定', 7),
+  ('11111111-0000-0000-0001-000000000008', '11111111-1111-1111-1111-111111111111', '入社', 8);

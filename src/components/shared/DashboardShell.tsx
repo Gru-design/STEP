@@ -8,9 +8,18 @@ import {
   Users,
   User,
   Settings,
+  FileText,
+  FileEdit,
+  CalendarDays,
   Menu,
   LogOut,
   ChevronDown,
+  Award,
+  Target,
+  Briefcase,
+  ClipboardList,
+  BookOpen,
+  Newspaper,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -47,9 +56,57 @@ const navItems: NavItem[] = [
     roles: ["super_admin", "admin", "manager", "member"],
   },
   {
+    label: "日報",
+    href: "/reports",
+    icon: FileEdit,
+    roles: ["super_admin", "admin", "manager", "member"],
+  },
+  {
+    label: "マイ日報",
+    href: "/reports/my",
+    icon: CalendarDays,
+    roles: ["super_admin", "admin", "manager", "member"],
+  },
+  {
     label: "チーム",
     href: "/team",
     icon: Users,
+    roles: ["super_admin", "admin", "manager", "member"],
+  },
+  {
+    label: "目標",
+    href: "/goals",
+    icon: Target,
+    roles: ["super_admin", "admin", "manager", "member"],
+  },
+  {
+    label: "案件",
+    href: "/deals",
+    icon: Briefcase,
+    roles: ["super_admin", "admin", "manager", "member"],
+  },
+  {
+    label: "週次計画",
+    href: "/plans",
+    icon: ClipboardList,
+    roles: ["super_admin", "admin", "manager", "member"],
+  },
+  {
+    label: "ナレッジ",
+    href: "/knowledge",
+    icon: BookOpen,
+    roles: ["super_admin", "admin", "manager", "member"],
+  },
+  {
+    label: "週刊STEP",
+    href: "/weekly-digest",
+    icon: Newspaper,
+    roles: ["super_admin", "admin", "manager", "member"],
+  },
+  {
+    label: "バッジ",
+    href: "/badges",
+    icon: Award,
     roles: ["super_admin", "admin", "manager", "member"],
   },
   {
@@ -62,6 +119,12 @@ const navItems: NavItem[] = [
     label: "テナント設定",
     href: "/settings",
     icon: Settings,
+    roles: ["super_admin", "admin"],
+  },
+  {
+    label: "テンプレート",
+    href: "/settings/templates",
+    icon: FileText,
     roles: ["super_admin", "admin"],
   },
 ];
@@ -96,6 +159,9 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
+    if (href === "/settings") return pathname === "/settings";
+    if (href === "/reports/my") return pathname.startsWith("/reports/my");
+    if (href === "/reports") return pathname === "/reports" || (pathname.startsWith("/reports/") && !pathname.startsWith("/reports/my"));
     return pathname.startsWith(href);
   };
 

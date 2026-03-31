@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/shared/DashboardShell";
+import { CheckinModal } from "@/components/shared/CheckinModal";
+import { NudgeTrigger } from "@/components/shared/NudgeTrigger";
 import type { User } from "@/types/database";
 
 export default async function DashboardLayout({
@@ -30,5 +32,11 @@ export default async function DashboardLayout({
 
   const user = dbUser as User;
 
-  return <DashboardShell user={user}>{children}</DashboardShell>;
+  return (
+    <DashboardShell user={user}>
+      {children}
+      <CheckinModal userId={user.id} tenantId={user.tenant_id} />
+      <NudgeTrigger />
+    </DashboardShell>
+  );
 }
