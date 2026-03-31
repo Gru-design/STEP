@@ -284,3 +284,27 @@ export interface WeeklyDigest {
   recommendations: Record<string, unknown>[];
   created_at: string;
 }
+
+// ── Integrations ──
+
+export type IntegrationProvider = "google_calendar" | "gmail" | "slack" | "teams" | "cti";
+export type IntegrationStatus = "active" | "inactive" | "error";
+
+export interface Integration {
+  id: string;
+  tenant_id: string;
+  provider: IntegrationProvider;
+  credentials: Record<string, unknown>;
+  settings: Record<string, unknown>;
+  status: IntegrationStatus;
+  created_at: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  source: string;
+  raw_data: Record<string, unknown>;
+  collected_at: string;
+}

@@ -403,3 +403,38 @@ export const weeklyDigests = pgTable(
   },
   (table) => [unique().on(table.tenantId, table.weekStart)]
 );
+
+// ── Integrations ──
+
+export const integrations = pgTable("integrations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: uuid("tenant_id")
+    .references(() => tenants.id)
+    .notNull(),
+  provider: text("provider", {
+    enum: ["google_calendar", "gmail", "slack", "teams", "cti"],
+  }).notNull(),
+  credentials: jsonb("credentials").notNull().default({}),
+  settings: jsonb("settings").default({}),
+  status: text("status", {
+    enum: ["active", "inactive", "error"],
+  }).default("active"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const activityLogs = pgTable("activity_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: uuid("tenant_id")
+    .references(() => tenants.id)
+    .notNull(),
+  userId: uuid("user_id")
+    .references(() => users.id)
+    .notNull(),
+  source: text("source").notNull(),
+  rawData: jsonb("raw_data").notNull(),
+  collectedAt: timestamp("collected_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
