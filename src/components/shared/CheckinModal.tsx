@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DynamicForm } from "@/components/reports/DynamicForm";
 import { X, Sparkles } from "lucide-react";
@@ -20,36 +20,36 @@ export function CheckinModal({ userId, tenantId }: CheckinModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
-  const checkAndShow = useCallback(async () => {
-    // Check if today is Monday
-    const today = new Date();
-    if (today.getDay() !== 1) return;
-
-    // Check if dismissed this session
-    const dismissKey = `checkin_dismissed_${today.toISOString().split("T")[0]}`;
-    if (sessionStorage.getItem(dismissKey)) return;
-
-    try {
-      // Fetch checkin template
-      const res = await fetch(
-        `/api/checkin-check?userId=${userId}&tenantId=${tenantId}`
-      );
-      if (!res.ok) return;
-
-      const data = await res.json();
-
-      if (data.needsCheckin && data.template) {
-        setTemplate(data.template as ReportTemplate);
-        setIsOpen(true);
-      }
-    } catch {
-      // Silently fail - don't block the user
-    }
-  }, [userId, tenantId]);
-
   useEffect(() => {
+    let cancelled = false;
+
+    async function checkAndShow() {
+      const today = new Date();
+      if (today.getDay() !== 1) return;
+
+      const dismissKey = `checkin_dismissed_${today.toISOString().split("T")[0]}`;
+      if (sessionStorage.getItem(dismissKey)) return;
+
+      try {
+        const res = await fetch(
+          `/api/checkin-check?userId=${userId}&tenantId=${tenantId}`
+        );
+        if (!res.ok || cancelled) return;
+
+        const data = await res.json();
+
+        if (!cancelled && data.needsCheckin && data.template) {
+          setTemplate(data.template as ReportTemplate);
+          setIsOpen(true);
+        }
+      } catch {
+        // Silently fail
+      }
+    }
+
     checkAndShow();
-  }, [checkAndShow]);
+    return () => { cancelled = true; };
+  }, [userId, tenantId]);
 
   const handleDismiss = () => {
     const today = new Date().toISOString().split("T")[0];

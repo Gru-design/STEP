@@ -44,7 +44,7 @@ function formatYen(value: number | null): string {
 export function DealDetailClient({
   deal,
   stage,
-  stages,
+  stages: _stages,
   history,
 }: DealDetailClientProps) {
   const router = useRouter();

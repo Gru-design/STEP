@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { createDealSchema, updateDealSchema } from "@/lib/validations";
+import { createDealSchema } from "@/lib/validations";
 import { writeAuditLog } from "@/lib/audit";
 import { dispatchWebhook } from "@/lib/webhook-outbound";
 

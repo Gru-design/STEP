@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,24 +29,26 @@ export function NotificationBell({ userId }: NotificationBellProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
 
-  const fetchNotifications = useCallback(async () => {
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
     const supabase = createClient();
-    const { data } = await supabase
+    let cancelled = false;
+
+    supabase
       .from("nudges")
       .select("id, type, message, created_at, is_read")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(20)
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        setNotifications(data);
+        setUnreadCount(data.filter((n) => !n.is_read).length);
+      });
 
-    if (data) {
-      setNotifications(data);
-      setUnreadCount(data.filter((n) => !n.is_read).length);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+    return () => { cancelled = true; };
+  }, [userId, refreshKey]);
 
   const markAllRead = async () => {
     const supabase = createClient();
@@ -94,7 +96,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
           aria-label={unreadCount > 0 ? `通知 ${unreadCount}件の未読` : "通知"}
           onClick={() => {
             setOpen(true);
-            fetchNotifications();
+            setRefreshKey((k) => k + 1);
           }}
         >
           <Bell className="h-5 w-5 text-muted-foreground" aria-hidden="true" />

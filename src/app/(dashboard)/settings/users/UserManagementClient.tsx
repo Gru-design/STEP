@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { UserPlus, Shield, Trash2 } from "lucide-react";
+import { UserPlus, Trash2 } from "lucide-react";
 import { inviteUser, updateUserRole, deactivateUser } from "./actions";
 import type { Role } from "@/types/database";
 

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   Home,
   Users,
@@ -197,7 +197,6 @@ export function DashboardShell({
   logoUrl,
 }: DashboardShellProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
   const visibleGroups = getVisibleGroups(user.role);
 

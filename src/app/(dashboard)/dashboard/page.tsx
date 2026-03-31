@@ -35,7 +35,9 @@ export default async function DashboardPage() {
   const user = dbUser as User;
   const role = user.role;
   const tenantId = user.tenant_id;
-  const today = new Date().toISOString().split("T")[0];
+  const currentTime = new Date();
+  const today = currentTime.toISOString().split("T")[0];
+  const nowMs = currentTime.getTime();
 
   // ── Member Stats (always fetched) ──
 
@@ -398,8 +400,7 @@ export default async function DashboardPage() {
 
       const start = new Date(goal.period_start).getTime();
       const end = new Date(goal.period_end).getTime();
-      const now = Date.now();
-      const elapsed = Math.max(0, Math.min(1, (now - start) / (end - start)));
+      const elapsed = Math.max(0, Math.min(1, (nowMs - start) / (end - start)));
       const expectedRate = Math.round(elapsed * 100);
       const deviation = expectedRate - actualRate;
 

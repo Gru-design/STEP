@@ -142,13 +142,10 @@ export function OneOnOneClient({
   level,
   xp,
 }: OneOnOneClientProps) {
-  const [memo, setMemo] = useState("");
-
-  // Load memo from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem(`1on1-memo-${targetUser.id}`);
-    if (stored) setMemo(stored);
-  }, [targetUser.id]);
+  const [memo, setMemo] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem(`1on1-memo-${targetUser.id}`) ?? "";
+  });
 
   // Save memo to localStorage on change
   useEffect(() => {
