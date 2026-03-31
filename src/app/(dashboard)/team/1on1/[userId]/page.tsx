@@ -140,7 +140,6 @@ export default async function OneOnOnePage({
   const seenKeys = new Set<string>();
 
   for (const report of weekReports ?? []) {
-    const data = report.data as Record<string, unknown>;
     const schema = (
       report.report_templates as unknown as {
         schema: {
