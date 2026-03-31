@@ -91,14 +91,18 @@ export function NotificationBell({ userId }: NotificationBellProps) {
           variant="ghost"
           size="icon"
           className="relative"
+          aria-label={unreadCount > 0 ? `通知 ${unreadCount}件の未読` : "通知"}
           onClick={() => {
             setOpen(true);
             fetchNotifications();
           }}
         >
-          <Bell className="h-5 w-5 text-muted-foreground" />
+          <Bell className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-danger text-[10px] font-bold text-white">
+            <span
+              className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-danger text-[10px] font-bold text-white"
+              aria-hidden="true"
+            >
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
@@ -118,10 +122,10 @@ export function NotificationBell({ userId }: NotificationBellProps) {
             </button>
           )}
         </SheetHeader>
-        <div className="overflow-y-auto">
+        <div className="overflow-y-auto" role="list" aria-label="通知一覧">
           {notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <Bell className="h-8 w-8 mb-2 opacity-30" />
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground" role="status">
+              <Bell className="h-8 w-8 mb-2 opacity-30" aria-hidden="true" />
               <p className="text-sm">通知はありません</p>
             </div>
           ) : (
@@ -134,7 +138,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
                 return (
                   <div
                     key={n.id}
-                    className={`px-4 py-3 transition-colors ${
+                    className={`px-4 py-3 motion-safe:transition-colors ${
                       n.is_read ? "bg-white" : "bg-primary-light/30"
                     }`}
                   >

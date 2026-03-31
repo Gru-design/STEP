@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { dispatchWebhook } from "@/lib/webhook-outbound";
+import { createReportSchema } from "@/lib/validations";
 import type { ReactionType } from "@/types/database";
 
 interface ActionResult<T = unknown> {
@@ -18,6 +19,11 @@ export async function createReportEntry(data: {
   data: Record<string, unknown>;
   status: "draft" | "submitted";
 }): Promise<ActionResult> {
+  const parsed = createReportSchema.safeParse(data);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
+  }
+
   try {
     const supabase = await createClient();
 

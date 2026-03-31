@@ -237,7 +237,7 @@ export function DashboardShell({
                 key={item.href}
                 href={item.href}
                 onClick={onLinkClick}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium motion-safe:transition-colors ${
                   active
                     ? "bg-primary/10 text-primary font-semibold"
                     : "text-muted-foreground hover:bg-muted hover:text-primary"
@@ -273,7 +273,7 @@ export function DashboardShell({
         <div className="border-t border-border p-3">
           <Link
             href="/profile"
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium motion-safe:transition-colors ${
               pathname === "/profile"
                 ? "bg-primary/10 text-primary font-semibold"
                 : "text-muted-foreground hover:bg-muted hover:text-primary"
@@ -336,7 +336,7 @@ export function DashboardShell({
                   new KeyboardEvent("keydown", { key: "k", metaKey: true })
                 )
               }
-              className="hidden lg:flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
+              className="hidden lg:flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted motion-safe:transition-colors"
             >
               <span>検索</span>
               <kbd className="rounded border border-border bg-white px-1.5 py-0.5 text-[10px]">

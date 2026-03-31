@@ -41,7 +41,7 @@ export function BottomNav() {
                 key={item.href}
                 href={item.href}
                 aria-label={item.label}
-                className="flex items-center justify-center -mt-4 h-12 w-12 rounded-full bg-primary text-white shadow-lg active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                className="flex items-center justify-center -mt-4 h-12 w-12 rounded-full bg-primary text-white shadow-lg active:scale-95 motion-safe:transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 <Icon className="h-6 w-6" aria-hidden="true" />
               </Link>
