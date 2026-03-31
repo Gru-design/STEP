@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isSafeUrl } from "@/lib/url-validation";
 import crypto from "crypto";
 
 export type WebhookEvent =
@@ -58,7 +59,7 @@ export async function dispatchWebhook(
       url?: string;
       secret?: string;
     };
-    if (!creds.url) continue;
+    if (!creds.url || !isSafeUrl(creds.url)) continue;
 
     // HMAC signature for webhook verification
     const signature = creds.secret

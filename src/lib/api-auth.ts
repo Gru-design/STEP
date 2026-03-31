@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/rate-limit";
+import crypto from "crypto";
 
 interface ApiUser {
   tenantId: string;
@@ -42,30 +43,43 @@ export async function authenticateApiRequest(
 
   // Option 1: API Key authentication
   if (apiKey) {
-    const { data: integration } = await supabase
+    // Fetch ALL active API integrations and check each (prevents single-tenant match bug)
+    const { data: integrations } = await supabase
       .from("integrations")
       .select("tenant_id, credentials")
       .eq("provider", "api" as string)
-      .eq("status", "active")
-      .single();
+      .eq("status", "active");
 
-    // For now, check if the key matches the stored API key
-    if (
-      integration &&
-      (integration.credentials as { api_key?: string })?.api_key === apiKey
-    ) {
-      // Get the admin user for this tenant
+    let matchedTenantId: string | null = null;
+
+    for (const integration of integrations ?? []) {
+      const storedKey =
+        (integration.credentials as { api_key?: string })?.api_key ?? "";
+      // Timing-safe comparison to prevent timing attacks
+      if (
+        storedKey.length === apiKey.length &&
+        crypto.timingSafeEqual(
+          Buffer.from(storedKey),
+          Buffer.from(apiKey)
+        )
+      ) {
+        matchedTenantId = integration.tenant_id;
+        break;
+      }
+    }
+
+    if (matchedTenantId) {
       const { data: adminUser } = await supabase
         .from("users")
         .select("id, role")
-        .eq("tenant_id", integration.tenant_id)
+        .eq("tenant_id", matchedTenantId)
         .eq("role", "admin")
         .limit(1)
         .single();
 
       if (adminUser) {
         return {
-          tenantId: integration.tenant_id,
+          tenantId: matchedTenantId,
           userId: adminUser.id,
           role: adminUser.role,
         };

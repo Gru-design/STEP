@@ -26,6 +26,13 @@ const DEFAULT_THEME: TenantTheme = {
   appName: "STEP",
 };
 
+const HEX_COLOR_RE = /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/;
+
+function sanitizeColor(color: unknown, fallback: string): string {
+  if (typeof color !== "string") return fallback;
+  return HEX_COLOR_RE.test(color) ? color : fallback;
+}
+
 export function extractTheme(
   settings: Record<string, unknown> | null
 ): TenantTheme {
@@ -34,26 +41,32 @@ export function extractTheme(
   if (!theme) return DEFAULT_THEME;
 
   return {
-    primaryColor: theme.primaryColor ?? DEFAULT_THEME.primaryColor,
-    accentColor: theme.accentColor ?? DEFAULT_THEME.accentColor,
-    logoUrl: theme.logoUrl ?? DEFAULT_THEME.logoUrl,
-    appName: theme.appName ?? DEFAULT_THEME.appName,
+    primaryColor: sanitizeColor(theme.primaryColor, DEFAULT_THEME.primaryColor),
+    accentColor: sanitizeColor(theme.accentColor, DEFAULT_THEME.accentColor),
+    logoUrl: typeof theme.logoUrl === "string" ? theme.logoUrl : DEFAULT_THEME.logoUrl,
+    appName:
+      typeof theme.appName === "string" && theme.appName.length <= 50
+        ? theme.appName
+        : DEFAULT_THEME.appName,
   };
 }
 
 /**
- * Generate CSS custom property overrides for the tenant theme.
+ * Returns a safe style object for CSS custom property overrides.
+ * Uses React style attribute (no dangerouslySetInnerHTML).
  */
-export function themeToCSS(theme: TenantTheme): string {
+export function themeToStyle(
+  theme: TenantTheme
+): Record<string, string> | null {
   if (
     theme.primaryColor === DEFAULT_THEME.primaryColor &&
     theme.accentColor === DEFAULT_THEME.accentColor
   ) {
-    return "";
+    return null;
   }
 
-  return `:root {
-  --color-primary: ${theme.primaryColor};
-  --color-accent-color: ${theme.accentColor};
-}`;
+  return {
+    "--color-primary": theme.primaryColor,
+    "--color-accent-color": theme.accentColor,
+  } as Record<string, string>;
 }

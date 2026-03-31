@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isSafeUrl } from "@/lib/url-validation";
 
 interface Nudge {
   id: string;
@@ -62,7 +63,7 @@ export async function sendNudge(nudge: Nudge): Promise<boolean> {
       if (integration?.credentials) {
         const webhookUrl = (integration.credentials as { webhook_url?: string })
           .webhook_url;
-        if (webhookUrl) {
+        if (webhookUrl && isSafeUrl(webhookUrl)) {
           await fetch(webhookUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },

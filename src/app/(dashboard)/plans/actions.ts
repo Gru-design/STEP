@@ -2,6 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { writeAuditLog } from "@/lib/audit";
+import { dispatchWebhook } from "@/lib/webhook-outbound";
 
 interface ActionResult<T = unknown> {
   success: boolean;
@@ -88,6 +90,16 @@ export async function submitPlan(planId: string): Promise<ActionResult> {
       return { success: false, error: "認証が必要です" };
     }
 
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!dbUser) {
+      return { success: false, error: "ユーザーが見つかりません" };
+    }
+
     const { error } = await supabase
       .from("weekly_plans")
       .update({
@@ -106,6 +118,19 @@ export async function submitPlan(planId: string): Promise<ActionResult> {
       target_id: planId,
       action: "submitted",
       actor_id: user.id,
+    });
+
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: user.id,
+      action: "submit",
+      resource: "weekly_plan",
+      resourceId: planId,
+    });
+
+    await dispatchWebhook(dbUser.tenant_id, "plan.submitted", {
+      plan_id: planId,
+      user_id: user.id,
     });
 
     revalidatePath("/plans");
@@ -130,7 +155,7 @@ export async function approvePlan(planId: string): Promise<ActionResult> {
     // Verify manager/admin role
     const { data: dbUser } = await supabase
       .from("users")
-      .select("role")
+      .select("tenant_id, role")
       .eq("id", user.id)
       .single();
 
@@ -157,6 +182,19 @@ export async function approvePlan(planId: string): Promise<ActionResult> {
       target_id: planId,
       action: "approved",
       actor_id: user.id,
+    });
+
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: user.id,
+      action: "approve",
+      resource: "weekly_plan",
+      resourceId: planId,
+    });
+
+    await dispatchWebhook(dbUser.tenant_id, "plan.approved", {
+      plan_id: planId,
+      approved_by: user.id,
     });
 
     revalidatePath("/plans");
@@ -188,7 +226,7 @@ export async function rejectPlan(
     // Verify manager/admin role
     const { data: dbUser } = await supabase
       .from("users")
-      .select("role")
+      .select("tenant_id, role")
       .eq("id", user.id)
       .single();
 
@@ -213,6 +251,21 @@ export async function rejectPlan(
       target_id: planId,
       action: "rejected",
       actor_id: user.id,
+      comment: comment.trim(),
+    });
+
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: user.id,
+      action: "reject",
+      resource: "weekly_plan",
+      resourceId: planId,
+      details: { comment: comment.trim() },
+    });
+
+    await dispatchWebhook(dbUser.tenant_id, "plan.rejected", {
+      plan_id: planId,
+      rejected_by: user.id,
       comment: comment.trim(),
     });
 
