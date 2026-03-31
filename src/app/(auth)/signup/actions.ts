@@ -75,25 +75,34 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
       };
     }
 
-    // Create user record in users table
+    // Verify user record was created by handle_new_user() trigger
+    // The trigger fires on auth.users INSERT and creates the public.users record
     if (authData.user) {
-      const { error: userError } = await supabase.from("users").insert({
-        id: authData.user.id,
-        tenant_id: tenant.id,
-        email,
-        name,
-        role: "admin",
-      });
+      const { data: existingUser } = await supabase
+        .from("users")
+        .select("id")
+        .eq("id", authData.user.id)
+        .single();
 
-      if (userError) {
-        console.error("User record creation error:", userError);
-        // Rollback: delete auth user and tenant
-        await supabase.auth.admin.deleteUser(authData.user.id);
-        await supabase.from("tenants").delete().eq("id", tenant.id);
-        return {
-          success: false,
-          error: "ユーザー登録に失敗しました。もう一度お試しください。",
-        };
+      if (!existingUser) {
+        // Trigger didn't fire or failed - create manually
+        const { error: userError } = await supabase.from("users").insert({
+          id: authData.user.id,
+          tenant_id: tenant.id,
+          email,
+          name,
+          role: "admin",
+        });
+
+        if (userError) {
+          console.error("User record creation error:", userError);
+          await supabase.auth.admin.deleteUser(authData.user.id);
+          await supabase.from("tenants").delete().eq("id", tenant.id);
+          return {
+            success: false,
+            error: "ユーザー登録に失敗しました。もう一度お試しください。",
+          };
+        }
       }
     }
 
