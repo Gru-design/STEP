@@ -2,6 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { writeAuditLog } from "@/lib/audit";
+import { dispatchWebhook } from "@/lib/webhook-outbound";
 import type { ReactionType } from "@/types/database";
 
 interface ActionResult<T = unknown> {
@@ -61,6 +63,21 @@ export async function createReportEntry(data: {
 
     if (error) {
       return { success: false, error: "日報の保存に失敗しました" };
+    }
+
+    if (data.status === "submitted") {
+      await writeAuditLog({
+        tenantId: dbUser.tenant_id,
+        userId: user.id,
+        action: "submit",
+        resource: "report_entry",
+        resourceId: entry.id,
+      });
+      await dispatchWebhook(dbUser.tenant_id, "report.submitted", {
+        entry_id: entry.id,
+        user_id: user.id,
+        report_date: data.reportDate,
+      });
     }
 
     revalidatePath("/reports");
