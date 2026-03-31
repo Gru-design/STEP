@@ -3,6 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Phone, MessageSquare, Calendar, Mail } from "lucide-react";
+import { LevelBadge } from "@/components/gamification/LevelBadge";
+import { StreakCounter } from "@/components/gamification/StreakCounter";
 import type { User, Role } from "@/types/database";
 
 const roleLabels: Record<Role, string> = {
@@ -22,9 +24,12 @@ const roleBadgeColors: Record<Role, string> = {
 interface ProfileCardProps {
   user: User;
   teamName?: string;
+  streak?: number;
+  level?: number;
+  xp?: number;
 }
 
-export function ProfileCard({ user, teamName }: ProfileCardProps) {
+export function ProfileCard({ user, teamName, streak, level, xp }: ProfileCardProps) {
   return (
     <Card>
       <CardContent className="p-6">
@@ -54,6 +59,19 @@ export function ProfileCard({ user, teamName }: ProfileCardProps) {
                 )}
               </div>
             </div>
+
+            {(level != null || streak != null) && (
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                {level != null && xp != null && (
+                  <div className="w-48">
+                    <LevelBadge level={level} xp={xp} />
+                  </div>
+                )}
+                {streak != null && streak > 0 && (
+                  <StreakCounter streak={streak} />
+                )}
+              </div>
+            )}
 
             {user.bio && (
               <p className="text-sm text-[#64748B]">{user.bio}</p>

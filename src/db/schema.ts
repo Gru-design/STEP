@@ -147,3 +147,68 @@ export const reactions = pgTable("reactions", {
   comment: text("comment"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// ── Nudge & Gamification ──
+
+export const nudges = pgTable("nudges", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: uuid("tenant_id")
+    .references(() => tenants.id)
+    .notNull(),
+  targetUserId: uuid("target_user_id")
+    .references(() => users.id)
+    .notNull(),
+  triggerType: text("trigger_type").notNull(),
+  content: text("content").notNull(),
+  status: text("status", {
+    enum: ["pending", "sent", "actioned", "dismissed"],
+  }).default("pending"),
+  actionedAt: timestamp("actioned_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const badges = pgTable("badges", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon").notNull(),
+  condition: jsonb("condition").notNull(),
+  rarity: text("rarity", {
+    enum: ["common", "rare", "epic", "legendary"],
+  }).default("common"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const userBadges = pgTable(
+  "user_badges",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .references(() => users.id)
+      .notNull(),
+    badgeId: uuid("badge_id")
+      .references(() => badges.id)
+      .notNull(),
+    earnedAt: timestamp("earned_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [unique().on(table.userId, table.badgeId)]
+);
+
+export const userLevels = pgTable("user_levels", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .references(() => users.id)
+    .notNull()
+    .unique(),
+  level: integer("level").default(1),
+  xp: integer("xp").default(0),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});

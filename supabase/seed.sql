@@ -250,3 +250,18 @@ VALUES (
   true,
   1
 );
+
+-- ============================================================
+-- Phase 3: Badge Seed Data
+-- ============================================================
+
+INSERT INTO badges (name, description, icon, condition, rarity) VALUES
+  ('ファーストステップ', '初めて日報を提出しました', '🚀', '{"type": "first_report"}', 'common'),
+  ('7日連続', '7日間連続で日報を提出しました', '🔥', '{"type": "streak", "days": 7}', 'common'),
+  ('30日連続', '30日間連続で日報を提出しました', '💪', '{"type": "streak", "days": 30}', 'rare'),
+  ('100日連続', '100日間連続で日報を提出しました', '👑', '{"type": "streak", "days": 100}', 'epic'),
+  ('月間目標達成', '月間目標を達成しました', '🎯', '{"type": "monthly_goal"}', 'rare'),
+  ('ナレッジ初投稿', '初めてナレッジを投稿しました', '📝', '{"type": "first_knowledge"}', 'common'),
+  ('リアクション50回', 'リアクションを50回送信しました', '👏', '{"type": "reaction_count", "count": 50}', 'rare'),
+  ('全員からリアクション', 'チーム全員からリアクションを受けました', '🌟', '{"type": "all_reactions"}', 'epic'),
+  ('四半期MVP', '四半期MVPに選ばれました', '🏆', '{"type": "quarterly_mvp"}', 'legendary');

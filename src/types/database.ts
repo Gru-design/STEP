@@ -114,3 +114,45 @@ export interface Reaction {
   comment: string | null;
   created_at: string;
 }
+
+// ── Nudge & Gamification ──
+
+export type NudgeStatus = "pending" | "sent" | "actioned" | "dismissed";
+
+export interface Nudge {
+  id: string;
+  tenant_id: string;
+  target_user_id: string;
+  trigger_type: string;
+  content: string;
+  status: NudgeStatus;
+  actioned_at: string | null;
+  created_at: string;
+}
+
+export type BadgeRarity = "common" | "rare" | "epic" | "legendary";
+
+export interface Badge {
+  id: string;
+  name: string;
+  description: string | null;
+  icon: string;
+  condition: Record<string, unknown>;
+  rarity: BadgeRarity;
+  created_at: string;
+}
+
+export interface UserBadge {
+  id: string;
+  user_id: string;
+  badge_id: string;
+  earned_at: string;
+}
+
+export interface UserLevel {
+  id: string;
+  user_id: string;
+  level: number;
+  xp: number;
+  updated_at: string;
+}

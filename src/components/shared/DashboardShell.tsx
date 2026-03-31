@@ -14,6 +14,7 @@ import {
   Menu,
   LogOut,
   ChevronDown,
+  Award,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -65,6 +66,12 @@ const navItems: NavItem[] = [
     label: "チーム",
     href: "/team",
     icon: Users,
+    roles: ["super_admin", "admin", "manager", "member"],
+  },
+  {
+    label: "バッジ",
+    href: "/badges",
+    icon: Award,
     roles: ["super_admin", "admin", "manager", "member"],
   },
   {
