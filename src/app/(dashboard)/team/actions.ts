@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { createTeamSchema } from "@/lib/validations";
+import { writeAuditLog } from "@/lib/audit";
 
 export async function createTeam(formData: FormData) {
   const supabase = await createClient();
@@ -40,6 +41,14 @@ export async function createTeam(formData: FormData) {
   if (error) {
     return { success: false, error: "チームの作成に失敗しました" };
   }
+
+  await writeAuditLog({
+    tenantId: dbUser.tenant_id,
+    userId: authUser.id,
+    action: "create",
+    resource: "team",
+    details: { name: name.trim() },
+  });
 
   revalidatePath("/team");
   return { success: true };
@@ -88,6 +97,14 @@ export async function addTeamMember(teamId: string, userId: string) {
     return { success: false, error: "メンバーの追加に失敗しました" };
   }
 
+  await writeAuditLog({
+    tenantId: dbUser.tenant_id,
+    userId: authUser.id,
+    action: "create",
+    resource: "team_member",
+    details: { teamId, memberId: userId },
+  });
+
   revalidatePath("/team");
   return { success: true };
 }
@@ -132,6 +149,14 @@ export async function removeTeamMember(memberId: string) {
   if (error) {
     return { success: false, error: "メンバーの削除に失敗しました" };
   }
+
+  await writeAuditLog({
+    tenantId: dbUser.tenant_id,
+    userId: authUser.id,
+    action: "delete",
+    resource: "team_member",
+    resourceId: memberId,
+  });
 
   revalidatePath("/team");
   return { success: true };

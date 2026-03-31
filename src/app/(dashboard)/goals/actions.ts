@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { createGoalSchema } from "@/lib/validations";
+import { writeAuditLog } from "@/lib/audit";
 
 interface GoalInput {
   name: string;
@@ -63,6 +64,14 @@ export async function createGoal(input: GoalInput): Promise<{
     if (error) {
       return { success: false, error: "目標の作成に失敗しました" };
     }
+
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: user.id,
+      action: "create",
+      resource: "goal",
+      details: { name: input.name, level: input.level },
+    });
 
     revalidatePath("/goals");
     return { success: true };
@@ -132,6 +141,15 @@ export async function updateGoal(
       return { success: false, error: "目標の更新に失敗しました" };
     }
 
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: user.id,
+      action: "update",
+      resource: "goal",
+      resourceId: goalId,
+      details: input,
+    });
+
     revalidatePath("/goals");
     return { success: true };
   } catch {
@@ -185,6 +203,14 @@ export async function deleteGoal(
     if (error) {
       return { success: false, error: "目標の削除に失敗しました" };
     }
+
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: user.id,
+      action: "delete",
+      resource: "goal",
+      resourceId: goalId,
+    });
 
     revalidatePath("/goals");
     return { success: true };

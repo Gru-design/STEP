@@ -2,7 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import type { ReportVisibility } from "@/types/database";
+import { writeAuditLog } from "@/lib/audit";
+import { updateTenantSchema } from "@/lib/validations";
 
 export async function updateTenantSettings(formData: FormData) {
   const supabase = await createClient();
@@ -25,27 +26,22 @@ export async function updateTenantSettings(formData: FormData) {
     return { success: false, error: "権限がありません" };
   }
 
-  const name = formData.get("name") as string;
-  const reportVisibility = formData.get("report_visibility") as ReportVisibility;
+  const parsed = updateTenantSchema.safeParse({
+    name: formData.get("name"),
+    report_visibility: formData.get("report_visibility"),
+  });
 
-  if (!name || name.trim().length === 0) {
-    return { success: false, error: "テナント名を入力してください" };
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const validVisibilities: ReportVisibility[] = [
-    "manager_only",
-    "team",
-    "tenant_all",
-  ];
-  if (!validVisibilities.includes(reportVisibility)) {
-    return { success: false, error: "無効な閲覧ポリシーです" };
-  }
+  const { name, report_visibility } = parsed.data;
 
   const { error } = await supabase
     .from("tenants")
     .update({
       name: name.trim(),
-      report_visibility: reportVisibility,
+      report_visibility,
       updated_at: new Date().toISOString(),
     })
     .eq("id", dbUser.tenant_id);
@@ -53,6 +49,15 @@ export async function updateTenantSettings(formData: FormData) {
   if (error) {
     return { success: false, error: "設定の更新に失敗しました" };
   }
+
+  await writeAuditLog({
+    tenantId: dbUser.tenant_id,
+    userId: authUser.id,
+    action: "update",
+    resource: "tenant_settings",
+    resourceId: dbUser.tenant_id,
+    details: { name: name.trim(), report_visibility },
+  });
 
   revalidatePath("/settings");
   return { success: true };

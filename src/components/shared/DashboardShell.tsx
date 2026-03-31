@@ -239,7 +239,7 @@ export function DashboardShell({
                 onClick={onLinkClick}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   active
-                    ? "bg-primary-light text-primary"
+                    ? "bg-primary/10 text-primary font-semibold"
                     : "text-muted-foreground hover:bg-muted hover:text-primary"
                 }`}
               >
@@ -275,7 +275,7 @@ export function DashboardShell({
             href="/profile"
             className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
               pathname === "/profile"
-                ? "bg-primary-light text-primary"
+                ? "bg-primary/10 text-primary font-semibold"
                 : "text-muted-foreground hover:bg-muted hover:text-primary"
             }`}
           >
@@ -308,7 +308,7 @@ export function DashboardShell({
               <SheetContent side="left" className="w-64 p-0">
                 <SheetHeader className="border-b border-border px-5 py-4">
                   <SheetTitle className="text-xl font-bold text-primary">
-                    STEP
+                    {appName}
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="overflow-y-auto p-3">
@@ -320,9 +320,13 @@ export function DashboardShell({
             {/* Mobile logo */}
             <Link
               href="/dashboard"
-              className="text-xl font-bold text-primary lg:hidden"
+              className="flex items-center gap-2 text-xl font-bold text-primary lg:hidden"
             >
-              STEP
+              {logoUrl ? (
+                <img src={logoUrl} alt={appName} className="h-7 w-auto" />
+              ) : (
+                appName
+              )}
             </Link>
 
             {/* Desktop: Cmd+K hint */}

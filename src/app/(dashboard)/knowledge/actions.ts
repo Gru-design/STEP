@@ -2,6 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { writeAuditLog } from "@/lib/audit";
+import { createKnowledgeSchema } from "@/lib/validations";
 
 interface ActionResult<T = unknown> {
   success: boolean;
@@ -35,12 +37,9 @@ export async function createKnowledgePost(data: {
       return { success: false, error: "ユーザーが見つかりません" };
     }
 
-    if (!data.title.trim()) {
-      return { success: false, error: "タイトルは必須です" };
-    }
-
-    if (!data.body.trim()) {
-      return { success: false, error: "本文は必須です" };
+    const parsed = createKnowledgeSchema.safeParse(data);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0].message };
     }
 
     const { data: post, error } = await supabase
@@ -58,6 +57,15 @@ export async function createKnowledgePost(data: {
     if (error) {
       return { success: false, error: "ナレッジの投稿に失敗しました" };
     }
+
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: user.id,
+      action: "create",
+      resource: "knowledge_post",
+      resourceId: post.id,
+      details: { title: data.title },
+    });
 
     revalidatePath("/knowledge");
     return { success: true, data: post };
@@ -143,7 +151,7 @@ export async function deleteKnowledgePost(
 
     const { data: dbUser } = await supabase
       .from("users")
-      .select("role")
+      .select("tenant_id, role")
       .eq("id", user.id)
       .single();
 
@@ -177,6 +185,14 @@ export async function deleteKnowledgePost(
     if (error) {
       return { success: false, error: "削除に失敗しました" };
     }
+
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: user.id,
+      action: "delete",
+      resource: "knowledge_post",
+      resourceId: id,
+    });
 
     revalidatePath("/knowledge");
     return { success: true };
