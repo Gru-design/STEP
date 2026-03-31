@@ -14,8 +14,14 @@ export default async function AdminPage() {
     redirect("/login");
   }
 
-  // Only super_admin can access
-  if (user.user_metadata?.role !== "super_admin") {
+  // Only super_admin can access - verify from database, not user_metadata
+  const { data: dbUser } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (dbUser?.role !== "super_admin") {
     redirect("/");
   }
 

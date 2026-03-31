@@ -85,10 +85,21 @@ export async function updateDeal(id: string, data: UpdateDealInput) {
       return { success: false, error: "認証が必要です" };
     }
 
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!dbUser) {
+      return { success: false, error: "ユーザーが見つかりません" };
+    }
+
     const { error } = await supabase
       .from("deals")
       .update({ ...data, updated_at: new Date().toISOString() })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("tenant_id", dbUser.tenant_id);
 
     if (error) {
       return { success: false, error: "案件の更新に失敗しました" };
@@ -164,7 +175,21 @@ export async function deleteDeal(id: string) {
       return { success: false, error: "認証が必要です" };
     }
 
-    const { error } = await supabase.from("deals").delete().eq("id", id);
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!dbUser) {
+      return { success: false, error: "ユーザーが見つかりません" };
+    }
+
+    const { error } = await supabase
+      .from("deals")
+      .delete()
+      .eq("id", id)
+      .eq("tenant_id", dbUser.tenant_id);
 
     if (error) {
       return { success: false, error: "案件の削除に失敗しました" };

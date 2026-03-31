@@ -4,6 +4,11 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  // Only allow in development
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Not available" }, { status: 404 });
+  }
+
   try {
     const supabase = await createClient();
 
@@ -13,36 +18,23 @@ export async function GET() {
       return NextResponse.json({ step: "auth", error: authError.message });
     }
     if (!authUser) {
-      return NextResponse.json({ step: "auth", error: "not authenticated" });
+      return NextResponse.json({ step: "auth", error: "not authenticated" }, { status: 401 });
     }
 
-    // 2. JWT claims check
-    const { data: { session } } = await supabase.auth.getSession();
-    const jwt = session?.access_token;
-    let claims = null;
-    if (jwt) {
-      try {
-        const payload = JSON.parse(atob(jwt.split('.')[1]));
-        claims = { tenant_id: payload.tenant_id, role: payload.role, sub: payload.sub };
-      } catch {
-        claims = "failed to decode";
-      }
-    }
-
-    // 3. Users table query
+    // 2. Users table query
     const { data: dbUser, error: userError } = await supabase
       .from("users")
-      .select("*")
+      .select("id, tenant_id, role, name, email")
       .eq("id", authUser.id)
       .single();
 
-    // 4. Tenants table query
+    // 3. Tenants table query
     let tenant = null;
     let tenantError = null;
     if (dbUser) {
       const result = await supabase
         .from("tenants")
-        .select("*")
+        .select("id, name, plan")
         .eq("id", dbUser.tenant_id)
         .single();
       tenant = result.data;
@@ -51,7 +43,6 @@ export async function GET() {
 
     return NextResponse.json({
       authUser: { id: authUser.id, email: authUser.email },
-      claims,
       dbUser: dbUser ?? null,
       userError: userError?.message ?? null,
       tenant: tenant ?? null,
