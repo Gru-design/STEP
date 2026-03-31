@@ -1,42 +1,58 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-navy: #0C025F;
-  --color-accent: #2563EB;
-  --color-light-bg: #F0F4FF;
-  --color-mid-bg: #DBEAFE;
-  --color-dark: #1E293B;
-  --color-gray: #64748B;
-  --color-success: #059669;
+  /* ── Primary (Teal - 信頼 + 成長) ── */
+  --color-primary: #0D9488;
+  --color-primary-hover: #0F766E;
+  --color-primary-foreground: #ffffff;
+  --color-primary-light: #CCFBF1;
+  --color-primary-muted: #99F6E4;
+
+  /* ── Accent (Orange - エネルギー + 動機) ── */
+  --color-accent-color: #F97316;
+  --color-accent-hover: #EA580C;
+  --color-accent-light: #FFF7ED;
+  --color-accent-foreground: #1C1917;
+
+  /* ── Background (60% - 温かみのある中性色) ── */
+  --color-background: #ffffff;
+  --color-foreground: #1C1917;
+  --color-muted: #F5F5F4;
+  --color-muted-foreground: #78716C;
+  --color-border: #E7E5E4;
+  --color-input: #D6D3D1;
+  --color-ring: #0D9488;
+
+  --color-card: #ffffff;
+  --color-card-foreground: #1C1917;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #1C1917;
+  --color-secondary: #F5F5F4;
+  --color-secondary-foreground: #1C1917;
+
+  /* ── Semantic ── */
+  --color-success: #16A34A;
   --color-warning: #D97706;
   --color-danger: #DC2626;
-
-  --color-background: #ffffff;
-  --color-foreground: #1E293B;
-  --color-muted: #F0F4FF;
-  --color-muted-foreground: #64748B;
-  --color-border: #e2e8f0;
-  --color-input: #e2e8f0;
-  --color-ring: #2563EB;
-  --color-primary: #0C025F;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: #F0F4FF;
-  --color-secondary-foreground: #1E293B;
   --color-destructive: #DC2626;
   --color-destructive-foreground: #ffffff;
-  --color-card: #ffffff;
-  --color-card-foreground: #1E293B;
-  --color-popover: #ffffff;
-  --color-popover-foreground: #1E293B;
-  --color-accent-color: #DBEAFE;
-  --color-accent-foreground: #1E293B;
 
+  /* ── Legacy aliases (for bg-navy, text-gray etc. in LP) ── */
+  --color-navy: #0D9488;
+  --color-accent: #F97316;
+  --color-light-bg: #F5F5F4;
+  --color-mid-bg: #E7E5E4;
+  --color-dark: #1C1917;
+  --color-gray: #78716C;
+
+  /* ── Typography ── */
   --font-sans: "Inter", "BIZ UDPGothic", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 
-  --radius-lg: 0.5rem;
-  --radius-md: calc(0.5rem - 2px);
-  --radius-sm: calc(0.5rem - 4px);
+  /* ── Radius (やや大きめで軽やかに) ── */
+  --radius-lg: 0.75rem;
+  --radius-md: calc(0.75rem - 2px);
+  --radius-sm: calc(0.75rem - 4px);
 }
 
 body {

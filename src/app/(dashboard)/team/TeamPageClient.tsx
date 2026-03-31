@@ -96,7 +96,7 @@ export function TeamPageClient({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[#0C025F]">チーム</h1>
+        <h1 className="text-2xl font-bold text-primary">チーム</h1>
         {canManage && (
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
@@ -121,7 +121,7 @@ export function TeamPageClient({
                     />
                   </div>
                   {error && (
-                    <p className="text-sm text-[#DC2626]">{error}</p>
+                    <p className="text-sm text-danger">{error}</p>
                   )}
                 </div>
                 <DialogFooter>
@@ -141,13 +141,13 @@ export function TeamPageClient({
       </div>
 
       {error && !createDialogOpen && !addMemberDialogTeamId && (
-        <p className="text-sm text-[#DC2626]">{error}</p>
+        <p className="text-sm text-danger">{error}</p>
       )}
 
       {teams.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-[#64748B]">チームがまだありません。</p>
+            <p className="text-muted-foreground">チームがまだありません。</p>
           </CardContent>
         </Card>
       ) : (
@@ -173,14 +173,14 @@ export function TeamPageClient({
                 )}
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-[#64748B] mb-3">
+                <p className="text-xs text-muted-foreground mb-3">
                   {team.team_members.length}名のメンバー
                 </p>
                 <div className="space-y-2">
                   {team.team_members.map((member) => (
                     <div
                       key={member.id}
-                      className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2"
+                      className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
                     >
                       <div className="flex items-center gap-2">
                         <Avatar className="h-7 w-7">
@@ -195,7 +195,7 @@ export function TeamPageClient({
                           <p className="text-sm font-medium">
                             {member.users.name}
                           </p>
-                          <p className="text-xs text-[#64748B]">
+                          <p className="text-xs text-muted-foreground">
                             {roleLabels[member.users.role] ?? member.users.role}
                           </p>
                         </div>
@@ -215,7 +215,7 @@ export function TeamPageClient({
                     </div>
                   ))}
                   {team.team_members.length === 0 && (
-                    <p className="text-sm text-[#64748B] py-2">
+                    <p className="text-sm text-muted-foreground py-2">
                       メンバーがいません
                     </p>
                   )}
@@ -257,7 +257,7 @@ export function TeamPageClient({
                 </SelectContent>
               </Select>
             </div>
-            {error && <p className="text-sm text-[#DC2626]">{error}</p>}
+            {error && <p className="text-sm text-danger">{error}</p>}
           </div>
           <DialogFooter>
             <Button

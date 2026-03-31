@@ -9,7 +9,7 @@ interface BadgeDisplayProps {
 
 const rarityStyles: Record<string, string> = {
   common: "border-gray-300",
-  rare: "border-[#2563EB]",
+  rare: "border-accent-color",
   epic: "border-purple-500",
   legendary: "border-yellow-500",
 };
@@ -22,8 +22,8 @@ const rarityLabels: Record<string, string> = {
 };
 
 const rarityTextColors: Record<string, string> = {
-  common: "text-[#64748B]",
-  rare: "text-[#2563EB]",
+  common: "text-muted-foreground",
+  rare: "text-accent-color",
   epic: "text-purple-600",
   legendary: "text-yellow-600",
 };
@@ -31,7 +31,7 @@ const rarityTextColors: Record<string, string> = {
 export function BadgeDisplay({ badges }: BadgeDisplayProps) {
   if (badges.length === 0) {
     return (
-      <p className="text-sm text-[#64748B]">バッジはまだありません</p>
+      <p className="text-sm text-muted-foreground">バッジはまだありません</p>
     );
   }
 
@@ -45,15 +45,15 @@ export function BadgeDisplay({ badges }: BadgeDisplayProps) {
           } ${badge.earned ? "bg-white" : "grayscale opacity-50 bg-gray-50"}`}
         >
           <span className="text-3xl">{badge.icon}</span>
-          <span className="text-sm font-medium text-[#1E293B]">
+          <span className="text-sm font-medium text-foreground">
             {badge.name}
           </span>
-          <span className="text-xs text-[#64748B] line-clamp-2">
+          <span className="text-xs text-muted-foreground line-clamp-2">
             {badge.description}
           </span>
           <span
             className={`text-[10px] font-medium ${
-              rarityTextColors[badge.rarity] ?? "text-[#64748B]"
+              rarityTextColors[badge.rarity] ?? "text-muted-foreground"
             }`}
           >
             {rarityLabels[badge.rarity] ?? badge.rarity}

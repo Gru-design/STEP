@@ -45,9 +45,9 @@ export function SectionBlock({
   };
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white">
+    <div className="rounded-lg border border-border bg-white">
       {/* Section header */}
-      <div className="flex items-center gap-2 border-b border-slate-200 px-3 py-2">
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         {isEditing ? (
           <div className="flex flex-1 items-center gap-1.5">
             <Input
@@ -66,7 +66,7 @@ export function SectionBlock({
             <button
               type="button"
               onClick={handleSaveLabel}
-              className="rounded p-1 text-[#059669] hover:bg-green-50"
+              className="rounded p-1 text-success hover:bg-green-50"
             >
               <Check className="h-4 w-4" />
             </button>
@@ -77,10 +77,10 @@ export function SectionBlock({
             onClick={() => setIsEditing(true)}
             className="flex flex-1 items-center gap-1.5 text-left"
           >
-            <span className="text-sm font-semibold text-[#0C025F]">
+            <span className="text-sm font-semibold text-primary">
               {section.label}
             </span>
-            <Pencil className="h-3 w-3 text-[#64748B]" />
+            <Pencil className="h-3 w-3 text-muted-foreground" />
           </button>
         )}
         <Button
@@ -88,7 +88,7 @@ export function SectionBlock({
           variant="ghost"
           size="sm"
           onClick={onDeleteSection}
-          className="h-7 px-2 text-[#DC2626] hover:bg-red-50 hover:text-[#DC2626]"
+          className="h-7 px-2 text-danger hover:bg-red-50 hover:text-danger"
         >
           <Trash2 className="h-3.5 w-3.5" />
           <span className="ml-1 text-xs">削除</span>
@@ -102,8 +102,8 @@ export function SectionBlock({
           strategy={verticalListSortingStrategy}
         >
           {fields.length === 0 ? (
-            <div className="rounded-lg border-2 border-dashed border-slate-200 px-4 py-6 text-center">
-              <p className="text-sm text-[#64748B]">
+            <div className="rounded-lg border-2 border-dashed border-border px-4 py-6 text-center">
+              <p className="text-sm text-muted-foreground">
                 左パネルからフィールドを追加してください
               </p>
             </div>
@@ -157,15 +157,15 @@ function SortableFieldItem({
       className={cn(
         "flex cursor-pointer items-center rounded-lg border px-3 py-2 transition-colors",
         isSelected
-          ? "border-[#2563EB] bg-[#F0F4FF]"
-          : "border-transparent hover:border-slate-200 hover:bg-[#F0F4FF]",
+          ? "border-accent-color bg-muted"
+          : "border-transparent hover:border-border hover:bg-muted",
         isDragging && "z-50 opacity-50"
       )}
       onClick={onSelect}
     >
       <button
         type="button"
-        className="mr-1 shrink-0 cursor-grab touch-none rounded p-0.5 text-[#64748B] hover:text-[#1E293B]"
+        className="mr-1 shrink-0 cursor-grab touch-none rounded p-0.5 text-muted-foreground hover:text-foreground"
         {...attributes}
         {...listeners}
       >

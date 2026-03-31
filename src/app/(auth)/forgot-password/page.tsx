@@ -53,7 +53,7 @@ export default function ForgotPasswordPage() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-[#0C025F]">メールを送信しました</CardTitle>
+          <CardTitle className="text-primary">メールを送信しました</CardTitle>
           <CardDescription>
             パスワードリセット用のリンクを送信しました。メールをご確認ください。
           </CardDescription>
@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-[#0C025F]">パスワードをリセット</CardTitle>
+        <CardTitle className="text-primary">パスワードをリセット</CardTitle>
         <CardDescription>
           登録済みのメールアドレスを入力してください。パスワードリセット用のリンクをお送りします。
         </CardDescription>
@@ -80,7 +80,7 @@ export default function ForgotPasswordPage() {
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
           {error && (
-            <div className="rounded-lg border border-[#DC2626]/20 bg-[#DC2626]/5 px-4 py-3 text-sm text-[#DC2626]">
+            <div className="rounded-lg border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
               {error}
             </div>
           )}
@@ -103,7 +103,7 @@ export default function ForgotPasswordPage() {
           </Button>
           <Link
             href="/login"
-            className="text-center text-sm text-[#2563EB] hover:underline"
+            className="text-center text-sm text-accent-color hover:underline"
           >
             ログインに戻る
           </Link>

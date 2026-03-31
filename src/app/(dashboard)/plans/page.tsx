@@ -78,8 +78,8 @@ export default async function PlansPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#0C025F]">週次計画</h1>
-        <p className="mt-1 text-sm text-[#64748B]">
+        <h1 className="text-2xl font-bold text-primary">週次計画</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           今週の行動計画を立て、提出・承認を受けましょう
         </p>
       </div>

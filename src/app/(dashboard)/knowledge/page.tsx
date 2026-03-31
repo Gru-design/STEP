@@ -72,8 +72,8 @@ export default async function KnowledgePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#0C025F]">ナレッジ</h1>
-        <p className="mt-1 text-sm text-[#64748B]">
+        <h1 className="text-2xl font-bold text-primary">ナレッジ</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           チームの知見・ノウハウを共有・検索できます
         </p>
       </div>

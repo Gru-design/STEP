@@ -30,7 +30,7 @@ export default async function IntegrationsPage() {
   if (!["admin", "super_admin"].includes(user.role)) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-[#DC2626] font-medium">
+        <p className="text-danger font-medium">
           アクセス権限がありません
         </p>
       </div>
@@ -46,8 +46,8 @@ export default async function IntegrationsPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#0C025F]">外部連携</h1>
-        <p className="mt-1 text-sm text-[#64748B]">
+        <h1 className="text-2xl font-bold text-primary">外部連携</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           外部サービスとの連携を設定します。通知の送信やデータの自動取得が可能になります。
         </p>
       </div>

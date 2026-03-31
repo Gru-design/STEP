@@ -95,7 +95,7 @@ export function EditTemplateClient({ template }: EditTemplateClientProps) {
   return (
     <div className="space-y-6">
       {error && (
-        <div className="rounded-lg border border-[#DC2626] bg-red-50 px-4 py-3 text-sm text-[#DC2626]">
+        <div className="rounded-lg border border-danger bg-red-50 px-4 py-3 text-sm text-danger">
           {error}
         </div>
       )}
@@ -140,13 +140,13 @@ export function EditTemplateClient({ template }: EditTemplateClientProps) {
               {roleOptions.map((opt) => (
                 <label
                   key={opt.value}
-                  className="flex items-center gap-2 text-sm text-[#1E293B]"
+                  className="flex items-center gap-2 text-sm text-foreground"
                 >
                   <input
                     type="checkbox"
                     checked={targetRoles.includes(opt.value)}
                     onChange={() => toggleRole(opt.value)}
-                    className="h-4 w-4 rounded border-slate-200 text-[#0C025F] focus:ring-[#0C025F]"
+                    className="h-4 w-4 rounded border-border text-primary focus:ring-ring"
                   />
                   {opt.label}
                 </label>
@@ -193,7 +193,7 @@ export function EditTemplateClient({ template }: EditTemplateClientProps) {
 
       {/* Action buttons */}
       <div className="flex items-center justify-between">
-        <p className="text-xs text-[#64748B]">
+        <p className="text-xs text-muted-foreground">
           バージョン: v{template.version}
         </p>
         <div className="flex items-center gap-3">
@@ -212,7 +212,7 @@ export function EditTemplateClient({ template }: EditTemplateClientProps) {
             保存
           </Button>
           <Button
-            className="bg-[#0C025F] text-white hover:bg-[#0C025F]/90"
+            className="bg-primary text-white hover:bg-primary/90"
             onClick={() => handleSubmit(true)}
             disabled={isPending}
           >

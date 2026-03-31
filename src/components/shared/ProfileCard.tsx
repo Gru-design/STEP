@@ -15,10 +15,10 @@ const roleLabels: Record<Role, string> = {
 };
 
 const roleBadgeColors: Record<Role, string> = {
-  super_admin: "bg-[#DC2626] text-white",
-  admin: "bg-[#0C025F] text-white",
-  manager: "bg-[#2563EB] text-white",
-  member: "bg-[#F0F4FF] text-[#0C025F]",
+  super_admin: "bg-danger text-white",
+  admin: "bg-primary text-white",
+  manager: "bg-accent-color text-white",
+  member: "bg-muted text-primary",
 };
 
 interface ProfileCardProps {
@@ -43,7 +43,7 @@ export function ProfileCard({ user, teamName, streak, level, xp }: ProfileCardPr
 
           <div className="flex-1 space-y-2">
             <div>
-              <h3 className="text-lg font-semibold text-[#1E293B]">
+              <h3 className="text-lg font-semibold text-foreground">
                 {user.name}
               </h3>
               <div className="mt-1 flex flex-wrap items-center justify-center sm:justify-start gap-2">
@@ -55,7 +55,7 @@ export function ProfileCard({ user, teamName, streak, level, xp }: ProfileCardPr
                   {roleLabels[user.role]}
                 </span>
                 {teamName && (
-                  <span className="text-xs text-[#64748B]">{teamName}</span>
+                  <span className="text-xs text-muted-foreground">{teamName}</span>
                 )}
               </div>
             </div>
@@ -74,7 +74,7 @@ export function ProfileCard({ user, teamName, streak, level, xp }: ProfileCardPr
             )}
 
             {user.bio && (
-              <p className="text-sm text-[#64748B]">{user.bio}</p>
+              <p className="text-sm text-muted-foreground">{user.bio}</p>
             )}
 
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">

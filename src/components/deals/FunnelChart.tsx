@@ -22,18 +22,18 @@ interface FunnelChartProps {
 }
 
 const GRADIENT_COLORS = [
-  "#2563EB",
+  "#0D9488",
   "#3B71EC",
   "#5180ED",
   "#678EEF",
   "#7D9DF0",
-  "#0C025F",
+  "#0D9488",
 ];
 
 export function FunnelChart({ stages }: FunnelChartProps) {
   if (stages.length === 0) {
     return (
-      <div className="flex h-48 items-center justify-center text-sm text-[#64748B]">
+      <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
         パイプラインデータがありません
       </div>
     );
@@ -53,7 +53,7 @@ export function FunnelChart({ stages }: FunnelChartProps) {
             type="category"
             dataKey="name"
             width={100}
-            tick={{ fontSize: 13, fill: "#1E293B" }}
+            tick={{ fontSize: 13, fill: "#1C1917" }}
             axisLine={false}
             tickLine={false}
           />
@@ -73,7 +73,7 @@ export function FunnelChart({ stages }: FunnelChartProps) {
               dataKey="count"
               position="right"
               formatter={(value) => `${value}件`}
-              style={{ fontSize: 12, fill: "#64748B" }}
+              style={{ fontSize: 12, fill: "#78716C" }}
             />
           </Bar>
         </BarChart>
@@ -88,12 +88,12 @@ export function FunnelChart({ stages }: FunnelChartProps) {
           return (
             <div
               key={stage.name}
-              className="flex items-center gap-2 text-xs text-[#64748B]"
+              className="flex items-center gap-2 text-xs text-muted-foreground"
             >
               <span>
                 {stages[index - 1].name} → {stage.name}
               </span>
-              <span className="font-mono font-medium text-[#0C025F]">
+              <span className="font-mono font-medium text-primary">
                 {rate}%
               </span>
             </div>

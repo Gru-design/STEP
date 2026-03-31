@@ -36,8 +36,8 @@ export default async function NewReportPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#0C025F]">日報を書く</h1>
-        <p className="mt-1 text-sm text-[#64748B]">
+        <h1 className="text-2xl font-bold text-primary">日報を書く</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           テンプレートを選んで日報を作成してください
         </p>
       </div>

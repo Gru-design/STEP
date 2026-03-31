@@ -77,23 +77,23 @@ export function NewReportForm({ templates }: NewReportFormProps) {
     <div className="space-y-6">
       {/* Date picker */}
       <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-[#1E293B]">日付</Label>
+        <Label className="text-sm font-medium text-foreground">日付</Label>
         <Input
           type="date"
           value={reportDate}
           onChange={(e) => setReportDate(e.target.value)}
-          className="w-auto border-slate-200"
+          className="w-auto border-border"
         />
       </div>
 
       {/* Template selection */}
       {!selectedTemplate && (
         <div className="space-y-3">
-          <Label className="text-sm font-medium text-[#1E293B]">
+          <Label className="text-sm font-medium text-foreground">
             テンプレートを選択
           </Label>
           {templates.length === 0 ? (
-            <p className="text-sm text-[#64748B]">
+            <p className="text-sm text-muted-foreground">
               利用可能なテンプレートがありません。管理者に連絡してください。
             </p>
           ) : (
@@ -101,16 +101,16 @@ export function NewReportForm({ templates }: NewReportFormProps) {
               {templates.map((t) => (
                 <Card
                   key={t.id}
-                  className="cursor-pointer border-slate-200 transition-colors hover:bg-[#F0F4FF]"
+                  className="cursor-pointer border-border transition-colors hover:bg-muted"
                   onClick={() => handleSelectTemplate(t.id)}
                 >
                   <CardContent className="flex items-center gap-3 p-4">
-                    <FileText className="h-5 w-5 text-[#2563EB] shrink-0" />
+                    <FileText className="h-5 w-5 text-accent-color shrink-0" />
                     <div>
-                      <p className="text-sm font-medium text-[#1E293B]">
+                      <p className="text-sm font-medium text-foreground">
                         {t.name}
                       </p>
-                      <p className="text-xs text-[#64748B]">
+                      <p className="text-xs text-muted-foreground">
                         {t.type === "daily"
                           ? "日報"
                           : t.type === "weekly"
@@ -129,7 +129,7 @@ export function NewReportForm({ templates }: NewReportFormProps) {
       {/* Template change */}
       {selectedTemplate && templates.length > 1 && (
         <div className="flex items-center gap-2">
-          <span className="text-sm text-[#64748B]">
+          <span className="text-sm text-muted-foreground">
             テンプレート: {selectedTemplate.name}
           </span>
           <button
@@ -137,7 +137,7 @@ export function NewReportForm({ templates }: NewReportFormProps) {
               setSelectedTemplateId("");
               setFormValues({});
             }}
-            className="text-sm text-[#2563EB] hover:underline"
+            className="text-sm text-accent-color hover:underline"
           >
             変更
           </button>
@@ -147,7 +147,7 @@ export function NewReportForm({ templates }: NewReportFormProps) {
       {/* Dynamic form */}
       {selectedTemplate && (
         <>
-          <Card className="border-slate-200">
+          <Card className="border-border">
             <CardContent className="p-4 sm:p-6">
               <DynamicForm
                 schema={selectedTemplate.schema as TemplateSchema}
@@ -164,7 +164,7 @@ export function NewReportForm({ templates }: NewReportFormProps) {
               variant="outline"
               disabled={isPending}
               onClick={() => handleSave("draft")}
-              className="border-slate-200"
+              className="border-border"
             >
               <Save className="mr-1 h-4 w-4" />
               下書き保存
@@ -173,7 +173,7 @@ export function NewReportForm({ templates }: NewReportFormProps) {
               type="button"
               disabled={isPending}
               onClick={() => handleSave("submitted")}
-              className="bg-[#0C025F] hover:bg-[#0C025F]/90 text-white"
+              className="bg-primary hover:bg-primary/90 text-white"
             >
               <Send className="mr-1 h-4 w-4" />
               提出

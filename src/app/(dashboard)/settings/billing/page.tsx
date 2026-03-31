@@ -52,7 +52,7 @@ export default async function BillingPage() {
       </p>
 
       {/* Current plan summary */}
-      <div className="border border-slate-200 rounded-lg p-6 mb-8 bg-light-bg">
+      <div className="border border-border rounded-lg p-6 mb-8 bg-light-bg">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <p className="text-sm text-gray mb-1">現在のプラン</p>

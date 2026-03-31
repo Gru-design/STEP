@@ -92,13 +92,13 @@ function RankingTable({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold text-[#0C025F]">
+        <CardTitle className="text-sm font-semibold text-primary">
           {title}
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
         {entries.length === 0 ? (
-          <p className="text-sm text-[#64748B]">データがありません</p>
+          <p className="text-sm text-muted-foreground">データがありません</p>
         ) : (
           <div className="space-y-2">
             {entries.slice(0, 10).map((entry, idx) => {
@@ -106,11 +106,11 @@ function RankingTable({
               return (
                 <div
                   key={entry.userId}
-                  className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-[#F0F4FF] transition-colors"
+                  className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-muted transition-colors"
                 >
                   <span
                     className={`w-6 text-center text-sm font-bold font-mono ${
-                      idx < 3 ? rankColors[idx] : "text-[#64748B]"
+                      idx < 3 ? rankColors[idx] : "text-muted-foreground"
                     }`}
                   >
                     {idx < 3 && RankIcon ? (
@@ -125,13 +125,13 @@ function RankingTable({
                       {entry.name?.charAt(0) ?? "?"}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="flex-1 text-sm font-medium text-[#1E293B] truncate">
+                  <span className="flex-1 text-sm font-medium text-foreground truncate">
                     {entry.name}
                   </span>
-                  <span className="text-sm font-mono font-semibold text-[#0C025F]">
+                  <span className="text-sm font-mono font-semibold text-primary">
                     {entry.score.toLocaleString()}
                     {unit && (
-                      <span className="text-xs text-[#64748B] ml-0.5">
+                      <span className="text-xs text-muted-foreground ml-0.5">
                         {unit}
                       </span>
                     )}
@@ -160,7 +160,7 @@ function MvpCard({
   if (!mvp) {
     return (
       <Card>
-        <CardContent className="p-6 text-center text-sm text-[#64748B]">
+        <CardContent className="p-6 text-center text-sm text-muted-foreground">
           {label}: データがありません
         </CardContent>
       </Card>
@@ -172,8 +172,8 @@ function MvpCard({
       <div className={`h-1 ${accentColor}`} />
       <CardContent className="p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Icon className="h-5 w-5 text-[#0C025F]" />
-          <h3 className="text-sm font-semibold text-[#0C025F]">{label}</h3>
+          <Icon className="h-5 w-5 text-primary" />
+          <h3 className="text-sm font-semibold text-primary">{label}</h3>
         </div>
         <div className="flex items-center gap-4">
           <Avatar className="h-14 w-14">
@@ -183,10 +183,10 @@ function MvpCard({
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-base font-semibold text-[#1E293B]">
+            <p className="text-base font-semibold text-foreground">
               {mvp.name}
             </p>
-            <p className="text-sm text-[#64748B] mt-0.5">{mvp.achievement}</p>
+            <p className="text-sm text-muted-foreground mt-0.5">{mvp.achievement}</p>
           </div>
         </div>
       </CardContent>
@@ -201,14 +201,14 @@ export function DigestPageClient({ digests }: DigestPageClientProps) {
   if (digests.length === 0) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-[#0C025F]">週刊STEP</h1>
+        <h1 className="text-2xl font-bold text-primary">週刊STEP</h1>
         <Card>
           <CardContent className="p-12 text-center">
-            <Sparkles className="h-12 w-12 mx-auto text-[#64748B] mb-4" />
-            <p className="text-[#64748B]">
+            <Sparkles className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">
               まだ週刊STEPが生成されていません。
             </p>
-            <p className="text-sm text-[#64748B] mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               週次の集計後に自動的に生成されます。
             </p>
           </CardContent>
@@ -228,7 +228,7 @@ export function DigestPageClient({ digests }: DigestPageClientProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-2xl font-bold text-[#0C025F]">週刊STEP</h1>
+        <h1 className="text-2xl font-bold text-primary">週刊STEP</h1>
 
         {/* Week selector */}
         <div className="relative">
@@ -238,10 +238,10 @@ export function DigestPageClient({ digests }: DigestPageClientProps) {
             className="min-w-[180px] justify-between"
           >
             <span>{formatWeekLabel(current.week_start)}</span>
-            <ChevronDown className="h-4 w-4 ml-2 text-[#64748B]" />
+            <ChevronDown className="h-4 w-4 ml-2 text-muted-foreground" />
           </Button>
           {dropdownOpen && (
-            <div className="absolute right-0 top-full mt-1 z-10 w-[200px] rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div className="absolute right-0 top-full mt-1 z-10 w-[200px] rounded-lg border border-border bg-white shadow-sm">
               {digests.map((d, i) => (
                 <button
                   key={d.id}
@@ -249,10 +249,10 @@ export function DigestPageClient({ digests }: DigestPageClientProps) {
                     setSelectedIdx(i);
                     setDropdownOpen(false);
                   }}
-                  className={`block w-full text-left px-4 py-2 text-sm hover:bg-[#F0F4FF] transition-colors ${
+                  className={`block w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors ${
                     i === selectedIdx
-                      ? "bg-[#F0F4FF] font-medium text-[#0C025F]"
-                      : "text-[#1E293B]"
+                      ? "bg-muted font-medium text-primary"
+                      : "text-foreground"
                   } ${i === 0 ? "rounded-t-lg" : ""} ${
                     i === digests.length - 1 ? "rounded-b-lg" : ""
                   }`}
@@ -267,7 +267,7 @@ export function DigestPageClient({ digests }: DigestPageClientProps) {
 
       {/* Rankings */}
       <section>
-        <h2 className="text-lg font-semibold text-[#0C025F] mb-3 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-primary mb-3 flex items-center gap-2">
           <Trophy className="h-5 w-5" />
           ランキング
         </h2>
@@ -291,7 +291,7 @@ export function DigestPageClient({ digests }: DigestPageClientProps) {
 
       {/* MVP */}
       <section>
-        <h2 className="text-lg font-semibold text-[#0C025F] mb-3 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-primary mb-3 flex items-center gap-2">
           <Star className="h-5 w-5" />
           MVP紹介
         </h2>
@@ -300,26 +300,26 @@ export function DigestPageClient({ digests }: DigestPageClientProps) {
             label="数字MVP"
             mvp={mvp.numeric}
             icon={Flame}
-            accentColor="bg-[#D97706]"
+            accentColor="bg-warning"
           />
           <MvpCard
             label="プロセスMVP"
             mvp={mvp.process}
             icon={Sparkles}
-            accentColor="bg-[#2563EB]"
+            accentColor="bg-accent-color"
           />
         </div>
       </section>
 
       {/* Badge earners */}
       <section>
-        <h2 className="text-lg font-semibold text-[#0C025F] mb-3 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-primary mb-3 flex items-center gap-2">
           <Award className="h-5 w-5" />
           バッジ獲得者
         </h2>
         {badgeEarners.length === 0 ? (
           <Card>
-            <CardContent className="p-6 text-center text-sm text-[#64748B]">
+            <CardContent className="p-6 text-center text-sm text-muted-foreground">
               今週のバッジ獲得者はいません
             </CardContent>
           </Card>
@@ -330,7 +330,7 @@ export function DigestPageClient({ digests }: DigestPageClientProps) {
                 {badgeEarners.map((earner, i) => (
                   <div
                     key={`${earner.userId}-${i}`}
-                    className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-[#F0F4FF] transition-colors"
+                    className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-muted transition-colors"
                   >
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={earner.avatarUrl} />
@@ -338,13 +338,13 @@ export function DigestPageClient({ digests }: DigestPageClientProps) {
                         {earner.name?.charAt(0) ?? "?"}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm font-medium text-[#1E293B]">
+                    <span className="text-sm font-medium text-foreground">
                       {earner.name}
                     </span>
                     <span className="text-base" title={earner.badgeName}>
                       {earner.badgeIcon}
                     </span>
-                    <span className="text-sm text-[#64748B]">
+                    <span className="text-sm text-muted-foreground">
                       {earner.badgeName}
                     </span>
                   </div>
@@ -357,13 +357,13 @@ export function DigestPageClient({ digests }: DigestPageClientProps) {
 
       {/* Recommendations */}
       <section>
-        <h2 className="text-lg font-semibold text-[#0C025F] mb-3 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-primary mb-3 flex items-center gap-2">
           <Sparkles className="h-5 w-5" />
           おすすめピックアップ
         </h2>
         {recommendations.length === 0 ? (
           <Card>
-            <CardContent className="p-6 text-center text-sm text-[#64748B]">
+            <CardContent className="p-6 text-center text-sm text-muted-foreground">
               今週のピックアップはありません
             </CardContent>
           </Card>
@@ -379,11 +379,11 @@ export function DigestPageClient({ digests }: DigestPageClientProps) {
                         {rec.name?.charAt(0) ?? "?"}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm font-medium text-[#1E293B]">
+                    <span className="text-sm font-medium text-foreground">
                       {rec.name}
                     </span>
                   </div>
-                  <p className="text-sm text-[#1E293B] leading-relaxed">
+                  <p className="text-sm text-foreground leading-relaxed">
                     {rec.content}
                   </p>
                 </CardContent>

@@ -45,15 +45,15 @@ export default async function DealsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#0C025F]">案件管理</h1>
-        <p className="mt-1 text-sm text-[#64748B]">
+        <h1 className="text-2xl font-bold text-primary">案件管理</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           案件をドラッグ&ドロップでステージ間を移動できます
         </p>
       </div>
 
       {stages.length === 0 ? (
-        <div className="flex h-64 items-center justify-center rounded-lg border border-slate-200 bg-[#F0F4FF]">
-          <p className="text-sm text-[#64748B]">
+        <div className="flex h-64 items-center justify-center rounded-lg border border-border bg-muted">
+          <p className="text-sm text-muted-foreground">
             パイプラインステージが設定されていません。管理者に設定を依頼してください。
           </p>
         </div>

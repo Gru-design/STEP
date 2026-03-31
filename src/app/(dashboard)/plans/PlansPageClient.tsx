@@ -168,15 +168,15 @@ export function PlansPageClient({
   return (
     <div className="space-y-6">
       {/* Current Week Plan */}
-      <div className="rounded-lg border border-slate-200 bg-white">
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+      <div className="rounded-lg border border-border bg-white">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-3">
-            <Calendar className="h-5 w-5 text-[#2563EB]" />
+            <Calendar className="h-5 w-5 text-accent-color" />
             <div>
-              <h2 className="text-lg font-semibold text-[#0C025F]">
+              <h2 className="text-lg font-semibold text-primary">
                 今週の計画
               </h2>
-              <p className="text-sm text-[#64748B]">
+              <p className="text-sm text-muted-foreground">
                 {formatWeekRange(currentMonday)}
               </p>
             </div>
@@ -194,13 +194,13 @@ export function PlansPageClient({
           {/* Rejection comment */}
           {currentPlan?.status === "rejected" && rejectionLog && (
             <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-              <p className="text-sm font-medium text-[#DC2626]">
+              <p className="text-sm font-medium text-danger">
                 差し戻しコメント
               </p>
-              <p className="mt-1 text-sm text-[#1E293B]">
+              <p className="mt-1 text-sm text-foreground">
                 {rejectionLog.comment}
               </p>
-              <p className="mt-1 text-xs text-[#64748B]">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {rejectionLog.actor_name} -{" "}
                 {formatDateJP(rejectionLog.created_at)}
               </p>
@@ -211,16 +211,16 @@ export function PlansPageClient({
           {currentPlan?.execution_rate != null && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-[#1E293B]">
+                <span className="text-sm font-medium text-foreground">
                   実行率
                 </span>
-                <span className="text-sm font-mono text-[#0C025F]">
+                <span className="text-sm font-mono text-primary">
                   {Number(currentPlan.execution_rate).toFixed(0)}%
                 </span>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
                 <div
-                  className="h-full rounded-full bg-[#059669] transition-all"
+                  className="h-full rounded-full bg-success transition-all"
                   style={{
                     width: `${Math.min(100, Number(currentPlan.execution_rate))}%`,
                   }}
@@ -231,8 +231,8 @@ export function PlansPageClient({
 
           {/* Template selector */}
           {templates.length === 0 ? (
-            <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-[#F0F4FF]">
-              <p className="text-sm text-[#64748B]">
+            <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-border bg-muted">
+              <p className="text-sm text-muted-foreground">
                 計画テンプレートが設定されていません。管理者に設定を依頼してください。
               </p>
             </div>
@@ -240,13 +240,13 @@ export function PlansPageClient({
             <>
               {templates.length > 1 && isEditable && (
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-[#1E293B]">
+                  <label className="text-sm font-medium text-foreground">
                     テンプレート
                   </label>
                   <select
                     value={selectedTemplate}
                     onChange={(e) => setSelectedTemplate(e.target.value)}
-                    className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-1"
+                    className="flex h-10 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
                   >
                     {templates.map((t) => (
                       <option key={t.id} value={t.id}>
@@ -273,7 +273,7 @@ export function PlansPageClient({
                     variant="outline"
                     onClick={handleSaveDraft}
                     disabled={saving || submitting}
-                    className="border-slate-200"
+                    className="border-border"
                   >
                     <FileEdit className="mr-1 h-4 w-4" />
                     {saving ? "保存中..." : "下書き保存"}
@@ -281,7 +281,7 @@ export function PlansPageClient({
                   <Button
                     onClick={handleSubmit}
                     disabled={saving || submitting}
-                    className="bg-[#0C025F] hover:bg-[#0C025F]/90 text-white"
+                    className="bg-primary hover:bg-primary/90 text-white"
                   >
                     {submitting ? "提出中..." : "提出"}
                   </Button>
@@ -292,10 +292,10 @@ export function PlansPageClient({
 
           {/* Messages */}
           {error && (
-            <p className="text-sm text-[#DC2626]">{error}</p>
+            <p className="text-sm text-danger">{error}</p>
           )}
           {successMsg && (
-            <p className="text-sm text-[#059669]">{successMsg}</p>
+            <p className="text-sm text-success">{successMsg}</p>
           )}
 
           {/* Approval flow for current plan */}
@@ -315,7 +315,7 @@ export function PlansPageClient({
       {/* Past plans */}
       {pastPlans.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-lg font-semibold text-[#0C025F]">過去の計画</h2>
+          <h2 className="text-lg font-semibold text-primary">過去の計画</h2>
           <div className="space-y-2">
             {pastPlans.map((plan) => {
               const isExpanded = expandedPlanId === plan.id;
@@ -329,16 +329,16 @@ export function PlansPageClient({
               return (
                 <div
                   key={plan.id}
-                  className="rounded-lg border border-slate-200 bg-white"
+                  className="rounded-lg border border-border bg-white"
                 >
                   <button
                     onClick={() =>
                       setExpandedPlanId(isExpanded ? null : plan.id)
                     }
-                    className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-[#F0F4FF] transition-colors"
+                    className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-muted transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-[#1E293B]">
+                      <span className="text-sm font-medium text-foreground">
                         {formatWeekRange(plan.week_start)}
                       </span>
                       <span
@@ -347,18 +347,18 @@ export function PlansPageClient({
                         {statusConfig[plan.status]?.label ?? plan.status}
                       </span>
                       {plan.execution_rate != null && (
-                        <span className="text-xs font-mono text-[#64748B]">
+                        <span className="text-xs font-mono text-muted-foreground">
                           実行率: {Number(plan.execution_rate).toFixed(0)}%
                         </span>
                       )}
                     </div>
                     <ChevronRight
-                      className={`h-4 w-4 text-[#64748B] transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                      className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? "rotate-90" : ""}`}
                     />
                   </button>
 
                   {isExpanded && (
-                    <div className="border-t border-slate-200 p-4 space-y-4">
+                    <div className="border-t border-border p-4 space-y-4">
                       {planTemplate && (
                         <DynamicForm
                           schema={planTemplate.schema as TemplateSchema}

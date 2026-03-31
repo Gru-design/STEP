@@ -22,9 +22,9 @@ interface ApprovalFlowProps {
 }
 
 const actionIcons: Record<string, React.ReactNode> = {
-  submitted: <Send className="h-4 w-4 text-[#2563EB]" />,
-  approved: <CheckCircle2 className="h-4 w-4 text-[#059669]" />,
-  rejected: <XCircle className="h-4 w-4 text-[#DC2626]" />,
+  submitted: <Send className="h-4 w-4 text-accent-color" />,
+  approved: <CheckCircle2 className="h-4 w-4 text-success" />,
+  rejected: <XCircle className="h-4 w-4 text-danger" />,
 };
 
 const actionLabels: Record<string, string> = {
@@ -91,31 +91,31 @@ export function ApprovalFlow({
     <div className="space-y-4">
       {/* Status timeline */}
       <div className="space-y-1">
-        <h4 className="text-sm font-medium text-[#1E293B]">承認フロー</h4>
+        <h4 className="text-sm font-medium text-foreground">承認フロー</h4>
 
         {/* Timeline steps */}
-        <div className="relative ml-2 space-y-3 border-l-2 border-slate-200 pl-6 pt-2">
+        <div className="relative ml-2 space-y-3 border-l-2 border-border pl-6 pt-2">
           {logs.map((log) => (
             <div key={log.id} className="relative">
               <div className="absolute -left-[31px] top-0.5 rounded-full bg-white p-0.5">
                 {actionIcons[log.action] ?? (
-                  <Clock className="h-4 w-4 text-[#64748B]" />
+                  <Clock className="h-4 w-4 text-muted-foreground" />
                 )}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-[#1E293B]">
+                  <span className="text-sm font-medium text-foreground">
                     {actionLabels[log.action] ?? log.action}
                   </span>
-                  <span className="text-xs text-[#64748B]">
+                  <span className="text-xs text-muted-foreground">
                     {log.actor_name ?? ""}
                   </span>
-                  <span className="text-xs text-[#64748B]">
+                  <span className="text-xs text-muted-foreground">
                     {formatDateTime(log.created_at)}
                   </span>
                 </div>
                 {log.comment && (
-                  <p className="mt-1 text-sm text-[#1E293B] rounded-md bg-[#F0F4FF] px-3 py-2">
+                  <p className="mt-1 text-sm text-foreground rounded-md bg-muted px-3 py-2">
                     {log.comment}
                   </p>
                 )}
@@ -127,9 +127,9 @@ export function ApprovalFlow({
           {currentStatus === "submitted" && (
             <div className="relative">
               <div className="absolute -left-[31px] top-0.5 rounded-full bg-white p-0.5">
-                <Clock className="h-4 w-4 text-[#D97706]" />
+                <Clock className="h-4 w-4 text-warning" />
               </div>
-              <span className="text-sm text-[#D97706]">承認待ち</span>
+              <span className="text-sm text-warning">承認待ち</span>
             </div>
           )}
         </div>
@@ -137,8 +137,8 @@ export function ApprovalFlow({
 
       {/* Manager actions */}
       {isManager && currentStatus === "submitted" && (
-        <div className="space-y-3 rounded-lg border border-slate-200 bg-[#F0F4FF] p-4">
-          <p className="text-sm font-medium text-[#0C025F]">
+        <div className="space-y-3 rounded-lg border border-border bg-muted p-4">
+          <p className="text-sm font-medium text-primary">
             承認アクション
           </p>
 
@@ -147,7 +147,7 @@ export function ApprovalFlow({
               <Button
                 onClick={handleApprove}
                 disabled={processing}
-                className="bg-[#059669] hover:bg-[#059669]/90 text-white"
+                className="bg-success hover:bg-success/90 text-white"
               >
                 <CheckCircle2 className="mr-1 h-4 w-4" />
                 {processing ? "処理中..." : "承認"}
@@ -156,7 +156,7 @@ export function ApprovalFlow({
                 variant="outline"
                 onClick={() => setShowRejectForm(true)}
                 disabled={processing}
-                className="border-[#DC2626] text-[#DC2626] hover:bg-red-50"
+                className="border-danger text-danger hover:bg-red-50"
               >
                 <XCircle className="mr-1 h-4 w-4" />
                 差し戻し
@@ -169,13 +169,13 @@ export function ApprovalFlow({
                 onChange={(e) => setRejectComment(e.target.value)}
                 placeholder="差し戻し理由を入力してください（必須）"
                 rows={3}
-                className="border-slate-200"
+                className="border-border"
               />
               <div className="flex items-center gap-3">
                 <Button
                   onClick={handleReject}
                   disabled={processing || !rejectComment.trim()}
-                  className="bg-[#DC2626] hover:bg-[#DC2626]/90 text-white"
+                  className="bg-danger hover:bg-danger/90 text-white"
                 >
                   {processing ? "処理中..." : "差し戻す"}
                 </Button>
@@ -186,7 +186,7 @@ export function ApprovalFlow({
                     setRejectComment("");
                   }}
                   disabled={processing}
-                  className="border-slate-200"
+                  className="border-border"
                 >
                   キャンセル
                 </Button>
@@ -195,7 +195,7 @@ export function ApprovalFlow({
           )}
 
           {error && (
-            <div className="flex items-center gap-2 text-sm text-[#DC2626]">
+            <div className="flex items-center gap-2 text-sm text-danger">
               <AlertCircle className="h-4 w-4" />
               {error}
             </div>

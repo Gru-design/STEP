@@ -24,9 +24,9 @@ export function RepeaterField({
 
   if (mode === "builder") {
     return (
-      <div className="rounded-lg border border-dashed border-slate-300 bg-[#F0F4FF] p-3">
+      <div className="rounded-lg border border-dashed border-slate-300 bg-muted p-3">
         <div className="mb-2 flex items-center gap-2">
-          <span className="text-xs font-medium text-[#64748B]">
+          <span className="text-xs font-medium text-muted-foreground">
             リピーター子フィールド
           </span>
           <Badge variant="secondary" className="text-[10px]">
@@ -34,7 +34,7 @@ export function RepeaterField({
           </Badge>
         </div>
         {childFields.length === 0 ? (
-          <p className="text-xs text-[#64748B]">
+          <p className="text-xs text-muted-foreground">
             子フィールドが定義されていません
           </p>
         ) : (
@@ -42,7 +42,7 @@ export function RepeaterField({
             {childFields.map((child) => (
               <div
                 key={child.key}
-                className="flex items-center gap-2 rounded border border-slate-200 bg-white px-2 py-1.5 text-xs text-[#1E293B]"
+                className="flex items-center gap-2 rounded border border-border bg-white px-2 py-1.5 text-xs text-foreground"
               >
                 <span className="font-medium">{child.label}</span>
                 <Badge variant="outline" className="text-[10px]">
@@ -89,12 +89,12 @@ export function RepeaterField({
         <div
           key={rowIndex}
           className={cn(
-            "rounded-lg border border-slate-200 bg-white p-3",
+            "rounded-lg border border-border bg-white p-3",
             "relative"
           )}
         >
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-medium text-[#64748B]">
+            <span className="text-xs font-medium text-muted-foreground">
               行 {rowIndex + 1}
             </span>
             <Button
@@ -102,7 +102,7 @@ export function RepeaterField({
               variant="ghost"
               size="sm"
               onClick={() => handleRemoveRow(rowIndex)}
-              className="h-6 px-2 text-[#DC2626] hover:bg-red-50 hover:text-[#DC2626]"
+              className="h-6 px-2 text-danger hover:bg-red-50 hover:text-danger"
             >
               <Trash2 className="mr-1 h-3 w-3" />
               <span className="text-xs">削除</span>

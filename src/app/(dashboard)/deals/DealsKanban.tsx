@@ -40,10 +40,10 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  active: "bg-[#DBEAFE] text-[#2563EB]",
-  won: "bg-emerald-50 text-[#059669]",
-  lost: "bg-red-50 text-[#DC2626]",
-  hold: "bg-amber-50 text-[#D97706]",
+  active: "bg-primary-muted text-accent-color",
+  won: "bg-emerald-50 text-success",
+  lost: "bg-red-50 text-danger",
+  hold: "bg-warning/5 text-warning",
 };
 
 function formatYen(value: number | null): string {
@@ -87,16 +87,16 @@ function DealCard({
       href={`/deals/${deal.id}`}
       style={style}
       {...(isDragOverlay ? {} : { ...attributes, ...listeners })}
-      className="block cursor-grab rounded-lg border border-slate-200 bg-white p-3 transition-colors hover:border-[#2563EB] active:cursor-grabbing"
+      className="block cursor-grab rounded-lg border border-border bg-white p-3 transition-colors hover:border-accent-color active:cursor-grabbing"
     >
-      <div className="mb-1 text-xs font-medium text-[#64748B]">
+      <div className="mb-1 text-xs font-medium text-muted-foreground">
         {deal.company}
       </div>
-      <div className="mb-2 text-sm font-medium text-[#1E293B]">
+      <div className="mb-2 text-sm font-medium text-foreground">
         {deal.title || "（無題）"}
       </div>
       <div className="flex items-center justify-between">
-        <span className="font-mono text-sm font-semibold text-[#0C025F]">
+        <span className="font-mono text-sm font-semibold text-primary">
           {formatYen(deal.value)}
         </span>
         <span
@@ -106,7 +106,7 @@ function DealCard({
         </span>
       </div>
       {deal.due_date && (
-        <div className="mt-1 text-xs text-[#64748B]">
+        <div className="mt-1 text-xs text-muted-foreground">
           期限: {formatDate(deal.due_date)}
         </div>
       )}
@@ -116,15 +116,15 @@ function DealCard({
 
 function DealCardOverlay({ deal }: { deal: Deal }) {
   return (
-    <div className="w-64 rounded-lg border border-[#2563EB] bg-white p-3">
-      <div className="mb-1 text-xs font-medium text-[#64748B]">
+    <div className="w-64 rounded-lg border border-accent-color bg-white p-3">
+      <div className="mb-1 text-xs font-medium text-muted-foreground">
         {deal.company}
       </div>
-      <div className="mb-2 text-sm font-medium text-[#1E293B]">
+      <div className="mb-2 text-sm font-medium text-foreground">
         {deal.title || "（無題）"}
       </div>
       <div className="flex items-center justify-between">
-        <span className="font-mono text-sm font-semibold text-[#0C025F]">
+        <span className="font-mono text-sm font-semibold text-primary">
           {formatYen(deal.value)}
         </span>
         <span
@@ -159,18 +159,18 @@ function StageColumn({
     <div
       ref={setNodeRef}
       className={`flex min-h-[400px] w-72 flex-shrink-0 flex-col rounded-lg border ${
-        isOver ? "border-[#2563EB] bg-[#F0F4FF]" : "border-slate-200 bg-[#F0F4FF]"
+        isOver ? "border-accent-color bg-muted" : "border-border bg-muted"
       }`}
     >
       {/* Column Header */}
-      <div className="border-b border-slate-200 p-3">
+      <div className="border-b border-border p-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-[#0C025F]">{stage.name}</h3>
-          <span className="rounded-full bg-[#DBEAFE] px-2 py-0.5 text-xs font-medium text-[#2563EB]">
+          <h3 className="text-sm font-bold text-primary">{stage.name}</h3>
+          <span className="rounded-full bg-primary-muted px-2 py-0.5 text-xs font-medium text-accent-color">
             {deals.length}
           </span>
         </div>
-        <div className="mt-1 font-mono text-xs text-[#64748B]">
+        <div className="mt-1 font-mono text-xs text-muted-foreground">
           {formatYen(totalValue)}
         </div>
       </div>
@@ -178,7 +178,7 @@ function StageColumn({
       {/* Cards */}
       <div className="flex-1 space-y-2 overflow-y-auto p-2">
         {deals.length === 0 ? (
-          <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-slate-300 text-xs text-[#64748B]">
+          <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-slate-300 text-xs text-muted-foreground">
             案件なし
           </div>
         ) : (
@@ -187,7 +187,7 @@ function StageColumn({
       </div>
 
       {/* Add Button */}
-      <div className="border-t border-slate-200 p-2">
+      <div className="border-t border-border p-2">
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button
@@ -279,11 +279,11 @@ function AddDealForm({
         <Label htmlFor="due_date">期限</Label>
         <Input id="due_date" name="due_date" type="date" />
       </div>
-      {error && <p className="text-sm text-[#DC2626]">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
       <Button
         type="submit"
         disabled={loading}
-        className="w-full bg-[#0C025F] text-white hover:bg-[#0C025F]/90"
+        className="w-full bg-primary text-white hover:bg-primary/90"
       >
         {loading ? "追加中..." : "追加"}
       </Button>
