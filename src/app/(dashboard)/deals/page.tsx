@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import type { Deal, PipelineStage } from "@/types/database";
-import { DealsKanban } from "./DealsKanban";
+import { DealsViewToggle } from "./DealsViewToggle";
 
 export default async function DealsPage() {
   const supabase = await createClient();
@@ -58,7 +58,7 @@ export default async function DealsPage() {
           </p>
         </div>
       ) : (
-        <DealsKanban stages={stages} deals={deals} />
+        <DealsViewToggle stages={stages} deals={deals} />
       )}
     </div>
   );

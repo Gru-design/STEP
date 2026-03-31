@@ -10,7 +10,6 @@ import {
   Settings,
   FileText,
   FileEdit,
-  CalendarDays,
   Menu,
   LogOut,
   ChevronDown,
@@ -20,6 +19,7 @@ import {
   ClipboardList,
   BookOpen,
   Newspaper,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -39,7 +39,12 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { createClient } from "@/lib/supabase/client";
+import { BottomNav } from "./BottomNav";
+import { CommandPalette } from "./CommandPalette";
+import { NotificationBell } from "./NotificationBell";
 import type { User as UserType, Role } from "@/types/database";
+
+// ── Nav Groups ──
 
 interface NavItem {
   label: string;
@@ -48,89 +53,113 @@ interface NavItem {
   roles: Role[];
 }
 
-const navItems: NavItem[] = [
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
   {
-    label: "ダッシュボード",
-    href: "/dashboard",
-    icon: Home,
-    roles: ["super_admin", "admin", "manager", "member"],
+    label: "メイン",
+    items: [
+      {
+        label: "ダッシュボード",
+        href: "/dashboard",
+        icon: Home,
+        roles: ["super_admin", "admin", "manager", "member"],
+      },
+      {
+        label: "日報",
+        href: "/reports",
+        icon: FileEdit,
+        roles: ["super_admin", "admin", "manager", "member"],
+      },
+      {
+        label: "週次計画",
+        href: "/plans",
+        icon: ClipboardList,
+        roles: ["super_admin", "admin", "manager", "member"],
+      },
+      {
+        label: "案件",
+        href: "/deals",
+        icon: Briefcase,
+        roles: ["super_admin", "admin", "manager", "member"],
+      },
+    ],
   },
   {
-    label: "日報",
-    href: "/reports",
-    icon: FileEdit,
-    roles: ["super_admin", "admin", "manager", "member"],
+    label: "マネジメント",
+    items: [
+      {
+        label: "チーム",
+        href: "/team",
+        icon: Users,
+        roles: ["super_admin", "admin", "manager"],
+      },
+      {
+        label: "目標",
+        href: "/goals",
+        icon: Target,
+        roles: ["super_admin", "admin", "manager"],
+      },
+      {
+        label: "承認",
+        href: "/plans?tab=approval",
+        icon: CheckCircle2,
+        roles: ["super_admin", "admin", "manager"],
+      },
+    ],
   },
   {
-    label: "マイ日報",
-    href: "/reports/my",
-    icon: CalendarDays,
-    roles: ["super_admin", "admin", "manager", "member"],
+    label: "学び・成長",
+    items: [
+      {
+        label: "ナレッジ",
+        href: "/knowledge",
+        icon: BookOpen,
+        roles: ["super_admin", "admin", "manager", "member"],
+      },
+      {
+        label: "バッジ",
+        href: "/badges",
+        icon: Award,
+        roles: ["super_admin", "admin", "manager", "member"],
+      },
+      {
+        label: "週刊STEP",
+        href: "/weekly-digest",
+        icon: Newspaper,
+        roles: ["super_admin", "admin", "manager", "member"],
+      },
+    ],
   },
   {
-    label: "チーム",
-    href: "/team",
-    icon: Users,
-    roles: ["super_admin", "admin", "manager", "member"],
-  },
-  {
-    label: "目標",
-    href: "/goals",
-    icon: Target,
-    roles: ["super_admin", "admin", "manager", "member"],
-  },
-  {
-    label: "案件",
-    href: "/deals",
-    icon: Briefcase,
-    roles: ["super_admin", "admin", "manager", "member"],
-  },
-  {
-    label: "週次計画",
-    href: "/plans",
-    icon: ClipboardList,
-    roles: ["super_admin", "admin", "manager", "member"],
-  },
-  {
-    label: "ナレッジ",
-    href: "/knowledge",
-    icon: BookOpen,
-    roles: ["super_admin", "admin", "manager", "member"],
-  },
-  {
-    label: "週刊STEP",
-    href: "/weekly-digest",
-    icon: Newspaper,
-    roles: ["super_admin", "admin", "manager", "member"],
-  },
-  {
-    label: "バッジ",
-    href: "/badges",
-    icon: Award,
-    roles: ["super_admin", "admin", "manager", "member"],
-  },
-  {
-    label: "プロフィール",
-    href: "/profile",
-    icon: User,
-    roles: ["super_admin", "admin", "manager", "member"],
-  },
-  {
-    label: "テナント設定",
-    href: "/settings",
-    icon: Settings,
-    roles: ["super_admin", "admin"],
-  },
-  {
-    label: "テンプレート",
-    href: "/settings/templates",
-    icon: FileText,
-    roles: ["super_admin", "admin"],
+    label: "設定",
+    items: [
+      {
+        label: "テナント設定",
+        href: "/settings",
+        icon: Settings,
+        roles: ["super_admin", "admin"],
+      },
+      {
+        label: "テンプレート",
+        href: "/settings/templates",
+        icon: FileText,
+        roles: ["super_admin", "admin"],
+      },
+    ],
   },
 ];
 
-function getVisibleNavItems(role: Role): NavItem[] {
-  return navItems.filter((item) => item.roles.includes(role));
+function getVisibleGroups(role: Role): NavGroup[] {
+  return navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => item.roles.includes(role)),
+    }))
+    .filter((group) => group.items.length > 0);
 }
 
 const roleLabels: Record<Role, string> = {
@@ -149,51 +178,93 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
-  const visibleNav = getVisibleNavItems(user.role);
+  const visibleGroups = getVisibleGroups(user.role);
 
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    window.location.href = "/login";
   };
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
     if (href === "/settings") return pathname === "/settings";
-    if (href === "/reports/my") return pathname.startsWith("/reports/my");
-    if (href === "/reports") return pathname === "/reports" || (pathname.startsWith("/reports/") && !pathname.startsWith("/reports/my"));
+    if (href === "/reports")
+      return (
+        pathname === "/reports" ||
+        pathname.startsWith("/reports/")
+      );
+    if (href.includes("?")) {
+      const base = href.split("?")[0];
+      return pathname === base;
+    }
     return pathname.startsWith(href);
   };
 
-  return (
-    <div className="flex h-screen overflow-hidden bg-white">
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:border-r lg:border-border bg-white">
-        <div className="flex h-14 items-center border-b border-border px-6">
-          <Link href="/dashboard" className="text-xl font-bold text-primary">
-            STEP
-          </Link>
-        </div>
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-          {visibleNav.map((item) => {
+  const renderNavGroups = (onLinkClick?: () => void) => (
+    <>
+      {visibleGroups.map((group) => (
+        <div key={group.label} className="mb-4">
+          <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            {group.label}
+          </p>
+          {group.items.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={onLinkClick}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   active
-                    ? "bg-muted text-primary"
+                    ? "bg-primary-light text-primary"
                     : "text-muted-foreground hover:bg-muted hover:text-primary"
                 }`}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className="h-4 w-4" />
                 {item.label}
               </Link>
             );
           })}
+        </div>
+      ))}
+    </>
+  );
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-white">
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex lg:flex-col lg:w-60 lg:border-r lg:border-border bg-white">
+        <div className="flex h-14 items-center border-b border-border px-5">
+          <Link href="/dashboard" className="text-xl font-bold text-primary">
+            STEP
+          </Link>
+        </div>
+        <nav className="flex-1 overflow-y-auto p-3">
+          {renderNavGroups()}
         </nav>
+        {/* Profile quick access at bottom */}
+        <div className="border-t border-border p-3">
+          <Link
+            href="/profile"
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              pathname === "/profile"
+                ? "bg-primary-light text-primary"
+                : "text-muted-foreground hover:bg-muted hover:text-primary"
+            }`}
+          >
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={user.avatar_url ?? undefined} />
+              <AvatarFallback className="text-[10px]">
+                {user.name?.charAt(0) ?? "U"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="truncate">
+              <div className="truncate text-sm">{user.name}</div>
+            </div>
+          </Link>
+        </div>
       </aside>
 
       {/* Main content area */}
@@ -210,95 +281,106 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-64 p-0">
-                <SheetHeader className="border-b border-border px-6 py-4">
+                <SheetHeader className="border-b border-border px-5 py-4">
                   <SheetTitle className="text-xl font-bold text-primary">
                     STEP
                   </SheetTitle>
                 </SheetHeader>
-                <nav className="p-4 space-y-1">
-                  {visibleNav.map((item) => {
-                    const Icon = item.icon;
-                    const active = isActive(item.href);
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setSheetOpen(false)}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          active
-                            ? "bg-muted text-primary"
-                            : "text-muted-foreground hover:bg-muted hover:text-primary"
-                        }`}
-                      >
-                        <Icon className="h-5 w-5" />
-                        {item.label}
-                      </Link>
-                    );
-                  })}
+                <nav className="overflow-y-auto p-3">
+                  {renderNavGroups(() => setSheetOpen(false))}
                 </nav>
               </SheetContent>
             </Sheet>
 
             {/* Mobile logo */}
             <Link
-              href="/"
+              href="/dashboard"
               className="text-xl font-bold text-primary lg:hidden"
             >
               STEP
             </Link>
+
+            {/* Desktop: Cmd+K hint */}
+            <button
+              onClick={() =>
+                document.dispatchEvent(
+                  new KeyboardEvent("keydown", { key: "k", metaKey: true })
+                )
+              }
+              className="hidden lg:flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
+            >
+              <span>検索</span>
+              <kbd className="rounded border border-border bg-white px-1.5 py-0.5 text-[10px]">
+                ⌘K
+              </kbd>
+            </button>
           </div>
 
-          {/* User menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="flex items-center gap-2 px-2"
-              >
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.avatar_url ?? undefined} />
-                  <AvatarFallback className="text-xs">
-                    {user.name?.charAt(0) ?? "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="hidden sm:inline-block text-sm font-medium text-foreground">
-                  {user.name}
-                </span>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">{user.name}</p>
-                  <p className="text-xs text-muted-foreground">{user.email}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {roleLabels[user.role]}
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/profile" className="cursor-pointer">
-                  <User className="mr-2 h-4 w-4" />
-                  プロフィール
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={handleLogout}
-                className="cursor-pointer text-danger focus:text-danger"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                ログアウト
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Right side: notifications + user menu */}
+          <div className="flex items-center gap-1">
+            <NotificationBell userId={user.id} />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-2 px-2"
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.avatar_url ?? undefined} />
+                    <AvatarFallback className="text-xs">
+                      {user.name?.charAt(0) ?? "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="hidden sm:inline-block text-sm font-medium text-foreground">
+                    {user.name}
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium">{user.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {user.email}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {roleLabels[user.role]}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/profile" className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    プロフィール
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="cursor-pointer text-danger focus:text-danger"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  ログアウト
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 pb-20 lg:p-6 lg:pb-6">
+          {children}
+        </main>
       </div>
+
+      {/* Mobile bottom nav */}
+      <BottomNav />
+
+      {/* Command palette (global) */}
+      <CommandPalette />
     </div>
   );
 }
