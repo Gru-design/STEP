@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { createGoalSchema } from "@/lib/validations";
 
 interface GoalInput {
   name: string;
@@ -20,6 +21,11 @@ export async function createGoal(input: GoalInput): Promise<{
   success: boolean;
   error?: string;
 }> {
+  const parsed = createGoalSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
+  }
+
   try {
     const supabase = await createClient();
     const {

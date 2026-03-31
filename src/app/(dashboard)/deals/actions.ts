@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { createDealSchema, updateDealSchema } from "@/lib/validations";
 
 interface CreateDealInput {
   company: string;
@@ -21,6 +22,11 @@ interface UpdateDealInput {
 }
 
 export async function createDeal(data: CreateDealInput) {
+  const parsed = createDealSchema.safeParse(data);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
+  }
+
   try {
     const supabase = await createClient();
     const {

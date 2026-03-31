@@ -1,32 +1,20 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-
-interface SignupInput {
-  tenantName: string;
-  name: string;
-  email: string;
-  password: string;
-}
+import { signupSchema } from "@/lib/validations";
 
 interface SignupResult {
   success: boolean;
   error?: string;
 }
 
-export async function signupAction(input: SignupInput): Promise<SignupResult> {
-  const { tenantName, name, email, password } = input;
-
-  if (!tenantName || !name || !email || !password) {
-    return { success: false, error: "すべての項目を入力してください。" };
+export async function signupAction(input: unknown): Promise<SignupResult> {
+  const parsed = signupSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
   }
 
-  if (password.length < 8) {
-    return {
-      success: false,
-      error: "パスワードは8文字以上で入力してください。",
-    };
-  }
+  const { tenantName, name, email, password } = parsed.data;
 
   try {
     const supabase = createAdminClient();
