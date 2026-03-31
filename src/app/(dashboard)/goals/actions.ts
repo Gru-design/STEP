@@ -79,6 +79,16 @@ export async function updateGoal(
       return { success: false, error: "認証が必要です" };
     }
 
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!dbUser) {
+      return { success: false, error: "ユーザーが見つかりません" };
+    }
+
     const { error } = await supabase
       .from("goals")
       .update({
@@ -109,7 +119,8 @@ export async function updateGoal(
           parent_id: input.parent_id || null,
         }),
       })
-      .eq("id", goalId);
+      .eq("id", goalId)
+      .eq("tenant_id", dbUser.tenant_id);
 
     if (error) {
       return { success: false, error: "目標の更新に失敗しました" };
@@ -135,6 +146,16 @@ export async function deleteGoal(
       return { success: false, error: "認証が必要です" };
     }
 
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!dbUser) {
+      return { success: false, error: "ユーザーが見つかりません" };
+    }
+
     // Check if goal has children
     const { data: children } = await supabase
       .from("goals")
@@ -149,7 +170,11 @@ export async function deleteGoal(
       };
     }
 
-    const { error } = await supabase.from("goals").delete().eq("id", goalId);
+    const { error } = await supabase
+      .from("goals")
+      .delete()
+      .eq("id", goalId)
+      .eq("tenant_id", dbUser.tenant_id);
 
     if (error) {
       return { success: false, error: "目標の削除に失敗しました" };

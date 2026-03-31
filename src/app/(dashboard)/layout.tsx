@@ -27,6 +27,34 @@ export default async function DashboardLayout({
     .single();
 
   if (!dbUser) {
+    // usersテーブルにレコードがない場合、user_metadataから自動作成を試みる
+    const meta = authUser.user_metadata;
+    if (meta?.tenant_id && meta?.name) {
+      const { data: createdUser } = await supabase
+        .from("users")
+        .insert({
+          id: authUser.id,
+          tenant_id: meta.tenant_id,
+          email: authUser.email ?? "",
+          name: meta.name,
+          role: meta.role ?? "member",
+        })
+        .select("*")
+        .single();
+
+      if (!createdUser) {
+        redirect("/login");
+      }
+
+      const user = createdUser as User;
+      return (
+        <DashboardShell user={user}>
+          {children}
+          <CheckinModal userId={user.id} tenantId={user.tenant_id} />
+          <NudgeTrigger />
+        </DashboardShell>
+      );
+    }
     redirect("/login");
   }
 

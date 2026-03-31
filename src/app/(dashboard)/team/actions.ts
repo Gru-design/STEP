@@ -104,11 +104,22 @@ export async function removeTeamMember(memberId: string) {
 
   const { data: dbUser } = await supabase
     .from("users")
-    .select("role")
+    .select("tenant_id, role")
     .eq("id", authUser.id)
     .single();
 
   if (!dbUser || !["admin", "manager", "super_admin"].includes(dbUser.role)) {
+    return { success: false, error: "権限がありません" };
+  }
+
+  // Verify team member belongs to user's tenant
+  const { data: member } = await supabase
+    .from("team_members")
+    .select("team_id, teams!inner(tenant_id)")
+    .eq("id", memberId)
+    .single();
+
+  if (!member || (member.teams as unknown as { tenant_id: string }).tenant_id !== dbUser.tenant_id) {
     return { success: false, error: "権限がありません" };
   }
 

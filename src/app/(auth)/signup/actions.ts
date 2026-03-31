@@ -87,8 +87,13 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
 
       if (userError) {
         console.error("User record creation error:", userError);
-        // Don't fail the signup - the user can still log in
-        // The user record can be created later via a trigger or manual process
+        // Rollback: delete auth user and tenant
+        await supabase.auth.admin.deleteUser(authData.user.id);
+        await supabase.from("tenants").delete().eq("id", tenant.id);
+        return {
+          success: false,
+          error: "ユーザー登録に失敗しました。もう一度お試しください。",
+        };
       }
     }
 
