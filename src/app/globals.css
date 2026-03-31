@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-navy: #0C025F;
+  --color-accent: #2563EB;
+  --color-light-bg: #F0F4FF;
+  --color-mid-bg: #DBEAFE;
+  --color-dark: #1E293B;
+  --color-gray: #64748B;
+  --color-success: #059669;
+  --color-warning: #D97706;
+  --color-danger: #DC2626;
+
+  --color-background: #ffffff;
+  --color-foreground: #1E293B;
+  --color-muted: #F0F4FF;
+  --color-muted-foreground: #64748B;
+  --color-border: #e2e8f0;
+  --color-input: #e2e8f0;
+  --color-ring: #2563EB;
+  --color-primary: #0C025F;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #F0F4FF;
+  --color-secondary-foreground: #1E293B;
+  --color-destructive: #DC2626;
+  --color-destructive-foreground: #ffffff;
+  --color-card: #ffffff;
+  --color-card-foreground: #1E293B;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #1E293B;
+  --color-accent-color: #DBEAFE;
+  --color-accent-foreground: #1E293B;
+
+  --font-sans: "Inter", "BIZ UDPGothic", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --radius-lg: 0.5rem;
+  --radius-md: calc(0.5rem - 2px);
+  --radius-sm: calc(0.5rem - 4px);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+}
