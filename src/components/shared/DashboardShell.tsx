@@ -20,6 +20,8 @@ import {
   BookOpen,
   Newspaper,
   CheckCircle2,
+  UserPlus,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -147,6 +149,18 @@ const navGroups: NavGroup[] = [
         label: "テンプレート",
         href: "/settings/templates",
         icon: FileText,
+        roles: ["super_admin", "admin"],
+      },
+      {
+        label: "ユーザー管理",
+        href: "/settings/users",
+        icon: UserPlus,
+        roles: ["super_admin", "admin"],
+      },
+      {
+        label: "データエクスポート",
+        href: "/settings/export",
+        icon: Download,
         roles: ["super_admin", "admin"],
       },
     ],
