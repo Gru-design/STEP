@@ -57,8 +57,7 @@ export default function SignupPage() {
         return;
       }
 
-      router.push("/dashboard");
-      router.refresh();
+      window.location.href = "/dashboard";
     } catch {
       setError("予期しないエラーが発生しました。もう一度お試しください。");
     } finally {
