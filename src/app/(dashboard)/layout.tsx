@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { DashboardShell } from "@/components/shared/DashboardShell";
 import { CheckinModal } from "@/components/shared/CheckinModal";
 import { NudgeTrigger } from "@/components/shared/NudgeTrigger";
+import { extractTheme, themeToCSS } from "@/lib/tenant-theme";
 import type { User } from "@/types/database";
 
 export default async function DashboardLayout({
@@ -65,11 +66,26 @@ export default async function DashboardLayout({
 
   const user = dbUser as User;
 
+  // Tenant theme (white-label)
+  const { data: tenant } = await adminClient
+    .from("tenants")
+    .select("settings")
+    .eq("id", user.tenant_id)
+    .single();
+
+  const theme = extractTheme(
+    (tenant?.settings as Record<string, unknown>) ?? null
+  );
+  const themeCSS = themeToCSS(theme);
+
   return (
-    <DashboardShell user={user}>
-      {children}
-      <CheckinModal userId={user.id} tenantId={user.tenant_id} />
-      <NudgeTrigger />
-    </DashboardShell>
+    <>
+      {themeCSS && <style dangerouslySetInnerHTML={{ __html: themeCSS }} />}
+      <DashboardShell user={user} appName={theme.appName} logoUrl={theme.logoUrl}>
+        {children}
+        <CheckinModal userId={user.id} tenantId={user.tenant_id} />
+        <NudgeTrigger />
+      </DashboardShell>
+    </>
   );
 }

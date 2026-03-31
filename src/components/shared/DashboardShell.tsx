@@ -186,9 +186,16 @@ const roleLabels: Record<Role, string> = {
 interface DashboardShellProps {
   user: UserType;
   children: React.ReactNode;
+  appName?: string;
+  logoUrl?: string | null;
 }
 
-export function DashboardShell({ user, children }: DashboardShellProps) {
+export function DashboardShell({
+  user,
+  children,
+  appName = "STEP",
+  logoUrl,
+}: DashboardShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -251,8 +258,12 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:flex-col lg:w-60 lg:border-r lg:border-border bg-white">
         <div className="flex h-14 items-center border-b border-border px-5">
-          <Link href="/dashboard" className="text-xl font-bold text-primary">
-            STEP
+          <Link href="/dashboard" className="flex items-center gap-2 text-xl font-bold text-primary">
+            {logoUrl ? (
+              <img src={logoUrl} alt={appName} className="h-7 w-auto" />
+            ) : (
+              appName
+            )}
           </Link>
         </div>
         <nav className="flex-1 overflow-y-auto p-3">

@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { createDealSchema, updateDealSchema } from "@/lib/validations";
+import { writeAuditLog } from "@/lib/audit";
+import { dispatchWebhook } from "@/lib/webhook-outbound";
 
 interface CreateDealInput {
   company: string;
@@ -71,6 +73,19 @@ export async function createDeal(data: CreateDealInput) {
       deal_id: deal.id,
       from_stage: null,
       to_stage: data.stage_id,
+    });
+
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: user.id,
+      action: "create",
+      resource: "deal",
+      resourceId: deal.id,
+      details: { company: data.company },
+    });
+    await dispatchWebhook(dbUser.tenant_id, "deal.created", {
+      deal_id: deal.id,
+      company: data.company,
     });
 
     revalidatePath("/deals");
