@@ -89,3 +89,28 @@ export interface ReportTemplate {
   created_at: string;
   updated_at: string;
 }
+
+export type ReportStatus = "draft" | "submitted";
+export type ReactionType = "like" | "fire" | "clap" | "heart" | "eyes";
+
+export interface ReportEntry {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  template_id: string;
+  report_date: string;
+  data: Record<string, unknown>;
+  status: ReportStatus;
+  submitted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Reaction {
+  id: string;
+  entry_id: string;
+  user_id: string;
+  type: ReactionType;
+  comment: string | null;
+  created_at: string;
+}

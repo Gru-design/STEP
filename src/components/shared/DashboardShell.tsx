@@ -9,6 +9,8 @@ import {
   User,
   Settings,
   FileText,
+  FileEdit,
+  CalendarDays,
   Menu,
   LogOut,
   ChevronDown,
@@ -45,6 +47,18 @@ const navItems: NavItem[] = [
     label: "ダッシュボード",
     href: "/dashboard",
     icon: Home,
+    roles: ["super_admin", "admin", "manager", "member"],
+  },
+  {
+    label: "日報",
+    href: "/reports",
+    icon: FileEdit,
+    roles: ["super_admin", "admin", "manager", "member"],
+  },
+  {
+    label: "マイ日報",
+    href: "/reports/my",
+    icon: CalendarDays,
     roles: ["super_admin", "admin", "manager", "member"],
   },
   {
@@ -104,6 +118,8 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
     if (href === "/settings") return pathname === "/settings";
+    if (href === "/reports/my") return pathname.startsWith("/reports/my");
+    if (href === "/reports") return pathname === "/reports" || (pathname.startsWith("/reports/") && !pathname.startsWith("/reports/my"));
     return pathname.startsWith(href);
   };
 

@@ -119,3 +119,31 @@ export const templateFieldOptions = pgTable("template_field_options", {
   options: jsonb("options").notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// ── Reports ──
+
+export const reportEntries = pgTable(
+  "report_entries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id").references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+    templateId: uuid("template_id").references(() => reportTemplates.id).notNull(),
+    reportDate: date("report_date").notNull(),
+    data: jsonb("data").notNull().default({}),
+    status: text("status", { enum: ["draft", "submitted"] }).notNull().default("draft"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [unique().on(table.userId, table.templateId, table.reportDate)]
+);
+
+export const reactions = pgTable("reactions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  entryId: uuid("entry_id").references(() => reportEntries.id, { onDelete: "cascade" }).notNull(),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  type: text("type", { enum: ["like", "fire", "clap", "heart", "eyes"] }).notNull(),
+  comment: text("comment"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
