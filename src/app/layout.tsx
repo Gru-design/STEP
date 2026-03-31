@@ -4,6 +4,13 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "STEP - 日報・マネジメントサイクル統合SaaS",
   description: "毎日1STEP、チームが強くなる。",
+  manifest: "/manifest.json",
+  themeColor: "#0D9488",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "STEP",
+  },
 };
 
 export default function RootLayout({

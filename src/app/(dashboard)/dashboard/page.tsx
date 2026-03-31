@@ -323,55 +323,68 @@ export default async function DashboardPage() {
       .eq("tenant_id", tenantId)
       .eq("status", "active");
 
-    // Teams overview
-    const { data: allTeams } = await supabase
-      .from("teams")
-      .select("id, name")
-      .eq("tenant_id", tenantId);
-
-    const teamsOverview: {
-      name: string;
-      memberCount: number;
-      submissionRate: number;
-    }[] = [];
-
-    for (const team of allTeams ?? []) {
-      const { count: memberCount } = await supabase
+    // Teams overview — batch queries instead of N+1
+    const [teamsResult, allMembersResult, todayEntriesResult] = await Promise.all([
+      supabase
+        .from("teams")
+        .select("id, name")
+        .eq("tenant_id", tenantId),
+      supabase
         .from("team_members")
-        .select("*", { count: "exact", head: true })
-        .eq("team_id", team.id);
-
-      const { data: tmMembers } = await supabase
-        .from("team_members")
+        .select("team_id, user_id"),
+      supabase
+        .from("report_entries")
         .select("user_id")
-        .eq("team_id", team.id);
+        .eq("tenant_id", tenantId)
+        .eq("report_date", today)
+        .eq("status", "submitted"),
+    ]);
 
-      const tmIds = tmMembers?.map((m) => m.user_id) ?? [];
-      let teamRate = 0;
+    const allTeams = teamsResult.data ?? [];
+    const allMembers = allMembersResult.data ?? [];
+    const todayEntries = new Set(
+      (todayEntriesResult.data ?? []).map((e) => e.user_id)
+    );
 
-      if (tmIds.length > 0) {
-        const { count: submitted } = await supabase
-          .from("report_entries")
-          .select("*", { count: "exact", head: true })
-          .in("user_id", tmIds)
-          .eq("report_date", today)
-          .eq("status", "submitted");
-
-        teamRate = Math.round(((submitted ?? 0) / tmIds.length) * 100);
-      }
-
-      teamsOverview.push({
+    const teamsOverview = allTeams.map((team) => {
+      const members = allMembers.filter((m) => m.team_id === team.id);
+      const submitted = members.filter((m) => todayEntries.has(m.user_id)).length;
+      return {
         name: team.name,
-        memberCount: memberCount ?? 0,
-        submissionRate: teamRate,
-      });
-    }
+        memberCount: members.length,
+        submissionRate:
+          members.length > 0 ? Math.round((submitted / members.length) * 100) : 0,
+      };
+    });
 
-    // Deviation alerts from goal_snapshots
-    const { data: goalsWithSnapshots } = await supabase
-      .from("goals")
-      .select("id, name, target_value, period_start, period_end, owner_id")
-      .eq("tenant_id", tenantId);
+    // Deviation alerts — batch queries instead of N+1
+    const [goalsResult, allSnapshotsResult, ownerUsersResult] = await Promise.all([
+      supabase
+        .from("goals")
+        .select("id, name, target_value, period_start, period_end, owner_id")
+        .eq("tenant_id", tenantId),
+      supabase
+        .from("goal_snapshots")
+        .select("goal_id, progress_rate, snapshot_date")
+        .order("snapshot_date", { ascending: false }),
+      supabase
+        .from("users")
+        .select("id, name")
+        .eq("tenant_id", tenantId),
+    ]);
+
+    const goals = goalsResult.data ?? [];
+    const ownerMap = new Map(
+      (ownerUsersResult.data ?? []).map((u) => [u.id, u.name])
+    );
+
+    // Get latest snapshot per goal
+    const latestSnapshotMap = new Map<string, number>();
+    for (const snap of allSnapshotsResult.data ?? []) {
+      if (!latestSnapshotMap.has(snap.goal_id)) {
+        latestSnapshotMap.set(snap.goal_id, Number(snap.progress_rate));
+      }
+    }
 
     const deviationAlerts: {
       goalName: string;
@@ -379,60 +392,51 @@ export default async function DashboardPage() {
       ownerName: string;
     }[] = [];
 
-    for (const goal of goalsWithSnapshots ?? []) {
-      const { data: snapshot } = await supabase
-        .from("goal_snapshots")
-        .select("progress_rate")
-        .eq("goal_id", goal.id)
-        .order("snapshot_date", { ascending: false })
-        .limit(1);
+    for (const goal of goals) {
+      const actualRate = latestSnapshotMap.get(goal.id);
+      if (actualRate === undefined) continue;
 
-      if (snapshot && snapshot.length > 0) {
-        // Calculate expected progress based on time elapsed
-        const start = new Date(goal.period_start).getTime();
-        const end = new Date(goal.period_end).getTime();
-        const now = Date.now();
-        const elapsed = Math.max(0, Math.min(1, (now - start) / (end - start)));
-        const expectedRate = Math.round(elapsed * 100);
-        const actualRate = Number(snapshot[0].progress_rate);
-        const deviation = expectedRate - actualRate;
+      const start = new Date(goal.period_start).getTime();
+      const end = new Date(goal.period_end).getTime();
+      const now = Date.now();
+      const elapsed = Math.max(0, Math.min(1, (now - start) / (end - start)));
+      const expectedRate = Math.round(elapsed * 100);
+      const deviation = expectedRate - actualRate;
 
-        if (deviation >= 5) {
-          let ownerName = "未割当";
-          if (goal.owner_id) {
-            const { data: owner } = await supabase
-              .from("users")
-              .select("name")
-              .eq("id", goal.owner_id)
-              .single();
-            ownerName = owner?.name ?? "不明";
-          }
-          deviationAlerts.push({
-            goalName: goal.name,
-            deviation: Math.round(deviation),
-            ownerName,
-          });
-        }
+      if (deviation >= 5) {
+        deviationAlerts.push({
+          goalName: goal.name,
+          deviation: Math.round(deviation),
+          ownerName: goal.owner_id
+            ? ownerMap.get(goal.owner_id) ?? "不明"
+            : "未割当",
+        });
       }
     }
 
-    // Funnel stages
-    const { data: pStages } = await supabase
-      .from("pipeline_stages")
-      .select("id, name, sort_order")
-      .eq("tenant_id", tenantId)
-      .order("sort_order", { ascending: true });
-
-    const funnelStages: { name: string; count: number }[] = [];
-    for (const ps of pStages ?? []) {
-      const { count } = await supabase
+    // Funnel stages — single batch query
+    const [stagesResult, activeDealsResult] = await Promise.all([
+      supabase
+        .from("pipeline_stages")
+        .select("id, name, sort_order")
+        .eq("tenant_id", tenantId)
+        .order("sort_order", { ascending: true }),
+      supabase
         .from("deals")
-        .select("*", { count: "exact", head: true })
-        .eq("stage_id", ps.id)
-        .eq("status", "active");
+        .select("stage_id")
+        .eq("tenant_id", tenantId)
+        .eq("status", "active"),
+    ]);
 
-      funnelStages.push({ name: ps.name, count: count ?? 0 });
+    const dealCountByStage = new Map<string, number>();
+    for (const d of activeDealsResult.data ?? []) {
+      dealCountByStage.set(d.stage_id, (dealCountByStage.get(d.stage_id) ?? 0) + 1);
     }
+
+    const funnelStages = (stagesResult.data ?? []).map((ps) => ({
+      name: ps.name,
+      count: dealCountByStage.get(ps.id) ?? 0,
+    }));
 
     adminStats = {
       totalUsers: totalUsers ?? 0,

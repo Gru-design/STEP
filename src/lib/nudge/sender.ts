@@ -10,16 +10,16 @@ interface Nudge {
 }
 
 /**
- * Mark a nudge as 'sent'.
- * In production, this would also send via Realtime/email/push notification.
- * For now, it just updates the status.
+ * Send a nudge via Supabase Realtime broadcast + update status.
+ * Optionally dispatches to Slack if the user has slack_id configured.
  */
 export async function sendNudge(nudge: Nudge): Promise<boolean> {
   const supabase = createAdminClient();
 
+  // Mark as sent
   const { error } = await supabase
     .from("nudges")
-    .update({ status: "sent" })
+    .update({ status: "sent", sent_at: new Date().toISOString() })
     .eq("id", nudge.id);
 
   if (error) {
@@ -27,10 +27,58 @@ export async function sendNudge(nudge: Nudge): Promise<boolean> {
     return false;
   }
 
-  // TODO: In production, dispatch to appropriate channel:
-  // - Supabase Realtime for in-app notifications
-  // - Email via transactional email service
-  // - Slack webhook if slack_id is configured
+  // Broadcast via Supabase Realtime
+  const channel = supabase.channel(`nudge:${nudge.target_user_id}`);
+  await channel.send({
+    type: "broadcast",
+    event: "nudge",
+    payload: {
+      id: nudge.id,
+      type: nudge.trigger_type,
+      message: nudge.content,
+      created_at: new Date().toISOString(),
+    },
+  });
+  supabase.removeChannel(channel);
+
+  // Dispatch to Slack if user has slack_id
+  try {
+    const { data: user } = await supabase
+      .from("users")
+      .select("slack_id")
+      .eq("id", nudge.target_user_id)
+      .single();
+
+    if (user?.slack_id) {
+      // Check if tenant has Slack integration
+      const { data: integration } = await supabase
+        .from("integrations")
+        .select("credentials")
+        .eq("tenant_id", nudge.tenant_id)
+        .eq("provider", "slack")
+        .eq("status", "active")
+        .single();
+
+      if (integration?.credentials) {
+        const webhookUrl = (integration.credentials as { webhook_url?: string })
+          .webhook_url;
+        if (webhookUrl) {
+          await fetch(webhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              channel: user.slack_id,
+              text: nudge.content,
+            }),
+          }).catch(() => {
+            // Non-critical: log but don't fail
+          });
+        }
+      }
+    }
+  } catch {
+    // Non-critical: Slack dispatch failure shouldn't block nudge
+  }
 
   return true;
 }

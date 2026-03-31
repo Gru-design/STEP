@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { createTeamSchema } from "@/lib/validations";
 
 export async function createTeam(formData: FormData) {
   const supabase = await createClient();
@@ -24,11 +25,11 @@ export async function createTeam(formData: FormData) {
     return { success: false, error: "権限がありません" };
   }
 
-  const name = formData.get("name") as string;
-
-  if (!name || name.trim().length === 0) {
-    return { success: false, error: "チーム名を入力してください" };
+  const parsed = createTeamSchema.safeParse({ name: formData.get("name") });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
   }
+  const name = parsed.data.name;
 
   const { error } = await supabase.from("teams").insert({
     name: name.trim(),

@@ -125,16 +125,6 @@ export function isWithinUserLimit(
   return currentUsers < PLAN_LIMITS[plan].maxUsers;
 }
 
-export function getPlanByPrice(priceId: string): PlanType | null {
-  // Maps Stripe price IDs to plan types
-  // These would be configured in environment variables in production
-  const priceMap: Record<string, PlanType> = {
-    [process.env.STRIPE_PRICE_STARTER || ""]: "starter",
-    [process.env.STRIPE_PRICE_PROFESSIONAL || ""]: "professional",
-  };
-  return priceMap[priceId] || null;
-}
-
 export function formatPrice(plan: PlanType): string {
   if (plan === "free") return "¥0";
   if (plan === "enterprise") return "お問い合わせ";
