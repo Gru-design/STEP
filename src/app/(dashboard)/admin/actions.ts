@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { type PlanType } from "@/lib/plan-limits";
+import { writeAuditLog } from "@/lib/audit";
 
 // --------------------------------------------------------------------------
 // Auth guard: ensures only super_admin can call these actions
@@ -134,6 +135,15 @@ export async function createTenant(data: CreateTenantData) {
 
     if (userError) throw userError;
 
+    await writeAuditLog({
+      tenantId: tenant.id,
+      userId: auth.user!.id,
+      action: "create",
+      resource: "tenant",
+      resourceId: tenant.id,
+      details: { name: data.name },
+    });
+
     return { success: true, data: tenant };
   } catch (error) {
     console.error("[Admin] createTenant error:", error);
@@ -159,6 +169,15 @@ export async function updateTenantPlan(tenantId: string, plan: PlanType) {
       .eq("id", tenantId);
 
     if (error) throw error;
+
+    await writeAuditLog({
+      tenantId,
+      userId: auth.user!.id,
+      action: "update",
+      resource: "tenant_plan",
+      resourceId: tenantId,
+      details: { plan },
+    });
 
     return { success: true };
   } catch (error) {
@@ -188,6 +207,14 @@ export async function deactivateTenant(tenantId: string) {
       .eq("id", tenantId);
 
     if (error) throw error;
+
+    await writeAuditLog({
+      tenantId,
+      userId: auth.user!.id,
+      action: "delete",
+      resource: "tenant",
+      resourceId: tenantId,
+    });
 
     return { success: true };
   } catch (error) {

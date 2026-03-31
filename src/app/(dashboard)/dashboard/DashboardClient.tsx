@@ -145,7 +145,7 @@ function MemberDashboard({ stats }: { stats: MemberStats }) {
             </div>
             <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-primary-muted">
               <div
-                className="h-full rounded-full bg-accent-color transition-all"
+                className="h-full rounded-full bg-accent-color motion-safe:transition-all"
                 style={{ width: `${xpProgress}%` }}
               />
             </div>
@@ -538,7 +538,7 @@ function ReportCTABanner({ submitted }: { submitted: boolean }) {
   return (
     <Link
       href="/reports/new"
-      className="group flex items-center justify-between rounded-xl border-2 border-dashed border-primary/30 bg-primary-light/40 px-5 py-4 transition-all hover:border-primary hover:bg-primary-light"
+      className="group flex items-center justify-between rounded-xl border-2 border-dashed border-primary/30 bg-primary-light/40 px-5 py-4 motion-safe:transition-all hover:border-primary hover:bg-primary-light"
     >
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white">
@@ -551,7 +551,7 @@ function ReportCTABanner({ submitted }: { submitted: boolean }) {
           </p>
         </div>
       </div>
-      <ArrowRight className="h-5 w-5 text-primary opacity-0 transition-opacity group-hover:opacity-100" />
+      <ArrowRight className="h-5 w-5 text-primary opacity-0 motion-safe:transition-opacity group-hover:opacity-100" />
     </Link>
   );
 }
@@ -575,7 +575,7 @@ function ApprovalSection({ stats }: { stats: ApprovalStats }) {
           {stats.pendingPlans > 0 && (
             <Link
               href="/plans?tab=approval"
-              className="flex items-center justify-between rounded-lg border border-warning/20 bg-white px-4 py-2.5 transition-colors hover:bg-warning/5 sm:flex-1"
+              className="flex items-center justify-between rounded-lg border border-warning/20 bg-white px-4 py-2.5 motion-safe:transition-colors hover:bg-warning/5 sm:flex-1"
             >
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-warning" />
@@ -591,7 +591,7 @@ function ApprovalSection({ stats }: { stats: ApprovalStats }) {
           {stats.pendingDeals > 0 && (
             <Link
               href="/deals"
-              className="flex items-center justify-between rounded-lg border border-warning/20 bg-white px-4 py-2.5 transition-colors hover:bg-warning/5 sm:flex-1"
+              className="flex items-center justify-between rounded-lg border border-warning/20 bg-white px-4 py-2.5 motion-safe:transition-colors hover:bg-warning/5 sm:flex-1"
             >
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-warning" />

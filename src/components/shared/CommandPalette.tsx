@@ -214,7 +214,18 @@ export function CommandPalette() {
   let globalIndex = -1;
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div
+      className="fixed inset-0 z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-label="コマンドパレット"
+      onKeyDown={(e) => {
+        // Focus trap: prevent Tab from leaving the dialog
+        if (e.key === "Tab") {
+          e.preventDefault();
+        }
+      }}
+    >
       <div
         className="absolute inset-0 bg-black/50"
         onClick={() => {
@@ -225,10 +236,15 @@ export function CommandPalette() {
       <div className="relative mx-auto mt-[15vh] w-full max-w-lg px-4">
         <div className="overflow-hidden rounded-xl border border-border bg-white shadow-2xl">
           <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-            <Search className="h-5 w-5 text-muted-foreground" />
+            <Search className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
             <input
               autoFocus
               type="text"
+              role="combobox"
+              aria-label="コマンドを検索"
+              aria-expanded="true"
+              aria-controls="command-list"
+              aria-activedescendant={filtered[selectedIndex] ? `cmd-${filtered[selectedIndex].id}` : undefined}
               placeholder="コマンドを検索..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -238,7 +254,7 @@ export function CommandPalette() {
               ESC
             </kbd>
           </div>
-          <div className="max-h-72 overflow-y-auto p-2">
+          <div id="command-list" role="listbox" className="max-h-72 overflow-y-auto p-2">
             {filtered.length === 0 && (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 見つかりませんでした
@@ -256,14 +272,17 @@ export function CommandPalette() {
                   return (
                     <button
                       key={cmd.id}
+                      id={`cmd-${cmd.id}`}
+                      role="option"
+                      aria-selected={idx === selectedIndex}
                       onClick={cmd.action}
-                      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm motion-safe:transition-colors ${
                         idx === selectedIndex
-                          ? "bg-primary-light text-primary"
+                          ? "bg-primary/10 text-primary"
                           : "text-foreground hover:bg-muted"
                       }`}
                     >
-                      <Icon className="h-4 w-4" />
+                      <Icon className="h-4 w-4" aria-hidden="true" />
                       <div className="text-left">
                         <div className="font-medium">{cmd.label}</div>
                         {cmd.description && (
@@ -289,14 +308,17 @@ export function CommandPalette() {
                   return (
                     <button
                       key={cmd.id}
+                      id={`cmd-${cmd.id}`}
+                      role="option"
+                      aria-selected={idx === selectedIndex}
                       onClick={cmd.action}
-                      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm motion-safe:transition-colors ${
                         idx === selectedIndex
-                          ? "bg-primary-light text-primary"
+                          ? "bg-primary/10 text-primary"
                           : "text-foreground hover:bg-muted"
                       }`}
                     >
-                      <Icon className="h-4 w-4" />
+                      <Icon className="h-4 w-4" aria-hidden="true" />
                       <span>{cmd.label}</span>
                     </button>
                   );

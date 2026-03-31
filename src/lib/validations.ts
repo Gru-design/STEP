@@ -58,6 +58,23 @@ export const createGoalSchema = z.object({
   parent_id: z.string().uuid().optional(),
 });
 
+// ── Reports ──
+
+export const createReportSchema = z.object({
+  templateId: z.string().uuid("テンプレートを選択してください"),
+  reportDate: z.string().min(1, "日付を入力してください"),
+  data: z.record(z.string(), z.unknown()),
+  status: z.enum(["draft", "submitted"]),
+});
+
+// ── Plans ──
+
+export const createPlanSchema = z.object({
+  weekStart: z.string().min(1, "週の開始日を入力してください"),
+  templateId: z.string().uuid().optional(),
+  items: z.unknown(),
+});
+
 // ── Profile ──
 
 export const updateProfileSchema = z.object({
