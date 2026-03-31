@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   LineChart,
   Line,
@@ -15,6 +16,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FunnelChart } from "@/components/deals/FunnelChart";
 import { exportToCSV } from "@/lib/csv-export";
+import {
+  FileEdit,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowRight,
+} from "lucide-react";
 import type { Role, User } from "@/types/database";
 
 // ── Types ──
@@ -57,12 +64,18 @@ interface AdminStats {
   funnelStages: { name: string; count: number }[];
 }
 
+interface ApprovalStats {
+  pendingPlans: number;
+  pendingDeals: number;
+}
+
 interface DashboardClientProps {
   user: User;
   role: Role;
   memberStats?: MemberStats;
   managerStats?: ManagerStats;
   adminStats?: AdminStats;
+  approvalStats?: ApprovalStats;
 }
 
 // ── Level thresholds ──
@@ -517,6 +530,86 @@ function AdminDashboard({ stats }: { stats: AdminStats }) {
   );
 }
 
+// ── CTA Banner ──
+
+function ReportCTABanner({ submitted }: { submitted: boolean }) {
+  if (submitted) return null;
+
+  return (
+    <Link
+      href="/reports/new"
+      className="group flex items-center justify-between rounded-xl border-2 border-dashed border-primary/30 bg-primary-light/40 px-5 py-4 transition-all hover:border-primary hover:bg-primary-light"
+    >
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white">
+          <FileEdit className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="font-semibold text-primary">今日の日報を書く</p>
+          <p className="text-xs text-muted-foreground">
+            まだ今日の日報が提出されていません
+          </p>
+        </div>
+      </div>
+      <ArrowRight className="h-5 w-5 text-primary opacity-0 transition-opacity group-hover:opacity-100" />
+    </Link>
+  );
+}
+
+// ── Approval Section ──
+
+function ApprovalSection({ stats }: { stats: ApprovalStats }) {
+  const total = stats.pendingPlans + stats.pendingDeals;
+  if (total === 0) return null;
+
+  return (
+    <Card className="border-warning/30 bg-warning/5">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-base text-warning">
+          <CheckCircle2 className="h-5 w-5" />
+          承認待ち
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
+          {stats.pendingPlans > 0 && (
+            <Link
+              href="/plans?tab=approval"
+              className="flex items-center justify-between rounded-lg border border-warning/20 bg-white px-4 py-2.5 transition-colors hover:bg-warning/5 sm:flex-1"
+            >
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                <span className="text-sm font-medium text-foreground">
+                  週次計画
+                </span>
+              </div>
+              <Badge variant="outline" className="border-warning text-warning font-mono">
+                {stats.pendingPlans}件
+              </Badge>
+            </Link>
+          )}
+          {stats.pendingDeals > 0 && (
+            <Link
+              href="/deals"
+              className="flex items-center justify-between rounded-lg border border-warning/20 bg-white px-4 py-2.5 transition-colors hover:bg-warning/5 sm:flex-1"
+            >
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                <span className="text-sm font-medium text-foreground">
+                  案件判断
+                </span>
+              </div>
+              <Badge variant="outline" className="border-warning text-warning font-mono">
+                {stats.pendingDeals}件
+              </Badge>
+            </Link>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Main Component ──
 
 export function DashboardClient({
@@ -525,6 +618,7 @@ export function DashboardClient({
   memberStats,
   managerStats,
   adminStats,
+  approvalStats,
 }: DashboardClientProps) {
   const roleLabels: Record<string, string> = {
     super_admin: "スーパーアドミン",
@@ -541,6 +635,15 @@ export function DashboardClient({
           {user.name}さん ({roleLabels[role]})
         </p>
       </div>
+
+      {/* CTA: Write today's report */}
+      {memberStats && <ReportCTABanner submitted={memberStats.submittedToday} />}
+
+      {/* Approval section for managers */}
+      {approvalStats &&
+        (role === "manager" || role === "admin" || role === "super_admin") && (
+          <ApprovalSection stats={approvalStats} />
+        )}
 
       {/* Member view - always shown */}
       {memberStats && <MemberDashboard stats={memberStats} />}

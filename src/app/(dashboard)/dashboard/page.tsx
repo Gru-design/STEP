@@ -444,6 +444,27 @@ export default async function DashboardPage() {
     };
   }
 
+  // ── Approval Stats (for managers) ──
+  let approvalStats = undefined;
+  if (role === "manager" || role === "admin" || role === "super_admin") {
+    const { count: pendingPlans } = await supabase
+      .from("weekly_plans")
+      .select("*", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .eq("status", "submitted");
+
+    const { count: pendingDeals } = await supabase
+      .from("deals")
+      .select("*", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .eq("status", "submitted" as string);
+
+    approvalStats = {
+      pendingPlans: pendingPlans ?? 0,
+      pendingDeals: pendingDeals ?? 0,
+    };
+  }
+
   return (
     <DashboardClient
       user={user}
@@ -451,6 +472,7 @@ export default async function DashboardPage() {
       memberStats={memberStats}
       managerStats={managerStats}
       adminStats={adminStats}
+      approvalStats={approvalStats}
     />
   );
 }
