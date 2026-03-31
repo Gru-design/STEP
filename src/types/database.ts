@@ -156,3 +156,70 @@ export interface UserLevel {
   xp: number;
   updated_at: string;
 }
+
+// ── Deals & Pipeline ──
+
+export type DealStatus = "active" | "won" | "lost" | "hold";
+export type ApprovalStatus = "none" | "submitted" | "approved" | "rejected";
+
+export interface PipelineStage {
+  id: string;
+  tenant_id: string;
+  name: string;
+  sort_order: number;
+  conversion_target: number | null;
+  created_at: string;
+}
+
+export interface Deal {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  stage_id: string;
+  company: string;
+  title: string | null;
+  value: number | null;
+  persona: Record<string, unknown>;
+  due_date: string | null;
+  status: DealStatus;
+  approval_status: ApprovalStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DealHistory {
+  id: string;
+  deal_id: string;
+  from_stage: string | null;
+  to_stage: string;
+  changed_at: string;
+}
+
+// ── Goals ──
+
+export type GoalLevel = "company" | "department" | "team" | "individual";
+
+export interface Goal {
+  id: string;
+  tenant_id: string;
+  parent_id: string | null;
+  level: GoalLevel;
+  name: string;
+  target_value: number;
+  kpi_field_key: string | null;
+  template_id: string | null;
+  period_start: string;
+  period_end: string;
+  owner_id: string | null;
+  team_id: string | null;
+  created_at: string;
+}
+
+export interface GoalSnapshot {
+  id: string;
+  goal_id: string;
+  actual_value: number;
+  progress_rate: number;
+  snapshot_date: string;
+  created_at: string;
+}

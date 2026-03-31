@@ -212,3 +212,99 @@ export const userLevels = pgTable("user_levels", {
     .defaultNow()
     .notNull(),
 });
+
+// ── Goals ──
+
+export const goals = pgTable("goals", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: uuid("tenant_id")
+    .references(() => tenants.id)
+    .notNull(),
+  parentId: uuid("parent_id"),
+  level: text("level", {
+    enum: ["company", "department", "team", "individual"],
+  }).notNull(),
+  name: text("name").notNull(),
+  targetValue: numeric("target_value").notNull(),
+  kpiFieldKey: text("kpi_field_key"),
+  templateId: uuid("template_id").references(() => reportTemplates.id),
+  periodStart: date("period_start").notNull(),
+  periodEnd: date("period_end").notNull(),
+  ownerId: uuid("owner_id").references(() => users.id),
+  teamId: uuid("team_id").references(() => teams.id),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const goalSnapshots = pgTable("goal_snapshots", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  goalId: uuid("goal_id")
+    .references(() => goals.id, { onDelete: "cascade" })
+    .notNull(),
+  actualValue: numeric("actual_value").notNull().default("0"),
+  progressRate: numeric("progress_rate").notNull().default("0"),
+  snapshotDate: date("snapshot_date").notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+// ── Pipeline & Deals ──
+
+export const pipelineStages = pgTable("pipeline_stages", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: uuid("tenant_id")
+    .references(() => tenants.id)
+    .notNull(),
+  name: text("name").notNull(),
+  sortOrder: integer("sort_order").notNull(),
+  conversionTarget: numeric("conversion_target"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const deals = pgTable("deals", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: uuid("tenant_id")
+    .references(() => tenants.id)
+    .notNull(),
+  userId: uuid("user_id")
+    .references(() => users.id)
+    .notNull(),
+  stageId: uuid("stage_id")
+    .references(() => pipelineStages.id)
+    .notNull(),
+  company: text("company").notNull(),
+  title: text("title"),
+  value: numeric("value"),
+  persona: jsonb("persona").default({}),
+  dueDate: date("due_date"),
+  status: text("status", {
+    enum: ["active", "won", "lost", "hold"],
+  }).default("active"),
+  approvalStatus: text("approval_status", {
+    enum: ["none", "submitted", "approved", "rejected"],
+  }).default("none"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const dealHistory = pgTable("deal_history", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  dealId: uuid("deal_id")
+    .references(() => deals.id, { onDelete: "cascade" })
+    .notNull(),
+  fromStage: uuid("from_stage").references(() => pipelineStages.id),
+  toStage: uuid("to_stage")
+    .references(() => pipelineStages.id)
+    .notNull(),
+  changedAt: timestamp("changed_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
