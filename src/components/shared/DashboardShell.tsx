@@ -8,6 +8,7 @@ import {
   Users,
   User,
   Settings,
+  FileText,
   Menu,
   LogOut,
   ChevronDown,
@@ -64,6 +65,12 @@ const navItems: NavItem[] = [
     icon: Settings,
     roles: ["super_admin", "admin"],
   },
+  {
+    label: "テンプレート",
+    href: "/settings/templates",
+    icon: FileText,
+    roles: ["super_admin", "admin"],
+  },
 ];
 
 function getVisibleNavItems(role: Role): NavItem[] {
@@ -96,6 +103,7 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
+    if (href === "/settings") return pathname === "/settings";
     return pathname.startsWith(href);
   };
 

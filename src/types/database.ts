@@ -47,3 +47,45 @@ export interface TeamMember {
   role: string;
   created_at: string;
 }
+
+export type TemplateType = "daily" | "weekly" | "plan" | "checkin";
+
+export type FieldType = "text" | "textarea" | "number" | "select_single" | "select_multi" | "date" | "rating" | "file" | "link" | "section" | "repeater";
+
+export interface TemplateField {
+  key: string;
+  type: FieldType;
+  label: string;
+  required: boolean;
+  placeholder?: string;
+  unit?: string;
+  min?: number;
+  max?: number;
+  options?: string[];
+  fields?: TemplateField[];  // for repeater
+}
+
+export interface TemplateSection {
+  id: string;
+  label: string;
+  fields: TemplateField[];
+}
+
+export interface TemplateSchema {
+  sections: TemplateSection[];
+}
+
+export interface ReportTemplate {
+  id: string;
+  tenant_id: string;
+  name: string;
+  type: TemplateType;
+  target_roles: string[];
+  schema: TemplateSchema;
+  visibility_override: ReportVisibility | null;
+  is_system: boolean;
+  is_published: boolean;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}

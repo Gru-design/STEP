@@ -94,3 +94,28 @@ export const teamMembers = pgTable(
   },
   (table) => [unique().on(table.teamId, table.userId)]
 );
+
+// ── Templates ──
+
+export const reportTemplates = pgTable("report_templates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  name: text("name").notNull(),
+  type: text("type", { enum: ["daily", "weekly", "plan", "checkin"] }).notNull(),
+  targetRoles: text("target_roles").array().default(["member"]),
+  schema: jsonb("schema").notNull().default({ sections: [] }),
+  visibilityOverride: text("visibility_override", { enum: ["manager_only", "team", "tenant_all"] }),
+  isSystem: boolean("is_system").default(false),
+  isPublished: boolean("is_published").default(false),
+  version: integer("version").default(1),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const templateFieldOptions = pgTable("template_field_options", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  templateId: uuid("template_id").references(() => reportTemplates.id, { onDelete: "cascade" }).notNull(),
+  fieldKey: text("field_key").notNull(),
+  options: jsonb("options").notNull().default([]),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
