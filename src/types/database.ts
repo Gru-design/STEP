@@ -223,3 +223,64 @@ export interface GoalSnapshot {
   snapshot_date: string;
   created_at: string;
 }
+
+// ── Weekly Plans ──
+
+export type PlanStatus = "draft" | "submitted" | "approved" | "rejected";
+
+export interface WeeklyPlan {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  week_start: string;
+  template_id: string | null;
+  items: Record<string, unknown>;
+  status: PlanStatus;
+  approved_by: string | null;
+  approved_at: string | null;
+  execution_rate: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── Approval Logs ──
+
+export type ApprovalTargetType = "weekly_plan" | "deal";
+export type ApprovalAction = "submitted" | "approved" | "rejected";
+
+export interface ApprovalLog {
+  id: string;
+  target_type: ApprovalTargetType;
+  target_id: string;
+  action: ApprovalAction;
+  actor_id: string;
+  comment: string | null;
+  created_at: string;
+}
+
+// ── Knowledge Posts ──
+
+export interface KnowledgePost {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  title: string;
+  body: string;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+// ── Weekly Digests ──
+
+export interface WeeklyDigest {
+  id: string;
+  tenant_id: string;
+  week_start: string;
+  rankings: Record<string, unknown>;
+  mvp: Record<string, unknown>;
+  stats: Record<string, unknown>;
+  badges_earned: Record<string, unknown>[];
+  recommendations: Record<string, unknown>[];
+  created_at: string;
+}

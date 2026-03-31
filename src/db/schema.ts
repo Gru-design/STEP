@@ -308,3 +308,98 @@ export const dealHistory = pgTable("deal_history", {
     .defaultNow()
     .notNull(),
 });
+
+// ── Weekly Plans ──
+
+export const weeklyPlans = pgTable(
+  "weekly_plans",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id)
+      .notNull(),
+    userId: uuid("user_id")
+      .references(() => users.id)
+      .notNull(),
+    weekStart: date("week_start").notNull(),
+    templateId: uuid("template_id").references(() => reportTemplates.id),
+    items: jsonb("items").notNull().default({}),
+    status: text("status", {
+      enum: ["draft", "submitted", "approved", "rejected"],
+    }).default("draft"),
+    approvedBy: uuid("approved_by").references(() => users.id),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    executionRate: numeric("execution_rate"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [unique().on(table.userId, table.weekStart)]
+);
+
+// ── Approval Logs ──
+
+export const approvalLogs = pgTable("approval_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  targetType: text("target_type", {
+    enum: ["weekly_plan", "deal"],
+  }).notNull(),
+  targetId: uuid("target_id").notNull(),
+  action: text("action", {
+    enum: ["submitted", "approved", "rejected"],
+  }).notNull(),
+  actorId: uuid("actor_id")
+    .references(() => users.id)
+    .notNull(),
+  comment: text("comment"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+// ── Knowledge Posts ──
+
+export const knowledgePosts = pgTable("knowledge_posts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: uuid("tenant_id")
+    .references(() => tenants.id)
+    .notNull(),
+  userId: uuid("user_id")
+    .references(() => users.id)
+    .notNull(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  tags: text("tags").array().default([]),
+  searchVector: text("search_vector"), // TSVECTOR managed by DB trigger
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+// ── Weekly Digests ──
+
+export const weeklyDigests = pgTable(
+  "weekly_digests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id)
+      .notNull(),
+    weekStart: date("week_start").notNull(),
+    rankings: jsonb("rankings").notNull().default({}),
+    mvp: jsonb("mvp").notNull().default({}),
+    stats: jsonb("stats").notNull().default({}),
+    badgesEarned: jsonb("badges_earned").default([]),
+    recommendations: jsonb("recommendations").default([]),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [unique().on(table.tenantId, table.weekStart)]
+);

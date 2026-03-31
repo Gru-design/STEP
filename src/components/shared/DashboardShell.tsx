@@ -17,6 +17,9 @@ import {
   Award,
   Target,
   Briefcase,
+  ClipboardList,
+  BookOpen,
+  Newspaper,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -80,6 +83,24 @@ const navItems: NavItem[] = [
     label: "案件",
     href: "/deals",
     icon: Briefcase,
+    roles: ["super_admin", "admin", "manager", "member"],
+  },
+  {
+    label: "週次計画",
+    href: "/plans",
+    icon: ClipboardList,
+    roles: ["super_admin", "admin", "manager", "member"],
+  },
+  {
+    label: "ナレッジ",
+    href: "/knowledge",
+    icon: BookOpen,
+    roles: ["super_admin", "admin", "manager", "member"],
+  },
+  {
+    label: "週刊STEP",
+    href: "/weekly-digest",
+    icon: Newspaper,
     roles: ["super_admin", "admin", "manager", "member"],
   },
   {
