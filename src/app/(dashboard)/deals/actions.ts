@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createDealSchema } from "@/lib/validations";
 import { writeAuditLog } from "@/lib/audit";
 import { dispatchWebhook } from "@/lib/webhook-outbound";
+import { checkFeatureAccess } from "@/lib/plan-gate";
 
 interface CreateDealInput {
   company: string;
@@ -47,6 +48,11 @@ export async function createDeal(data: CreateDealInput) {
 
     if (!dbUser) {
       return { success: false, error: "ユーザーが見つかりません" };
+    }
+
+    const gate = await checkFeatureAccess(dbUser.tenant_id, "deals");
+    if (!gate.allowed) {
+      return { success: false, error: gate.error };
     }
 
     const { data: deal, error } = await supabase

@@ -5,7 +5,7 @@ import { DashboardShell } from "@/components/shared/DashboardShell";
 import { CheckinModal } from "@/components/shared/CheckinModal";
 import { NudgeTrigger } from "@/components/shared/NudgeTrigger";
 import { extractTheme, themeToStyle } from "@/lib/tenant-theme";
-import type { User } from "@/types/database";
+import type { User, Plan } from "@/types/database";
 
 export default async function DashboardLayout({
   children,
@@ -53,8 +53,14 @@ export default async function DashboardLayout({
       }
 
       const user = createdUser as User;
+      const { data: newTenant } = await adminClient
+        .from("tenants")
+        .select("plan")
+        .eq("id", user.tenant_id)
+        .single();
+      const newPlan = (newTenant?.plan as Plan) ?? "free";
       return (
-        <DashboardShell user={user}>
+        <DashboardShell user={user} plan={newPlan}>
           {children}
           <CheckinModal userId={user.id} tenantId={user.tenant_id} />
           <NudgeTrigger />
@@ -66,13 +72,14 @@ export default async function DashboardLayout({
 
   const user = dbUser as User;
 
-  // Tenant theme (white-label)
+  // Tenant info (plan + theme)
   const { data: tenant } = await adminClient
     .from("tenants")
-    .select("settings")
+    .select("plan, settings")
     .eq("id", user.tenant_id)
     .single();
 
+  const tenantPlan = (tenant?.plan as Plan) ?? "free";
   const theme = extractTheme(
     (tenant?.settings as Record<string, unknown>) ?? null
   );
@@ -80,7 +87,7 @@ export default async function DashboardLayout({
 
   return (
     <div style={themeStyle ?? undefined}>
-      <DashboardShell user={user} appName={theme.appName} logoUrl={theme.logoUrl}>
+      <DashboardShell user={user} plan={tenantPlan} appName={theme.appName} logoUrl={theme.logoUrl}>
         {children}
         <CheckinModal userId={user.id} tenantId={user.tenant_id} />
         <NudgeTrigger />

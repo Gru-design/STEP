@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { createGoalSchema } from "@/lib/validations";
 import { writeAuditLog } from "@/lib/audit";
+import { checkFeatureAccess } from "@/lib/plan-gate";
 
 interface GoalInput {
   name: string;
@@ -45,6 +46,11 @@ export async function createGoal(input: GoalInput): Promise<{
 
     if (!dbUser) {
       return { success: false, error: "ユーザーが見つかりません" };
+    }
+
+    const gate = await checkFeatureAccess(dbUser.tenant_id, "goals");
+    if (!gate.allowed) {
+      return { success: false, error: gate.error };
     }
 
     const { error } = await supabase.from("goals").insert({

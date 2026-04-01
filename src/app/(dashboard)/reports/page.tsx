@@ -19,7 +19,7 @@ export default async function ReportsPage() {
 
   const { data: dbUser } = await supabase
     .from("users")
-    .select("id, tenant_id")
+    .select("id, tenant_id, role")
     .eq("id", authUser.id)
     .single();
 
@@ -53,6 +53,28 @@ export default async function ReportsPage() {
     .select("id, name")
     .eq("tenant_id", dbUser.tenant_id)
     .order("name");
+
+  // For managers: get their team member IDs for default filter
+  let teamMemberIds: string[] = [];
+  if (dbUser.role === "manager") {
+    const { data: managedTeams } = await supabase
+      .from("teams")
+      .select("id")
+      .eq("tenant_id", dbUser.tenant_id)
+      .eq("manager_id", dbUser.id);
+
+    if (managedTeams && managedTeams.length > 0) {
+      const teamIds = managedTeams.map((t: Record<string, unknown>) => t.id as string);
+      const { data: tmMembers } = await supabase
+        .from("team_members")
+        .select("user_id")
+        .in("team_id", teamIds);
+
+      teamMemberIds = (tmMembers ?? []).map(
+        (m: Record<string, unknown>) => m.user_id as string
+      );
+    }
+  }
 
   const feedEntries: ReportFeedEntry[] = (entries ?? []).map((e: Record<string, unknown>) => {
     const user = e.users as Record<string, unknown> | null;
@@ -92,7 +114,11 @@ export default async function ReportsPage() {
         </Link>
       </div>
 
-      <ReportFeed entries={feedEntries} members={teamMembers} />
+      <ReportFeed
+        entries={feedEntries}
+        members={teamMembers}
+        defaultTeamMemberIds={teamMemberIds.length > 0 ? teamMemberIds : undefined}
+      />
     </div>
   );
 }
