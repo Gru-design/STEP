@@ -20,6 +20,16 @@ export async function uploadAvatar(formData: FormData) {
       return { success: false, error: "認証されていません" };
     }
 
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("tenant_id")
+      .eq("id", authUser.id)
+      .single();
+
+    if (!dbUser) {
+      return { success: false, error: "ユーザーが見つかりません" };
+    }
+
     const file = formData.get("avatar") as File | null;
     if (!file || file.size === 0) {
       return { success: false, error: "ファイルが選択されていません" };
@@ -33,18 +43,21 @@ export async function uploadAvatar(formData: FormData) {
       return { success: false, error: "ファイルサイズは2MB以下にしてください" };
     }
 
+    const tenantId = dbUser.tenant_id;
     const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const filePath = `${authUser.id}/avatar.${ext}`;
+    // Tenant-scoped path: {tenant_id}/{user_id}/avatar.ext
+    const filePath = `${tenantId}/${authUser.id}/avatar.${ext}`;
+    const userFolder = `${tenantId}/${authUser.id}`;
 
     // Delete existing avatars for this user
     const { data: existingFiles } = await supabase.storage
       .from("avatars")
-      .list(authUser.id);
+      .list(userFolder);
 
     if (existingFiles && existingFiles.length > 0) {
       await supabase.storage
         .from("avatars")
-        .remove(existingFiles.map((f: { name: string }) => `${authUser.id}/${f.name}`));
+        .remove(existingFiles.map((f: { name: string }) => `${userFolder}/${f.name}`));
     }
 
     // Upload new avatar
@@ -76,21 +89,13 @@ export async function uploadAvatar(formData: FormData) {
       return { success: false, error: "プロフィールの更新に失敗しました" };
     }
 
-    const { data: dbUser } = await supabase
-      .from("users")
-      .select("tenant_id")
-      .eq("id", authUser.id)
-      .single();
-
-    if (dbUser) {
-      await writeAuditLog({
-        tenantId: dbUser.tenant_id,
-        userId: authUser.id,
-        action: "update",
-        resource: "avatar",
-        resourceId: authUser.id,
-      });
-    }
+    await writeAuditLog({
+      tenantId: tenantId,
+      userId: authUser.id,
+      action: "update",
+      resource: "avatar",
+      resourceId: authUser.id,
+    });
 
     revalidatePath("/profile");
     revalidatePath("/");
@@ -113,15 +118,26 @@ export async function deleteAvatar() {
       return { success: false, error: "認証されていません" };
     }
 
-    // Delete all files in user's avatar folder
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("tenant_id")
+      .eq("id", authUser.id)
+      .single();
+
+    if (!dbUser) {
+      return { success: false, error: "ユーザーが見つかりません" };
+    }
+
+    // Delete all files in user's tenant-scoped avatar folder
+    const userFolder = `${dbUser.tenant_id}/${authUser.id}`;
     const { data: existingFiles } = await supabase.storage
       .from("avatars")
-      .list(authUser.id);
+      .list(userFolder);
 
     if (existingFiles && existingFiles.length > 0) {
       await supabase.storage
         .from("avatars")
-        .remove(existingFiles.map((f: { name: string }) => `${authUser.id}/${f.name}`));
+        .remove(existingFiles.map((f: { name: string }) => `${userFolder}/${f.name}`));
     }
 
     // Clear avatar_url
