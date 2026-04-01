@@ -75,6 +75,29 @@ export async function addTeamMember(teamId: string, userId: string) {
     return { success: false, error: "権限がありません" };
   }
 
+  // チームとユーザーが同一テナントに属するか検証
+  const { data: team } = await supabase
+    .from("teams")
+    .select("id")
+    .eq("id", teamId)
+    .eq("tenant_id", dbUser.tenant_id)
+    .single();
+
+  if (!team) {
+    return { success: false, error: "チームが見つかりません" };
+  }
+
+  const { data: targetUser } = await supabase
+    .from("users")
+    .select("id")
+    .eq("id", userId)
+    .eq("tenant_id", dbUser.tenant_id)
+    .single();
+
+  if (!targetUser) {
+    return { success: false, error: "ユーザーが見つかりません" };
+  }
+
   // Check if the user is already a member
   const { data: existingMember } = await supabase
     .from("team_members")

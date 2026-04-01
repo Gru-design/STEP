@@ -62,7 +62,7 @@ export function UserManagementClient({
   async function handleInvite() {
     setLoading(true);
     setError(null);
-    const result = await inviteUser(tenantId, inviteEmail, inviteName, inviteRole);
+    const result = await inviteUser(inviteEmail, inviteName, inviteRole);
     if (result.success && result.user) {
       setUsers((prev) => [...prev, result.user!]);
       setShowInvite(false);

@@ -32,7 +32,7 @@ export function CheckinModal({ userId, tenantId }: CheckinModalProps) {
 
       try {
         const res = await fetch(
-          `/api/checkin-check?userId=${userId}&tenantId=${tenantId}`
+          `/api/checkin-check`
         );
         if (!res.ok || cancelled) return;
 

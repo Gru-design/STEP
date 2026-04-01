@@ -145,6 +145,28 @@ export async function addReaction(
       return { success: false, error: "認証が必要です" };
     }
 
+    // リアクション対象のエントリが同一テナントに属するか検証
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!dbUser) {
+      return { success: false, error: "ユーザーが見つかりません" };
+    }
+
+    const { data: entry } = await supabase
+      .from("report_entries")
+      .select("id")
+      .eq("id", entryId)
+      .eq("tenant_id", dbUser.tenant_id)
+      .single();
+
+    if (!entry) {
+      return { success: false, error: "対象の日報が見つかりません" };
+    }
+
     const { error } = await supabase.from("reactions").insert({
       entry_id: entryId,
       user_id: user.id,

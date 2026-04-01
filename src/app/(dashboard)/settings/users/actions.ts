@@ -24,7 +24,6 @@ async function requireAdmin() {
 }
 
 export async function inviteUser(
-  tenantId: string,
   email: string,
   name: string,
   role: Role
@@ -36,6 +35,8 @@ export async function inviteUser(
   const admin = await requireAdmin();
   if (!admin) return { success: false, error: "権限がありません" };
 
+  // テナントIDは認証済み管理者から取得（クライアント入力は使わない）
+  const tenantId = admin.tenant_id;
   const supabase = createAdminClient();
 
   // Create auth user with temporary password
@@ -118,9 +119,14 @@ export async function updateUserRole(
     .from("users")
     .select("role")
     .eq("id", userId)
+    .eq("tenant_id", admin.tenant_id)
     .single();
 
-  if (targetUser?.role === "super_admin") {
+  if (!targetUser) {
+    return { success: false, error: "対象ユーザーが見つかりません" };
+  }
+
+  if (targetUser.role === "super_admin") {
     return { success: false, error: "スーパーアドミンのロールは変更できません" };
   }
 
@@ -166,14 +172,19 @@ export async function deactivateUser(
 
   const supabase = createAdminClient();
 
-  // super_admin の削除を禁止
+  // テナント検証 + super_admin の削除を禁止
   const { data: targetUser } = await supabase
     .from("users")
     .select("role")
     .eq("id", userId)
+    .eq("tenant_id", admin.tenant_id)
     .single();
 
-  if (targetUser?.role === "super_admin") {
+  if (!targetUser) {
+    return { success: false, error: "対象ユーザーが見つかりません" };
+  }
+
+  if (targetUser.role === "super_admin") {
     return { success: false, error: "スーパーアドミンは無効化できません" };
   }
 

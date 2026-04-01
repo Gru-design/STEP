@@ -158,6 +158,11 @@ export async function toggleIntegrationStatus(id: string, active: boolean) {
 }
 
 export async function testSlackWebhook(webhookUrl: string) {
+  // 認証チェック（SSRF 防止）
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "認証が必要です" };
+
   if (!webhookUrl || !webhookUrl.startsWith("https://hooks.slack.com/")) {
     return { success: false, error: "有効なSlack Webhook URLを入力してください" };
   }
@@ -179,6 +184,11 @@ export async function testSlackWebhook(webhookUrl: string) {
 }
 
 export async function testChatworkConnection(apiToken: string, roomId: string) {
+  // 認証チェック
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "認証が必要です" };
+
   if (!apiToken || !roomId) {
     return { success: false, error: "APIトークンとルームIDを入力してください" };
   }

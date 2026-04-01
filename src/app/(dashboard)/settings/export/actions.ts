@@ -1,5 +1,6 @@
 "use server";
 
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { writeAuditLog } from "@/lib/audit";
 
@@ -24,13 +25,31 @@ function toCsv(rows: Record<string, unknown>[]): string {
 }
 
 export async function exportData(
-  tenantId: string,
-  userId: string,
   target: string
 ): Promise<{ success: boolean; csv?: string; error?: string }> {
-  const supabase = createAdminClient();
-
   try {
+    // 認証 + テナント検証（クライアント入力のtenantIdは使わない）
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "認証が必要です" };
+    }
+
+    const adminClient = createAdminClient();
+    const { data: dbUser } = await adminClient
+      .from("users")
+      .select("tenant_id, role")
+      .eq("id", user.id)
+      .single();
+
+    if (!dbUser || !["admin", "super_admin"].includes(dbUser.role)) {
+      return { success: false, error: "権限がありません" };
+    }
+
+    const tenantId = dbUser.tenant_id;
     let csv = "";
 
     switch (target) {
@@ -80,7 +99,7 @@ export async function exportData(
 
     await writeAuditLog({
       tenantId,
-      userId,
+      userId: user.id,
       action: "export",
       resource: target,
       details: { format: "csv" },
