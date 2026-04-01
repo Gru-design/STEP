@@ -71,7 +71,7 @@ export function PlansPageClient({
   approvalLogs,
   planReviews = [],
   isManager,
-  userId: _userId,
+  userId: _userId, // eslint-disable-line @typescript-eslint/no-unused-vars
 }: PlansPageClientProps) {
   const currentMonday = getMonday(new Date()).toISOString().split("T")[0];
   const currentPlan = plans.find((p) => p.week_start === currentMonday);

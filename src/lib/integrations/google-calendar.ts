@@ -39,7 +39,7 @@ export interface CalendarEvent {
  *   ?timeMin={today_start}&timeMax={today_end}&singleEvents=true&orderBy=startTime
  */
 export async function fetchTodayEvents(
-  _accessToken: string
+  _accessToken: string // eslint-disable-line @typescript-eslint/no-unused-vars
 ): Promise<CalendarEvent[]> {
   // TODO: Implement with Google Calendar API when OAuth is set up
   // const response = await fetch(

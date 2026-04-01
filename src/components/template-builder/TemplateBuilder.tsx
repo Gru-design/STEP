@@ -28,7 +28,6 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
 import { FieldPalette } from "./FieldPalette";
 import { FieldProperties } from "./FieldProperties";
 import { FieldRenderer } from "./FieldRenderer";

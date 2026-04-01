@@ -7,11 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
-  Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { OptionalSelect } from "@/components/shared/OptionalSelect";
 import { Plus, Trash2, Star, ChevronDown, Check } from "lucide-react";
@@ -57,7 +53,7 @@ export function DynamicForm({
 
 function SectionRenderer({
   section,
-  sectionIndex,
+  sectionIndex: _sectionIndex, // eslint-disable-line @typescript-eslint/no-unused-vars
   totalSections,
   values,
   setValue,

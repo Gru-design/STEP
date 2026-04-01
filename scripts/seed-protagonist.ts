@@ -146,8 +146,6 @@ async function main() {
   // ── 3. チーム作成 ──
   console.log("🏢 チーム作成中...");
   const manager1 = createdUsers.find((u) => u.name === "田内 将貴");
-  const _manager2 = createdUsers.find((u) => u.name === "渥美 友将");
-
   const { data: team, error: teamError } = await supabase
     .from("teams")
     .insert({

@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { User, Team, TeamMember } from "@/types/database";
 import { TeamPageClient } from "./TeamPageClient";
 

@@ -43,7 +43,7 @@ const roleBadgeColors: Record<string, string> = {
 
 export function UserManagementClient({
   users: initialUsers,
-  tenantId,
+  tenantId: _tenantId, // eslint-disable-line @typescript-eslint/no-unused-vars
 }: UserManagementClientProps) {
   const [users, setUsers] = useState(initialUsers);
   const [showInvite, setShowInvite] = useState(false);
