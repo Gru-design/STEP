@@ -118,7 +118,7 @@ export async function createTenant(data: CreateTenantData) {
         user_metadata: {
           tenant_id: tenant.id,
           role: "admin",
-          display_name: data.adminName,
+          name: data.adminName,
         },
       });
 
@@ -129,7 +129,7 @@ export async function createTenant(data: CreateTenantData) {
       id: authUser.user.id,
       tenant_id: tenant.id,
       email: data.adminEmail,
-      display_name: data.adminName,
+      name: data.adminName,
       role: "admin",
     });
 

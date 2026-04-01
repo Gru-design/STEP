@@ -176,6 +176,17 @@ const navGroups: NavGroup[] = [
       },
     ],
   },
+  {
+    label: "システム管理",
+    items: [
+      {
+        label: "テナント管理",
+        href: "/admin",
+        icon: Settings,
+        roles: ["super_admin"],
+      },
+    ],
+  },
 ];
 
 function getVisibleGroups(role: Role, plan: Plan): NavGroup[] {
