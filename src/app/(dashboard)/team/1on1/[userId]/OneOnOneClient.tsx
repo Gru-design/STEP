@@ -11,10 +11,14 @@ import {
   Clock,
   Calendar,
   ArrowLeft,
+  ClipboardCheck,
+  Star,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import { ConditionChart } from "@/components/shared/ConditionChart";
-import type { User, Role } from "@/types/database";
+import { ReviewCard } from "@/components/plans/ReviewCard";
+import type { User, Role, PlanReview } from "@/types/database";
 
 const roleLabels: Record<Role, string> = {
   super_admin: "スーパーアドミン",
@@ -52,6 +56,14 @@ interface MotivationPoint {
   teamAvg: number;
 }
 
+interface WeeklyReviewData {
+  planId: string;
+  weekStart: string;
+  executionRate: number | null;
+  status: string;
+  review: PlanReview | null;
+}
+
 interface OneOnOneClientProps {
   targetUser: User;
   teamName?: string;
@@ -63,6 +75,7 @@ interface OneOnOneClientProps {
   approvalHistory: ApprovalHistoryItem[];
   level: number;
   xp: number;
+  weeklyReviews?: WeeklyReviewData[];
 }
 
 function ApprovalStatusBadge({ status }: { status: string }) {
@@ -141,6 +154,7 @@ export function OneOnOneClient({
   approvalHistory,
   level,
   xp,
+  weeklyReviews = [],
 }: OneOnOneClientProps) {
   const [memo, setMemo] = useState(() => {
     if (typeof window === "undefined") return "";
@@ -312,6 +326,67 @@ export function OneOnOneClient({
           <ConditionChart data={motivationData} />
         </CardContent>
       </Card>
+
+      {/* Weekly Reviews */}
+      {weeklyReviews.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-primary">
+              <ClipboardCheck className="h-4 w-4" />
+              週次振り返り
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-4">
+            {weeklyReviews.map((wr) => {
+              const weekEnd = new Date(wr.weekStart);
+              weekEnd.setDate(weekEnd.getDate() + 6);
+              const rangeLabel = `${new Date(wr.weekStart).toLocaleDateString("ja-JP", { month: "short", day: "numeric" })} - ${weekEnd.toLocaleDateString("ja-JP", { month: "short", day: "numeric" })}`;
+
+              if (wr.review) {
+                // Has review - show ReviewCard
+                return (
+                  <div key={wr.planId} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-muted-foreground">{rangeLabel}</span>
+                      {wr.executionRate !== null && (
+                        <span className="text-xs font-mono text-muted-foreground">
+                          実行率 {Math.round(wr.executionRate)}%
+                        </span>
+                      )}
+                    </div>
+                    <ReviewCard
+                      review={wr.review}
+                      isManager={true}
+                      planId={wr.planId}
+                    />
+                  </div>
+                );
+              }
+
+              // No review yet - show pending notice
+              return (
+                <div
+                  key={wr.planId}
+                  className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50/50 px-4 py-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">振り返り未提出</p>
+                      <p className="text-xs text-muted-foreground">{rangeLabel}</p>
+                    </div>
+                  </div>
+                  {wr.executionRate !== null && (
+                    <span className="text-xs font-mono text-muted-foreground">
+                      実行率 {Math.round(wr.executionRate)}%
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Approval History */}
       <Card>
