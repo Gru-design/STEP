@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { createGoalSchema } from "@/lib/validations";
 import { writeAuditLog } from "@/lib/audit";
@@ -57,7 +58,9 @@ export async function createGoal(input: GoalInput): Promise<{
       return { success: false, error: gate.error };
     }
 
-    const { error } = await supabase.from("goals").insert({
+    // Use admin client to bypass RLS (tenant_id is validated server-side)
+    const adminClient = createAdminClient();
+    const { error } = await adminClient.from("goals").insert({
       tenant_id: dbUser.tenant_id,
       name: input.name,
       level: input.level,
@@ -122,7 +125,8 @@ export async function updateGoal(
       return { success: false, error: "ユーザーが見つかりません" };
     }
 
-    const { error } = await supabase
+    const adminClient = createAdminClient();
+    const { error } = await adminClient
       .from("goals")
       .update({
         ...(input.name !== undefined && { name: input.name }),
@@ -206,7 +210,8 @@ export async function deleteGoal(
     }
 
     // Check if goal has children
-    const { data: children } = await supabase
+    const adminClient = createAdminClient();
+    const { data: children } = await adminClient
       .from("goals")
       .select("id")
       .eq("parent_id", goalId)
@@ -219,7 +224,7 @@ export async function deleteGoal(
       };
     }
 
-    const { error } = await supabase
+    const { error } = await adminClient
       .from("goals")
       .delete()
       .eq("id", goalId)
