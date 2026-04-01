@@ -25,6 +25,7 @@ import {
   Download,
   Flame,
   Zap,
+  MessageSquarePlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -47,6 +48,7 @@ import { createClient } from "@/lib/supabase/client";
 import { BottomNav } from "./BottomNav";
 import { CommandPalette } from "./CommandPalette";
 import { NotificationBell } from "./NotificationBell";
+import { FeatureRequestDialog } from "./FeatureRequestDialog";
 import type { User as UserType, Role, Plan } from "@/types/database";
 import { canAccessFeature } from "@/lib/plan-limits";
 
@@ -188,6 +190,12 @@ const navGroups: NavGroup[] = [
         icon: Settings,
         roles: ["super_admin"],
       },
+      {
+        label: "改善リクエスト",
+        href: "/admin/feature-requests",
+        icon: MessageSquarePlus,
+        roles: ["super_admin"],
+      },
     ],
   },
 ];
@@ -308,8 +316,9 @@ export function DashboardShell({
         <nav className="flex-1 overflow-y-auto p-3">
           {renderNavGroups()}
         </nav>
-        {/* Profile quick access at bottom */}
-        <div className="border-t border-border p-3">
+        {/* Feature request + Profile at bottom */}
+        <div className="border-t border-border p-3 space-y-1">
+          <FeatureRequestDialog variant="sidebar" />
           <Link
             href="/profile"
             className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium motion-safe:transition-colors ${
@@ -353,6 +362,9 @@ export function DashboardShell({
                 <nav className="overflow-y-auto p-3">
                   {renderNavGroups(() => setSheetOpen(false))}
                 </nav>
+                <div className="border-t border-border p-3">
+                  <FeatureRequestDialog variant="sidebar" />
+                </div>
               </SheetContent>
             </Sheet>
 
