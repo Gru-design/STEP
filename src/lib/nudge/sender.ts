@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSafeUrl } from "@/lib/url-validation";
+import { sendChatworkMessage, formatNudgeNotification as formatChatworkNudge } from "@/lib/integrations/chatwork";
 
 interface Nudge {
   id: string;
@@ -42,43 +43,49 @@ export async function sendNudge(nudge: Nudge): Promise<boolean> {
   });
   supabase.removeChannel(channel);
 
-  // Dispatch to Slack if user has slack_id
+  // Dispatch to external chat services
   try {
-    const { data: user } = await supabase
-      .from("users")
-      .select("slack_id")
-      .eq("id", nudge.target_user_id)
-      .single();
+    // Get all active integrations for this tenant
+    const { data: integrations } = await supabase
+      .from("integrations")
+      .select("provider, credentials")
+      .eq("tenant_id", nudge.tenant_id)
+      .eq("status", "active");
 
-    if (user?.slack_id) {
-      // Check if tenant has Slack integration
-      const { data: integration } = await supabase
-        .from("integrations")
-        .select("credentials")
-        .eq("tenant_id", nudge.tenant_id)
-        .eq("provider", "slack")
-        .eq("status", "active")
-        .single();
+    for (const integration of integrations ?? []) {
+      const creds = integration.credentials as Record<string, string>;
 
-      if (integration?.credentials) {
-        const webhookUrl = (integration.credentials as { webhook_url?: string })
-          .webhook_url;
-        if (webhookUrl && isSafeUrl(webhookUrl)) {
-          await fetch(webhookUrl, {
+      if (integration.provider === "slack" && creds?.webhook_url) {
+        // Slack: send via webhook
+        const { data: user } = await supabase
+          .from("users")
+          .select("slack_id")
+          .eq("id", nudge.target_user_id)
+          .single();
+
+        if (user?.slack_id && isSafeUrl(creds.webhook_url)) {
+          await fetch(creds.webhook_url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               channel: user.slack_id,
               text: nudge.content,
             }),
-          }).catch(() => {
-            // Non-critical: log but don't fail
-          });
+          }).catch(() => {});
         }
+      }
+
+      if (integration.provider === "chatwork" && creds?.api_token && creds?.room_id) {
+        // Chatwork: send via API
+        await sendChatworkMessage(
+          creds.api_token,
+          creds.room_id,
+          formatChatworkNudge(nudge.content)
+        ).catch(() => {});
       }
     }
   } catch {
-    // Non-critical: Slack dispatch failure shouldn't block nudge
+    // Non-critical: external dispatch failure shouldn't block nudge
   }
 
   return true;

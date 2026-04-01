@@ -9,9 +9,10 @@ import {
   deleteIntegration,
   toggleIntegrationStatus,
   testSlackWebhook,
+  testChatworkConnection,
 } from "./actions";
 
-type ProviderKey = "slack" | "google_calendar" | "teams";
+type ProviderKey = "slack" | "chatwork" | "google_calendar" | "teams";
 
 interface ProviderConfig {
   key: ProviderKey;
@@ -22,6 +23,14 @@ interface ProviderConfig {
 }
 
 const providers: ProviderConfig[] = [
+  {
+    key: "chatwork",
+    name: "Chatwork",
+    description:
+      "日報提出通知、リマインダー、週刊STEPをChatworkルームに配信します。",
+    hasWebhook: false,
+    comingSoon: false,
+  },
   {
     key: "slack",
     name: "Slack",
@@ -83,21 +92,27 @@ interface IntegrationCardProps {
 }
 
 function IntegrationCard({ provider, integration }: IntegrationCardProps) {
-  const [webhookUrl, setWebhookUrl] = useState(
-    (integration?.credentials as Record<string, string>)?.webhook_url || ""
-  );
+  const creds = (integration?.credentials ?? {}) as Record<string, string>;
+  const [webhookUrl, setWebhookUrl] = useState(creds.webhook_url || "");
+  const [apiToken, setApiToken] = useState(creds.api_token || "");
+  const [roomId, setRoomId] = useState(creds.room_id || "");
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
 
+  const isChatwork = provider.key === "chatwork";
+
   const handleSave = () => {
     setMessage(null);
     startTransition(async () => {
+      const credentials = isChatwork
+        ? { api_token: apiToken, room_id: roomId }
+        : { webhook_url: webhookUrl };
       const result = await saveIntegration({
         provider: provider.key,
-        credentials: { webhook_url: webhookUrl },
+        credentials,
       });
       if (result.success) {
         setMessage({ type: "success", text: "保存しました" });
@@ -108,10 +123,16 @@ function IntegrationCard({ provider, integration }: IntegrationCardProps) {
   };
 
   const handleTest = () => {
-    if (provider.key !== "slack") return;
     setMessage(null);
     startTransition(async () => {
-      const result = await testSlackWebhook(webhookUrl);
+      let result;
+      if (isChatwork) {
+        result = await testChatworkConnection(apiToken, roomId);
+      } else if (provider.key === "slack") {
+        result = await testSlackWebhook(webhookUrl);
+      } else {
+        return;
+      }
       if (result.success) {
         setMessage({ type: "success", text: "テスト通知を送信しました" });
       } else {
@@ -122,6 +143,9 @@ function IntegrationCard({ provider, integration }: IntegrationCardProps) {
       }
     });
   };
+
+  const canSave = isChatwork ? apiToken && roomId : webhookUrl;
+  const canTest = isChatwork || provider.key === "slack";
 
   const handleToggle = () => {
     if (!integration) return;
@@ -180,29 +204,74 @@ function IntegrationCard({ provider, integration }: IntegrationCardProps) {
             この連携は現在開発中です。OAuth認証の設定が完了次第、利用可能になります。
           </p>
         </div>
-      ) : provider.hasWebhook ? (
+      ) : (
         <div className="mt-4 space-y-3">
-          <div>
-            <label
-              htmlFor={`webhook-${provider.key}`}
-              className="block text-sm font-medium text-foreground mb-1"
-            >
-              Webhook URL
-            </label>
-            <Input
-              id={`webhook-${provider.key}`}
-              type="url"
-              value={webhookUrl}
-              onChange={(e) => setWebhookUrl(e.target.value)}
-              placeholder={
-                provider.key === "slack"
-                  ? "https://hooks.slack.com/services/..."
-                  : "https://..."
-              }
-              className="font-mono text-sm"
-              disabled={isPending}
-            />
-          </div>
+          {isChatwork ? (
+            <div className="space-y-3">
+              <div>
+                <label
+                  htmlFor="chatwork-token"
+                  className="block text-sm font-medium text-foreground mb-1"
+                >
+                  API トークン
+                </label>
+                <Input
+                  id="chatwork-token"
+                  type="password"
+                  value={apiToken}
+                  onChange={(e) => setApiToken(e.target.value)}
+                  placeholder="Chatwork API トークンを入力"
+                  className="font-mono text-sm"
+                  disabled={isPending}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Chatwork &gt; 右上メニュー &gt; サービス連携 &gt; API Token から取得
+                </p>
+              </div>
+              <div>
+                <label
+                  htmlFor="chatwork-room"
+                  className="block text-sm font-medium text-foreground mb-1"
+                >
+                  ルーム ID
+                </label>
+                <Input
+                  id="chatwork-room"
+                  type="text"
+                  value={roomId}
+                  onChange={(e) => setRoomId(e.target.value)}
+                  placeholder="例: 123456789"
+                  className="font-mono text-sm"
+                  disabled={isPending}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  通知先チャットルームのURLの末尾の数字 (例: #!rid123456789)
+                </p>
+              </div>
+            </div>
+          ) : provider.hasWebhook ? (
+            <div>
+              <label
+                htmlFor={`webhook-${provider.key}`}
+                className="block text-sm font-medium text-foreground mb-1"
+              >
+                Webhook URL
+              </label>
+              <Input
+                id={`webhook-${provider.key}`}
+                type="url"
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
+                placeholder={
+                  provider.key === "slack"
+                    ? "https://hooks.slack.com/services/..."
+                    : "https://..."
+                }
+                className="font-mono text-sm"
+                disabled={isPending}
+              />
+            </div>
+          ) : null}
 
           {message && (
             <p
@@ -217,16 +286,16 @@ function IntegrationCard({ provider, integration }: IntegrationCardProps) {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               onClick={handleSave}
-              disabled={isPending || !webhookUrl}
+              disabled={isPending || !canSave}
               className="bg-primary text-white hover:bg-primary/90"
             >
               {isPending ? "保存中..." : "保存"}
             </Button>
-            {provider.key === "slack" && (
+            {canTest && (
               <Button
                 variant="outline"
                 onClick={handleTest}
-                disabled={isPending || !webhookUrl}
+                disabled={isPending || !canSave}
               >
                 テスト送信
               </Button>
@@ -252,7 +321,7 @@ function IntegrationCard({ provider, integration }: IntegrationCardProps) {
             )}
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
