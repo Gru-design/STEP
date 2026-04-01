@@ -316,6 +316,30 @@ Lv1: 0, Lv2: 100, Lv3: 500, Lv4: 1500, Lv5: 5000
 5. **テスト**は Vitest + React Testing Library。最低限 Server Actions のテスト
 6. **環境変数**は `.env.local.example` に一覧を管理
 
+## 既知の問題・注意事項
+
+### リダイレクトループ (修正済み)
+
+**症状**: ログイン後に `/dashboard` と `/login` の間で無限リダイレクトが発生する。
+
+**原因**: `(dashboard)/layout.tsx` で `users` テーブルにレコードが見つからない場合、セッションを破棄せずに `/login` へリダイレクトしていた。middleware が認証済みユーザーを `/login` から `/dashboard` へ戻すため無限ループが発生。
+
+**発生条件**:
+- Supabase Auth にユーザーは存在するが `public.users` テーブルにレコードがない
+- `user_metadata` に `tenant_id` または `name` が設定されていない
+- `custom_access_token_hook` が未登録で JWT claims に `tenant_id`/`role` が含まれない
+
+**対処法**:
+- `layout.tsx` で `signOut()` してからリダイレクトする（ループ防止）
+- 新規ユーザーセットアップ時は `auth.users.raw_user_meta_data` に `tenant_id`, `name`, `role` を必ず設定する
+- Supabase Dashboard で `custom_access_token_hook` が有効になっていることを確認する
+
+### SuperAdmin アカウント
+
+- super_admin は CLI スクリプト (`scripts/create-super-admin.ts`) または Supabase SQL Editor から作成する
+- ダッシュボード UI からは発行できない（セキュリティ上の意図的な設計）
+- 「STEP運営」テナントに所属させる
+
 ## Phase 一覧
 
 | Phase | 名称 | 指示書 |

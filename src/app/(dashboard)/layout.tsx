@@ -35,7 +35,6 @@ export default async function DashboardLayout({
     // RLSにINSERTポリシーがないため、admin clientを使用
     const meta = authUser.user_metadata;
     if (meta?.tenant_id && meta?.name) {
-      const adminClient = createAdminClient();
       const { data: createdUser } = await adminClient
         .from("users")
         .insert({
@@ -49,7 +48,9 @@ export default async function DashboardLayout({
         .single();
 
       if (!createdUser) {
-        redirect("/login");
+        // ユーザー作成も失敗 → セッションを破棄してからログインへ
+        await supabase.auth.signOut();
+        redirect("/login?error=user_setup_failed");
       }
 
       const user = createdUser as User;
@@ -67,7 +68,9 @@ export default async function DashboardLayout({
         </DashboardShell>
       );
     }
-    redirect("/login");
+    // tenant_id/name がメタデータにない → セッションを破棄してループを防止
+    await supabase.auth.signOut();
+    redirect("/login?error=no_user_record");
   }
 
   const user = dbUser as User;
