@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { sendSlackNotification } from "@/lib/integrations/slack";
 import { sendChatworkMessage } from "@/lib/integrations/chatwork";
+import { writeAuditLog } from "@/lib/audit";
 
 type IntegrationProvider = "google_calendar" | "gmail" | "slack" | "chatwork" | "teams" | "cti";
 
@@ -69,19 +70,37 @@ export async function saveIntegration(data: SaveIntegrationInput) {
       if (error) {
         return { success: false, error: "連携設定の更新に失敗しました" };
       }
+
+      await writeAuditLog({
+        tenantId: dbUser.tenant_id,
+        userId: authUser.id,
+        action: "update",
+        resource: "integration",
+        resourceId: existing.id,
+        details: { provider: data.provider },
+      });
     } else {
       // Insert new
-      const { error } = await supabase.from("integrations").insert({
+      const { data: inserted, error } = await supabase.from("integrations").insert({
         tenant_id: dbUser.tenant_id,
         provider: data.provider,
         credentials: data.credentials,
         settings: data.settings || {},
         status: "active",
-      });
+      }).select("id").single();
 
       if (error) {
         return { success: false, error: "連携設定の保存に失敗しました" };
       }
+
+      await writeAuditLog({
+        tenantId: dbUser.tenant_id,
+        userId: authUser.id,
+        action: "create",
+        resource: "integration",
+        resourceId: inserted?.id,
+        details: { provider: data.provider },
+      });
     }
 
     revalidatePath("/settings/integrations");
@@ -124,6 +143,14 @@ export async function deleteIntegration(id: string) {
       return { success: false, error: "連携設定の削除に失敗しました" };
     }
 
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: authUser.id,
+      action: "delete",
+      resource: "integration",
+      resourceId: id,
+    });
+
     revalidatePath("/settings/integrations");
     return { success: true };
   } catch (err) {
@@ -163,6 +190,15 @@ export async function toggleIntegrationStatus(id: string, active: boolean) {
     if (error) {
       return { success: false, error: "ステータスの更新に失敗しました" };
     }
+
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: authUser.id,
+      action: "update",
+      resource: "integration",
+      resourceId: id,
+      details: { active },
+    });
 
     revalidatePath("/settings/integrations");
     return { success: true };

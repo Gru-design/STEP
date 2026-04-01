@@ -178,6 +178,14 @@ export async function addReaction(
       return { success: false, error: "リアクションの追加に失敗しました" };
     }
 
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: user.id,
+      action: "create",
+      resource: "reaction",
+      details: { entry_id: entryId, type },
+    });
+
     revalidatePath(`/reports/${entryId}`);
     return { success: true };
   } catch {

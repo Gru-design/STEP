@@ -195,6 +195,15 @@ export async function moveDeal(dealId: string, newStageId: string) {
       to_stage: newStageId,
     });
 
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: user.id,
+      action: "update",
+      resource: "deal",
+      resourceId: dealId,
+      details: { from_stage: currentDeal.stage_id, to_stage: newStageId },
+    });
+
     revalidatePath("/deals");
     revalidatePath(`/deals/${dealId}`);
     return { success: true };
@@ -233,6 +242,14 @@ export async function deleteDeal(id: string) {
     if (error) {
       return { success: false, error: "案件の削除に失敗しました" };
     }
+
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: user.id,
+      action: "delete",
+      resource: "deal",
+      resourceId: id,
+    });
 
     revalidatePath("/deals");
     return { success: true };

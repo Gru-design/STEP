@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import type { TemplateSchema, TemplateType, ReportVisibility } from "@/types/database";
+import { writeAuditLog } from "@/lib/audit";
 
 // --------------------------------------------------------------------------
 // Auth guard: super_admin only
@@ -94,6 +95,15 @@ export async function createGlobalTemplate(data: CreateGlobalTemplateData) {
 
     if (error) throw error;
 
+    await writeAuditLog({
+      tenantId: auth.user!.user_metadata?.tenant_id ?? auth.user!.id,
+      userId: auth.user!.id,
+      action: "create",
+      resource: "global_template",
+      resourceId: template.id,
+      details: { name: data.name.trim(), type: data.type },
+    });
+
     revalidatePath("/admin/global-templates");
     return { success: true, data: template };
   } catch (error: unknown) {
@@ -161,6 +171,15 @@ export async function updateGlobalTemplate(id: string, data: UpdateGlobalTemplat
 
     if (error) throw error;
 
+    await writeAuditLog({
+      tenantId: auth.user!.user_metadata?.tenant_id ?? auth.user!.id,
+      userId: auth.user!.id,
+      action: "update",
+      resource: "global_template",
+      resourceId: id,
+      details: { updatedFields: Object.keys(updateData).filter((k) => k !== "updated_at" && k !== "version") },
+    });
+
     revalidatePath("/admin/global-templates");
     return { success: true };
   } catch (error: unknown) {
@@ -194,6 +213,14 @@ export async function deleteGlobalTemplate(id: string) {
       .is("tenant_id", null);
 
     if (error) throw error;
+
+    await writeAuditLog({
+      tenantId: auth.user!.user_metadata?.tenant_id ?? auth.user!.id,
+      userId: auth.user!.id,
+      action: "delete",
+      resource: "global_template",
+      resourceId: id,
+    });
 
     revalidatePath("/admin/global-templates");
     return { success: true };
@@ -288,6 +315,14 @@ export async function applyGlobalTemplatesToAllTenants() {
         }
       }
     }
+
+    await writeAuditLog({
+      tenantId: auth.user!.user_metadata?.tenant_id ?? auth.user!.id,
+      userId: auth.user!.id,
+      action: "create",
+      resource: "global_template",
+      details: { operation: "apply_to_all_tenants", distributed, skipped },
+    });
 
     revalidatePath("/admin/global-templates");
     return { success: true, data: { distributed, skipped } };
@@ -445,6 +480,15 @@ export async function syncGlobalTemplateToTenants(globalTemplateId: string) {
       if (!insertError) created++;
     }
 
+    await writeAuditLog({
+      tenantId: auth.user!.user_metadata?.tenant_id ?? auth.user!.id,
+      userId: auth.user!.id,
+      action: "update",
+      resource: "global_template",
+      resourceId: globalTemplateId,
+      details: { operation: "sync_to_tenants", updated, created },
+    });
+
     revalidatePath("/admin/global-templates");
     return { success: true, data: { updated, created } };
   } catch (error) {
@@ -504,6 +548,15 @@ export async function promoteToGlobalTemplate(tenantTemplateId: string) {
       .from("report_templates")
       .update({ source_template_id: globalTemplate.id })
       .eq("id", tenantTemplateId);
+
+    await writeAuditLog({
+      tenantId: auth.user!.user_metadata?.tenant_id ?? auth.user!.id,
+      userId: auth.user!.id,
+      action: "create",
+      resource: "global_template",
+      resourceId: globalTemplate.id,
+      details: { operation: "promote_from_tenant", sourceTenantTemplateId: tenantTemplateId, sourceTenantName: tenantName },
+    });
 
     revalidatePath("/admin/global-templates");
     return {
