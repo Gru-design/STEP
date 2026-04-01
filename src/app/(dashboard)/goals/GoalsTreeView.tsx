@@ -19,6 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  OptionalSelect,
+  parseOptionalSelect,
+} from "@/components/shared/OptionalSelect";
 import { createGoal, deleteGoal } from "./actions";
 import type {
   Goal,
@@ -233,29 +237,23 @@ export function GoalsTreeView({
     }
   };
 
-  const NONE_VALUE = "__none__";
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
 
     const formData = new FormData(e.currentTarget);
-    const optionalField = (key: string) => {
-      const v = formData.get(key) as string;
-      return v && v !== NONE_VALUE ? v : undefined;
-    };
     const result = await createGoal({
       name: formData.get("name") as string,
       level: formData.get("level") as GoalLevel,
       target_value: Number(formData.get("target_value")),
       kpi_field_key: (formData.get("kpi_field_key") as string) || undefined,
-      template_id: optionalField("template_id"),
+      template_id: parseOptionalSelect(formData, "template_id"),
       period_start: formData.get("period_start") as string,
       period_end: formData.get("period_end") as string,
-      owner_id: optionalField("owner_id"),
-      team_id: optionalField("team_id"),
-      parent_id: optionalField("parent_id"),
+      owner_id: parseOptionalSelect(formData, "owner_id"),
+      team_id: parseOptionalSelect(formData, "team_id"),
+      parent_id: parseOptionalSelect(formData, "parent_id"),
     });
 
     setIsSubmitting(false);
@@ -339,19 +337,16 @@ export function GoalsTreeView({
 
                 <div className="space-y-2">
                   <Label htmlFor="template_id">テンプレート</Label>
-                  <Select name="template_id">
-                    <SelectTrigger>
-                      <SelectValue placeholder="テンプレート選択（任意）" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE_VALUE}>なし</SelectItem>
-                      {templates.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <OptionalSelect
+                    name="template_id"
+                    placeholder="テンプレート選択（任意）"
+                  >
+                    {templates.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </OptionalSelect>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -378,53 +373,45 @@ export function GoalsTreeView({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="owner_id">担当者</Label>
-                    <Select name="owner_id">
-                      <SelectTrigger>
-                        <SelectValue placeholder="担当者選択（任意）" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={NONE_VALUE}>なし</SelectItem>
-                        {users.map((u) => (
-                          <SelectItem key={u.id} value={u.id}>
-                            {u.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <OptionalSelect
+                      name="owner_id"
+                      placeholder="担当者選択（任意）"
+                    >
+                      {users.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.name}
+                        </SelectItem>
+                      ))}
+                    </OptionalSelect>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="team_id">チーム</Label>
-                    <Select name="team_id">
-                      <SelectTrigger>
-                        <SelectValue placeholder="チーム選択（任意）" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={NONE_VALUE}>なし</SelectItem>
-                        {teams.map((t) => (
-                          <SelectItem key={t.id} value={t.id}>
-                            {t.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <OptionalSelect
+                      name="team_id"
+                      placeholder="チーム選択（任意）"
+                    >
+                      {teams.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                    </OptionalSelect>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="parent_id">親目標</Label>
-                  <Select name="parent_id">
-                    <SelectTrigger>
-                      <SelectValue placeholder="親目標選択（任意）" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE_VALUE}>なし（ルート目標）</SelectItem>
-                      {goals.map((g) => (
-                        <SelectItem key={g.id} value={g.id}>
-                          [{levelLabels[g.level]}] {g.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <OptionalSelect
+                    name="parent_id"
+                    placeholder="親目標選択（任意）"
+                    noneLabel="なし（ルート目標）"
+                  >
+                    {goals.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>
+                        [{levelLabels[g.level]}] {g.name}
+                      </SelectItem>
+                    ))}
+                  </OptionalSelect>
                 </div>
 
                 {error && (
