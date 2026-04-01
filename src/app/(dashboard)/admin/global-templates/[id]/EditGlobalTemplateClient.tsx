@@ -176,7 +176,7 @@ export function EditGlobalTemplateClient({ template }: EditGlobalTemplateClientP
 
           <div className="space-y-2">
             <Label>対象ロール</Label>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               {roleOptions.map((opt) => (
                 <label
                   key={opt.value}
@@ -229,11 +229,11 @@ export function EditGlobalTemplateClient({ template }: EditGlobalTemplateClientP
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
         <p className="text-xs text-muted-foreground">
           バージョン: v{template.version}
         </p>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           <Button
             variant="outline"
             onClick={() => router.push("/admin/global-templates")}

@@ -154,36 +154,40 @@ export function GlobalTemplatesClient({ templates }: GlobalTemplatesClientProps)
         </Button>
       </div>
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
-            <Globe className="h-6 w-6" />
+          <h1 className="text-xl sm:text-2xl font-bold text-primary flex items-center gap-2">
+            <Globe className="h-5 w-5 sm:h-6 sm:w-6" />
             グローバルテンプレート
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             全テナントに自動配布されるテンプレートを管理します
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
+            size="sm"
             onClick={handleOpenPromoteDialog}
             disabled={isPending}
+            className="sm:size-default"
           >
-            <ArrowUpFromLine className="mr-2 h-4 w-4" />
-            テナントから取り込み
+            <ArrowUpFromLine className="mr-1 sm:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">テナントから</span>取り込み
           </Button>
           <Button
             variant="outline"
+            size="sm"
             onClick={handleApplyAll}
             disabled={isPending || templates.length === 0}
+            className="sm:size-default"
           >
-            <Send className="mr-2 h-4 w-4" />
-            全テナントに配布
+            <Send className="mr-1 sm:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">全テナントに</span>配布
           </Button>
-          <Button asChild className="bg-primary text-white hover:bg-primary/90">
+          <Button asChild size="sm" className="bg-primary text-white hover:bg-primary/90 sm:size-default">
             <Link href="/admin/global-templates/new">
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="mr-1 sm:mr-2 h-4 w-4" />
               新規作成
             </Link>
           </Button>
@@ -332,7 +336,7 @@ export function GlobalTemplatesClient({ templates }: GlobalTemplatesClientProps)
           }
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ArrowUpFromLine className="h-5 w-5" />
@@ -372,7 +376,7 @@ export function GlobalTemplatesClient({ templates }: GlobalTemplatesClientProps)
                 {tenantTemplates.map((tt) => (
                   <div
                     key={tt.id}
-                    className="flex items-center justify-between rounded-xl border border-border p-3 hover:bg-muted/50"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl border border-border p-3 hover:bg-muted/50"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -389,7 +393,7 @@ export function GlobalTemplatesClient({ templates }: GlobalTemplatesClientProps)
                     </div>
                     <Button
                       size="sm"
-                      className="h-8 text-xs bg-primary text-white hover:bg-primary/90 ml-3 shrink-0"
+                      className="h-8 text-xs bg-primary text-white hover:bg-primary/90 shrink-0 w-full sm:w-auto"
                       disabled={isPending}
                       onClick={() => handlePromote(tt.id)}
                     >
