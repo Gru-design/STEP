@@ -274,7 +274,10 @@ function ReadOnlyValue({
     }
 
     case "select_multi": {
-      const items = value as string[];
+      const items = Array.isArray(value) ? (value as string[]) : [];
+      if (items.length === 0) {
+        return <p className="text-sm text-muted-foreground">--</p>;
+      }
       return (
         <div className="flex flex-wrap gap-1.5">
           {items.map((item) => (
@@ -319,8 +322,8 @@ function ReadOnlyValue({
       );
 
     case "repeater": {
-      const rows = value as Record<string, unknown>[];
-      if (!rows || rows.length === 0) {
+      const rows = Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
+      if (rows.length === 0) {
         return <p className="text-sm text-muted-foreground">--</p>;
       }
       return (
