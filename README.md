@@ -1,316 +1,364 @@
-# STEP - 日報・マネジメントサイクル統合SaaS
+<p align="center">
+  <strong style="font-size: 2rem;">STEP</strong>
+</p>
 
-> 毎日1STEP、チームが強くなる。
+<p align="center">
+  <em>毎日1STEP、チームが強くなる。</em>
+</p>
 
-人材紹介・派遣・メディア向けのマルチテナント日報・週次計画・目標管理・ファネル管理プラットフォーム。
+<p align="center">
+  日報 × 目標 × 案件管理を統合し、PDCAサイクルを自然に定着させるマネジメントSaaS
+</p>
 
 ---
 
-## 技術スタック
+## What is STEP?
 
-| レイヤー | 技術 |
-|----------|------|
-| フレームワーク | Next.js 16 (App Router) + TypeScript |
-| データベース | Supabase (PostgreSQL) + Row Level Security |
-| 認証 | Supabase Auth (メール/パスワード + Google OAuth) |
-| ORM | Drizzle ORM |
-| UI | Tailwind CSS v4 + shadcn/ui |
-| テスト | Vitest + React Testing Library |
-| CI/CD | GitHub Actions |
-| ホスティング | Vercel |
+STEPは、人材紹介・派遣・メディア企業向けに設計されたマルチテナント型マネジメントプラットフォームです。
 
-## 主要機能
+日報提出を「面倒な義務」から「30秒で終わる習慣」に変え、マネージャーの状況把握を「1時間の確認作業」から「5分のダッシュボードチェック」に短縮します。
+
+### 3つのペルソナ × Before/After
+
+| ペルソナ | Before | After |
+|----------|--------|-------|
+| **メンバー** | 日報に20分。テンプレ選んで、日付確認して、全部埋めて... | 通知タップ→前回値プリフィル→変更点だけ修正→30秒で提出→XP +10 |
+| **マネージャー** | 誰が出して誰が出してない？一人ずつ開いて確認...全員分で1時間 | ダッシュボード→未提出3名が赤表示→ワンクリック確認→5分で完了 |
+| **管理者** | 月次レポートのためにCSVエクスポートして手動集計 | ダッシュボード→全社KPI自動更新→部門別比較→ドリルダウン→完了 |
+
+---
+
+## Features
+
+### Core
 
 | 機能 | 説明 |
 |------|------|
-| 日報管理 | テンプレートベースの日報作成・提出・ピアフィード |
-| 週次計画 | 計画作成・承認ワークフロー・実行率自動算出 |
-| 目標管理 | ツリー構造の目標設定・KPI自動追跡・乖離アラート |
-| 案件管理 | カンバン + リストビュー・ファネル分析 |
-| ナッジエンジン | ルールベースの提出リマインダー・モチベ低下検知 |
-| ゲーミフィケーション | XP・レベル・バッジ・ストリークカウンター |
-| ナレッジ | チーム内ナレッジベース・タグ・全文検索 |
-| 週刊STEP | テナント週次ダイジェスト自動生成 |
-| 1on1管理 | マネージャー向けアジェンダ・感情トレンド |
-| ユーザー管理 | 招待・ロール変更・無効化・監査ログ |
-| データエクスポート | ユーザー・日報・案件・目標のCSVエクスポート |
-| 公開API | REST API (Bearer / API Key認証) |
-| Webhook | HMAC署名付きイベント通知 |
-| PWA | モバイルホーム画面追加・オフラインキャッシュ |
-| ホワイトラベル | テナント別カラー・ロゴ・アプリ名 |
+| **日報管理** | テンプレートベースの日報作成。プログレスバー、Sticky提出ボタン、前回値プリフィル |
+| **週次計画** | 計画作成・承認ワークフロー・実行率自動算出 |
+| **目標管理** | ツリー構造のOKR/KPI設定・日報データからの自動追跡・乖離アラート |
+| **案件管理** | カンバン + リストビュー・ステージ遷移履歴・ファネル分析 |
+| **ナレッジ** | チーム内ナレッジベース・タグ分類・全文検索 |
 
-## ロール
+### Engagement & Gamification
 
-| ロール | 説明 |
-|--------|------|
-| `super_admin` | 全テナント管理 |
-| `admin` | テナント内全権限 |
-| `manager` | チーム日報閲覧・承認・ナッジ |
-| `member` | 日報提出・ピア閲覧 |
+| 機能 | 説明 |
+|------|------|
+| **ピアボーナス** | 毎日1P、本気の感謝を伝える。日報提出時に感謝メッセージと共にチームメンバーへポイント送信 |
+| **XP & レベル** | 日報提出(+10XP)、ナレッジ投稿(+20XP)、ピアボーナス送信(+3XP)/受信(+5XP) |
+| **バッジ** | 連続提出、月間目標達成、四半期MVPなど9種類。Common/Rare/Epic/Legendaryのレアリティ |
+| **ストリーク** | 連続提出日数をカウント。ヘッダーに常時表示 |
+| **ナッジエンジン** | ルールベースの提出リマインダー・モチベ低下検知・ソーシャルプルーフ |
+
+### Management & Analytics
+
+| 機能 | 説明 |
+|------|------|
+| **ロール別ダッシュボード** | メンバー/マネージャー/管理者で最適化された情報表示 |
+| **承認ワークフロー** | 週次計画・案件の提出→承認/差戻しフロー |
+| **週刊STEP** | テナント週次ダイジェスト自動生成（ランキング・MVP・バッジ獲得者） |
+| **1on1管理** | マネージャー向けアジェンダ・コンディション推移チャート |
+| **データエクスポート** | ユーザー・日報・案件・目標のCSVエクスポート |
+
+### Platform
+
+| 機能 | 説明 |
+|------|------|
+| **マルチテナント** | 全テーブルRLSによるテナント分離 |
+| **公開REST API** | Bearer / API Key認証 |
+| **Webhook** | HMAC-SHA256署名付きイベント通知 |
+| **PWA** | モバイルホーム画面追加・Service Worker |
+| **ホワイトラベル** | テナント別カラー・ロゴ・アプリ名カスタマイズ |
+| **コマンドパレット** | `Cmd+K` でグローバル検索・ページ遷移 |
 
 ---
 
-## セットアップ
+## Tech Stack
 
-### 前提条件
+| レイヤー | 技術 |
+|----------|------|
+| Framework | Next.js 16 (App Router) + TypeScript (strict) |
+| Database | Supabase (PostgreSQL) + Row Level Security |
+| Auth | Supabase Auth (Email/Password + Google OAuth) |
+| ORM | Drizzle ORM |
+| UI | Tailwind CSS v4 + shadcn/ui (Radix UI) |
+| Charts | Recharts |
+| DnD | @dnd-kit |
+| Testing | Vitest + React Testing Library |
+| CI/CD | GitHub Actions |
+| Hosting | Vercel |
+
+---
+
+## Architecture
+
+```
+                    ┌─────────────┐
+                    │   Vercel    │
+                    │  (Next.js)  │
+                    └──────┬──────┘
+                           │
+              ┌────────────┼────────────┐
+              │            │            │
+     ┌────────▼──┐  ┌──────▼──────┐  ┌──▼──────────┐
+     │  App      │  │  API Routes │  │  Cron Jobs  │
+     │  Router   │  │  /api/v1/*  │  │  /api/cron  │
+     │  (SSR)    │  │  (REST)     │  │  (Vercel)   │
+     └────────┬──┘  └──────┬──────┘  └──┬──────────┘
+              │            │            │
+              └────────────┼────────────┘
+                           │
+                  ┌────────▼────────┐
+                  │    Supabase     │
+                  │  ┌───────────┐  │
+                  │  │ PostgreSQL│  │
+                  │  │   + RLS   │  │
+                  │  └───────────┘  │
+                  │  ┌───────────┐  │
+                  │  │   Auth    │  │
+                  │  └───────────┘  │
+                  │  ┌───────────┐  │
+                  │  │ Realtime  │  │
+                  │  └───────────┘  │
+                  └─────────────────┘
+```
+
+### Roles & Permissions
+
+| ロール | 値 | 説明 |
+|--------|---|------|
+| Super Admin | `super_admin` | 全テナント管理（STEP運営） |
+| Admin | `admin` | テナント内全権限 |
+| Manager | `manager` | チーム日報閲覧・承認・ナッジ・1on1 |
+| Member | `member` | 日報提出・ピア閲覧・ナレッジ投稿 |
+
+---
+
+## Getting Started
+
+### Prerequisites
 
 - Node.js 20+
 - Supabase プロジェクト（[supabase.com](https://supabase.com)）
 
-### 1. リポジトリクローン
+### Setup
 
 ```bash
+# 1. Clone & install
 git clone https://github.com/Gru-design/STEP.git
 cd STEP
 npm install
-```
 
-### 2. 環境変数
-
-```bash
+# 2. Environment variables
 cp .env.local.example .env.local
+# Edit .env.local with your Supabase credentials
 ```
 
-`.env.local` を編集し、Supabase のクレデンシャルを設定：
+**Required environment variables:**
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 DATABASE_URL=postgresql://postgres:password@db.your-project.supabase.co:5432/postgres
-CRON_SECRET=your_cron_secret   # openssl rand -hex 32 で生成
+CRON_SECRET=your_cron_secret   # openssl rand -hex 32
 ```
-
-### 3. データベースマイグレーション
-
-Supabase ダッシュボードの SQL Editor で、`supabase/migrations/` 内のファイルを番号順に実行：
-
-```
-00001_initial.sql
-00002_report_templates.sql
-00003_report_entries.sql
-00004_nudge_gamification.sql
-00005_goals_deals.sql
-00006_plans_knowledge_digest.sql
-00007_integrations.sql
-00008_fix_fk_cascades.sql
-...
-00014_missing_rls_policies.sql
-```
-
-> `supabase/migrations/` 内の全ファイルを番号順に実行してください。
-
-### 4. Custom Access Token Hook を有効化
-
-Supabase Dashboard → Authentication → Hooks → Custom Access Token で `public.custom_access_token_hook` を有効にしてください。これが無効だとRLSが正しく動作しません。
-
-### 5. 開発サーバー起動
 
 ```bash
+# 3. Run database migrations
+# Execute all files in supabase/migrations/ in order via Supabase SQL Editor
+
+# 4. Enable Custom Access Token Hook
+# Supabase Dashboard → Authentication → Hooks → Custom Access Token
+# → Enable public.custom_access_token_hook
+
+# 5. Start dev server
 npm run dev
 ```
 
-[http://localhost:3000](http://localhost:3000) でアクセス。
+Open [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## スクリプト
+## Scripts
 
-| コマンド | 説明 |
-|----------|------|
-| `npm run dev` | 開発サーバー起動 |
-| `npm run build` | プロダクションビルド |
-| `npm run start` | プロダクションサーバー起動 |
-| `npm run lint` | ESLint実行 |
-| `npm test` | ユニットテスト実行 (Vitest) |
-| `npm run test:watch` | テストをwatchモードで実行 |
-| `npm run typecheck` | TypeScript型チェック |
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npm run start` | Production server |
+| `npm run lint` | ESLint |
+| `npm test` | Unit tests (Vitest) |
+| `npm run test:watch` | Tests in watch mode |
+| `npm run typecheck` | TypeScript type check |
 
 ---
 
-## ディレクトリ構造
+## Project Structure
 
 ```
 src/
 ├── app/
-│   ├── (auth)/           # 認証ページ (login, signup, forgot-password)
-│   ├── (dashboard)/      # 認証後ページ
-│   │   ├── dashboard/    # ダッシュボード
-│   │   ├── reports/      # 日報（フィード・作成・マイ日報）
-│   │   ├── plans/        # 週次計画
-│   │   ├── deals/        # 案件管理（カンバン + リスト）
-│   │   ├── goals/        # 目標ツリー
-│   │   ├── knowledge/    # ナレッジ
-│   │   ├── team/         # チーム管理・1on1
-│   │   ├── weekly-digest/ # 週刊STEP
-│   │   ├── badges/       # バッジカタログ
-│   │   ├── profile/      # プロフィール
-│   │   ├── settings/     # テナント設定・テンプレート・ユーザー管理・エクスポート
-│   │   └── admin/        # スーパーアドミン
-│   ├── api/
-│   │   ├── v1/           # 公開REST API (reports, deals, users)
-│   │   ├── health/       # ヘルスチェック
-│   │   ├── search/       # グローバル検索
-│   │   ├── cron/         # Vercel Cron (ナッジ, 目標, 週刊STEP, 実行率)
-│   │   └── webhooks/     # Slack webhook
-│   └── page.tsx          # ランディングページ
+│   ├── (auth)/              # Login, Signup, Forgot Password
+│   ├── (dashboard)/         # Authenticated pages
+│   │   ├── dashboard/       # Role-based dashboard
+│   │   ├── reports/         # Daily reports (feed, new, my, detail)
+│   │   ├── plans/           # Weekly plans + approval
+│   │   ├── deals/           # Deal management (kanban + list)
+│   │   ├── goals/           # Goal tree
+│   │   ├── knowledge/       # Knowledge base
+│   │   ├── team/            # Team management + 1on1
+│   │   ├── weekly-digest/   # Weekly STEP magazine
+│   │   ├── badges/          # Badge catalog
+│   │   ├── profile/         # User profile
+│   │   ├── settings/        # Tenant settings, templates, users, export
+│   │   └── admin/           # Super admin panel
+│   └── api/
+│       ├── v1/              # Public REST API
+│       ├── cron/            # Vercel Cron jobs
+│       └── webhooks/        # Inbound webhooks
 ├── components/
-│   ├── ui/               # shadcn/ui コンポーネント
-│   ├── shared/           # DashboardShell, BottomNav, CommandPalette, OptionalSelect, Skeleton
-│   ├── reports/          # DynamicForm, ReportFeed, ReactionBar, MyReportsView
-│   ├── deals/            # DealsKanban, DealsListView, FunnelChart
-│   ├── goals/            # GoalsTreeView
-│   ├── gamification/     # LevelBadge, StreakCounter, BadgeDisplay
-│   └── template-builder/ # TemplateBuilder
-├── hooks/
-│   └── useServerAction.ts # Server Action の loading/error 一元管理フック
+│   ├── ui/                  # shadcn/ui primitives
+│   ├── shared/              # DashboardShell, BottomNav, CommandPalette
+│   ├── reports/             # DynamicForm, ReportFeed, ReactionBar, PeerBonusSelector
+│   ├── deals/               # DealsKanban, FunnelChart
+│   ├── goals/               # GoalsTreeView
+│   ├── gamification/        # LevelBadge, StreakCounter, BadgeDisplay, XPToast
+│   └── template-builder/    # Drag-and-drop template editor
 ├── lib/
-│   ├── supabase/         # client, server, middleware, admin クライアント
-│   ├── nudge/            # ナッジエンジン + Realtime/Slack配信
-│   ├── gamification/     # XP付与, レベル計算, バッジチェック
-│   ├── goals/            # 進捗計算, 乖離検知
-│   ├── plans/            # 実行率計算
-│   ├── digest/           # 週刊STEP生成
-│   ├── validations.ts    # 全Server Action用Zodスキーマ
-│   ├── audit.ts          # 監査ログ (append-only)
-│   ├── chart-theme.ts    # Rechartsカラー定数 (デザインシステム同期)
-│   ├── plan-gate.ts      # プラン別機能アクセス制御
-│   ├── plan-limits.ts    # プラン別制限値定義
-│   ├── rate-limit.ts     # レート制限
-│   ├── api-auth.ts       # 公開API認証 (Bearer + API Key)
-│   ├── webhook-outbound.ts # HMAC署名付きWebhook配信
-│   ├── tenant-theme.ts   # ホワイトラベル (テーマ管理)
-│   ├── url-validation.ts # SSRF対策URL検証
-│   └── env.ts            # 環境変数Zodバリデーション
-├── __tests__/            # テスト (Vitest)
-├── types/                # TypeScript型定義
-└── middleware.ts         # 認証ガード + セッション管理
+│   ├── supabase/            # Client instances (browser, server, admin)
+│   ├── gamification/        # XP, levels, badge checker
+│   ├── nudge/               # Nudge engine + delivery
+│   ├── goals/               # Progress calculation, deviation detection
+│   └── ...                  # Audit, webhooks, rate-limit, etc.
+└── types/                   # TypeScript type definitions
 ```
 
 ---
 
-## API
+## API Reference
 
-### 公開REST API
+### Public REST API
 
-認証: `Authorization: Bearer <supabase_token>` または `X-API-Key: <key>`
+Authentication: `Authorization: Bearer <token>` or `X-API-Key: <key>`
 
-| メソッド | エンドポイント | 説明 |
-|----------|----------------|------|
-| GET | `/api/v1/reports?from=&to=&limit=&offset=` | 日報一覧 |
-| GET | `/api/v1/deals?status=&limit=&offset=` | 案件一覧 |
-| GET | `/api/v1/users?role=` | ユーザー一覧 |
-| GET | `/api/health` | ヘルスチェック |
-| GET | `/api/search?q=` | グローバル検索 |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/reports?from=&to=&limit=&offset=` | List reports |
+| GET | `/api/v1/deals?status=&limit=&offset=` | List deals |
+| GET | `/api/v1/users?role=` | List users |
+| GET | `/api/health` | Health check |
+| GET | `/api/search?q=` | Global search |
 
-### Webhookイベント
+### Webhook Events
 
-テナント設定で webhook URL を登録すると、以下のイベントがHMAC-SHA256署名付きで配信されます：
+Register a webhook URL in tenant settings. Events are delivered with HMAC-SHA256 signatures.
 
-`report.submitted` `deal.created` `deal.stage_changed` `deal.won` `deal.lost` `plan.submitted` `plan.approved` `plan.rejected` `goal.deviation` `user.invited` `user.deactivated`
-
----
-
-## アーキテクチャ
-
-### 共通コンポーネント・フック
-
-| 名前 | パス | 用途 |
-|------|------|------|
-| `OptionalSelect` | `components/shared/OptionalSelect.tsx` | Radix UI Select の「未選択」状態を安全に扱うラッパー。センチネル値管理を内包 |
-| `parseOptionalSelect` | 同上 | FormData から OptionalSelect の値を取り出すユーティリティ |
-| `useServerAction` | `hooks/useServerAction.ts` | Server Action の loading/error 管理を一元化。`useTransition` ベースで UI 非ブロック |
-| `chartColors` | `lib/chart-theme.ts` | Recharts 用カラー定数。デザインシステム CSS 変数と同期 |
-
-### Server Action 規約
-
-全 Server Action は以下の規約に従います:
-
-- **戻り値型**: `{ success: boolean; data?: T; error?: string }`
-- **エラーハンドリング**: 全関数が `try/catch` で囲まれ、未捕捉例外でもエラーバウンダリがクラッシュしない
-- **テナント分離**: `tenantId` は必ず認証セッションから取得。クライアント入力のテナントID は信頼しない
-- **監査ログ**: 全 write 操作（insert/update/delete）は `writeAuditLog()` で記録
-- **入力検証**: Zod スキーマによるバリデーション必須
+```
+report.submitted    deal.created         deal.stage_changed
+deal.won            deal.lost            plan.submitted
+plan.approved       plan.rejected        goal.deviation
+user.invited        user.deactivated
+```
 
 ---
 
-## セキュリティ
+## Design System
 
-### Defense-in-Depth
-
-| レイヤー | 対策 | 詳細 |
-|---------|------|------|
-| ネットワーク | HSTS + CSP | Strict-Transport-Security (2年, preload)、Content-Security-Policy |
-| 認証 | Supabase Auth | セッション管理 + JWT。Custom Access Token Hook でテナント情報注入 |
-| 認可 | RLS + ロールチェック | 全テーブルに Row Level Security。Server Action 内でロール検証 |
-| テナント分離 | サーバーサイド検証 | 全 Server Action で認証ユーザーの tenant_id を DB から取得し使用 |
-| 入力検証 | Zod | 全 Server Action で Zod スキーマバリデーション |
-| SSRF 防止 | URL 検証 | Webhook URL のプライベート IP / localhost を拒否 |
-| API 認証 | Bearer + API Key | `crypto.timingSafeEqual()` によるタイミング攻撃防止 |
-| Cron 認証 | Bearer token | `crypto.timingSafeEqual()` による timing-safe 比較 |
-| レート制限 | IP 単位 | 全 API エンドポイントにレート制限適用 |
-| 監査ログ | append-only | 全 CRUD 操作を `activity_logs` テーブルに記録 |
-| フレーム防止 | X-Frame-Options | DENY（Clickjacking 防止） |
-| エラー防御 | try/catch 統一 | 全 Server Action が例外を捕捉。DB エラーメッセージをクライアントに漏洩しない |
+| Element | Specification |
+|---------|---------------|
+| **Color** | Split-Complementary: Teal primary (`#0D9488`) + Orange accent (`#F97316`) |
+| **Neutrals** | Warm Stone palette (stone-100 ~ stone-900) |
+| **Typography** | BIZ UDPGothic (JP) + Inter (EN) + JetBrains Mono (numbers) |
+| **Cards** | `rounded-xl` + `border-border` + `shadow-sm` |
+| **Buttons** | `rounded-xl` + `h-11` (44px touch target) |
+| **Responsive** | Mobile-first. sm:640 / md:768 / lg:1024 |
+| **Navigation** | Desktop sidebar + Mobile bottom nav with FAB |
 
 ---
 
-## テスト
+## Security
+
+| Layer | Measure |
+|-------|---------|
+| Transport | HSTS (2yr, preload) + CSP |
+| Auth | Supabase Auth + Custom Access Token Hook |
+| Authorization | RLS on all tables + Server Action role checks |
+| Tenant Isolation | `tenant_id` always from authenticated session, never client input |
+| Input Validation | Zod schemas on all Server Actions |
+| SSRF Prevention | Private IP / localhost rejection for webhook URLs |
+| API Auth | `crypto.timingSafeEqual()` for timing-safe comparison |
+| Rate Limiting | IP-based on all API endpoints |
+| Audit | Append-only `activity_logs` table |
+| Error Handling | All Server Actions wrapped in try/catch. No DB errors leak to client |
+
+---
+
+## Pricing
+
+| Plan | Price/user/mo | Highlights |
+|------|--------------|------------|
+| Free | ¥0 | Daily reports, check-ins, team management (up to 5 users) |
+| Starter | ¥980 | Template builder, nudges, gamification |
+| Professional | ¥1,980 | Goals, deals, weekly plans, approval, knowledge, 1on1 |
+| Enterprise | Contact us | SSO, audit logs, API, all features |
+
+---
+
+## Database Migrations
+
+Migrations are in `supabase/migrations/` and should be executed in order:
+
+```
+00001_initial.sql                → Core tables (tenants, users, teams)
+00002_report_templates.sql       → Report templates
+00003_report_entries.sql         → Report entries + reactions
+00004_nudge_gamification.sql     → Nudges, badges, XP, levels
+00005_goals_deals.sql            → Goals, deals, pipeline stages
+00006_plans_knowledge_digest.sql → Weekly plans, knowledge, digests
+00007_integrations.sql           → API keys, webhooks, integrations
+00008_fix_fk_cascades.sql        → FK cascade fixes
+00009_add_webhook_fields.sql     → Webhook enhancements
+00010_add_tenant_is_active.sql   → Tenant activation flag
+00011_global_templates.sql       → Global template support
+00012_fix_template_rls_policies.sql → Template RLS fixes
+00013_fix_schema_and_rls.sql     → Schema & RLS refinements
+00014_missing_rls_policies.sql   → Missing RLS policies
+00015_peer_bonuses.sql           → Peer bonus system
+```
+
+---
+
+## Testing
 
 ```bash
 npm test
 ```
 
-47テスト（3ファイル）:
-- `validations.test.ts` — Zodスキーマバリデーション (22テスト)
-- `security.test.ts` — SSRF URL検証 + Report/Planスキーマ (14テスト)
-- `tenant-theme.test.ts` — テーマ抽出・CSS injection防止 (11テスト)
+47 tests across 3 test files:
+- **validations.test.ts** — Zod schema validation (22 tests)
+- **security.test.ts** — SSRF URL validation + report/plan schemas (14 tests)
+- **tenant-theme.test.ts** — Theme extraction + CSS injection prevention (11 tests)
 
 ---
 
-## デプロイ
+## Deployment
 
 ### Vercel
 
-1. GitHubリポジトリをVercelに接続
-2. 環境変数を設定（`.env.local.example` 参照）
-3. `vercel.json` のcronジョブが自動設定される
+1. Connect GitHub repository to Vercel
+2. Set environment variables (see `.env.local.example`)
+3. Cron jobs auto-configured via `vercel.json`
 
 ### CI/CD
 
-GitHub Actionsで以下が自動実行されます（`.github/workflows/ci.yml`）:
-- TypeScript型チェック
+GitHub Actions (`.github/workflows/ci.yml`):
+- TypeScript type check
 - ESLint
-- ユニットテスト
+- Unit tests
 
 ---
 
-## デザインシステム
-
-| 要素 | 仕様 |
-|------|------|
-| カラー | Teal ベースの Split-Complementary 配色。CSS 変数で管理 |
-| Primary | `#0D9488` (Teal) — ボタン、ナビ、見出し |
-| Accent | `#F97316` (Orange) — CTA、ゲーミフィケーション |
-| タイポグラフィ | BIZ UDPGothic (日本語) + Inter (英数字) + JetBrains Mono (数値) |
-| カード | `rounded-xl` + `border-border` + `shadow-sm` |
-| ボタン | `rounded-xl` + `h-11` (44px タップターゲット) |
-| レスポンシブ | モバイルファースト。sm:640 / md:768 / lg:1024 |
-| チャート | `lib/chart-theme.ts` のカラー定数を使用（CSS 変数と同期） |
-
----
-
-## プラン
-
-| プラン | 月額/ユーザー | 主要機能 |
-|--------|-------------|---------|
-| Free | ¥0 | 日報、チェックイン、チーム管理（5名まで） |
-| Starter | ¥980 | テンプレートビルダー、ナッジ、ゲーミフィケーション |
-| Professional | ¥1,980 | 目標管理、案件管理、週次計画、承認、ナレッジ、1on1 |
-| Enterprise | 要問合せ | SSO、監査ログ、API、全機能 |
-
----
-
-## ライセンス
+## License
 
 Proprietary - All rights reserved.
