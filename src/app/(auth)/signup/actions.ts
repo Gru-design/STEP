@@ -2,6 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { signupSchema } from "@/lib/validations";
+import { writeAuditLog } from "@/lib/audit";
 
 interface SignupResult {
   success: boolean;
@@ -93,6 +94,14 @@ export async function signupAction(input: unknown): Promise<SignupResult> {
         }
       }
     }
+
+    await writeAuditLog({
+      tenantId: tenant.id,
+      userId: authData.user!.id,
+      action: "create",
+      resource: "tenant",
+      details: { name: tenantName },
+    });
 
     return { success: true };
   } catch (err) {

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { writeAuditLog } from "@/lib/audit";
 import type { TemplateSchema, TemplateType, ReportVisibility } from "@/types/database";
 
 interface CreateTemplateData {
@@ -83,6 +84,14 @@ export async function createTemplate(data: CreateTemplateData) {
       return { success: false, error: "テンプレートの作成に失敗しました" };
     }
 
+    await writeAuditLog({
+      tenantId: user.tenant_id,
+      userId: user.id,
+      action: "create",
+      resource: "template",
+      resourceId: template.id,
+    });
+
     revalidatePath("/settings/templates");
     return { success: true, data: template };
   } catch (err) {
@@ -133,6 +142,14 @@ export async function updateTemplate(id: string, data: UpdateTemplateData) {
       return { success: false, error: "テンプレートの更新に失敗しました" };
     }
 
+    await writeAuditLog({
+      tenantId: user.tenant_id,
+      userId: user.id,
+      action: "update",
+      resource: "template",
+      resourceId: id,
+    });
+
     revalidatePath("/settings/templates");
     revalidatePath(`/settings/templates/${id}`);
     return { success: true };
@@ -159,6 +176,14 @@ export async function deleteTemplate(id: string) {
     if (error) {
       return { success: false, error: "テンプレートの削除に失敗しました" };
     }
+
+    await writeAuditLog({
+      tenantId: user.tenant_id,
+      userId: user.id,
+      action: "delete",
+      resource: "template",
+      resourceId: id,
+    });
 
     revalidatePath("/settings/templates");
     return { success: true };
@@ -188,6 +213,15 @@ export async function publishTemplate(id: string, isPublished: boolean) {
     if (error) {
       return { success: false, error: "ステータスの更新に失敗しました" };
     }
+
+    await writeAuditLog({
+      tenantId: user.tenant_id,
+      userId: user.id,
+      action: "update",
+      resource: "template",
+      resourceId: id,
+      details: { published: isPublished },
+    });
 
     revalidatePath("/settings/templates");
     return { success: true };
@@ -235,6 +269,15 @@ export async function duplicateTemplate(id: string) {
     if (error) {
       return { success: false, error: "テンプレートの複製に失敗しました" };
     }
+
+    await writeAuditLog({
+      tenantId: user.tenant_id,
+      userId: user.id,
+      action: "create",
+      resource: "template",
+      resourceId: template.id,
+      details: { duplicated_from: id },
+    });
 
     revalidatePath("/settings/templates");
     return { success: true, data: template };
