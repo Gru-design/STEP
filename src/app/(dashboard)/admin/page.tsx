@@ -39,9 +39,17 @@ export default async function AdminPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-navy mb-2">
-        スーパーアドミン
-      </h1>
+      <div className="flex items-center justify-between mb-2">
+        <h1 className="text-2xl font-bold text-navy">
+          スーパーアドミン
+        </h1>
+        <a
+          href="/admin/global-templates"
+          className="px-4 py-2 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 transition-colors"
+        >
+          グローバルテンプレート管理
+        </a>
+      </div>
       <p className="text-gray mb-8">
         全テナントの管理・監視ダッシュボード
       </p>

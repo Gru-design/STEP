@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { type PlanType } from "@/lib/plan-limits";
 import { writeAuditLog } from "@/lib/audit";
+import { applyGlobalTemplatesToTenant } from "./global-templates/actions";
 
 // --------------------------------------------------------------------------
 // Auth guard: ensures only super_admin can call these actions
@@ -151,13 +152,19 @@ export async function createTenant(data: CreateTenantData) {
       if (userError) throw userError;
     }
 
+    // 4. Auto-apply global templates to the new tenant
+    const templateResult = await applyGlobalTemplatesToTenant(tenant.id);
+    if (!templateResult.success) {
+      console.error("[Admin] Failed to apply global templates:", templateResult.error);
+    }
+
     await writeAuditLog({
       tenantId: tenant.id,
       userId: auth.user!.id,
       action: "create",
       resource: "tenant",
       resourceId: tenant.id,
-      details: { name: data.name },
+      details: { name: data.name, globalTemplatesCopied: templateResult.data?.copied ?? 0 },
     });
 
     return { success: true, data: { ...tenant, tempPassword } };
