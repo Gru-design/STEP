@@ -30,22 +30,31 @@ export default async function ReportDetailPage({
   // Use admin client to bypass RLS (super_admin needs cross-tenant access)
   const adminClient = createAdminClient();
 
-  // Fetch report entry with user and template
+  // Fetch report entry separately, then load relations
+  // This avoids join issues when RLS policies conflict on report_templates
   const { data: entry, error: entryError } = await adminClient
     .from("report_entries")
-    .select(
-      `
-      *,
-      users(id, name, avatar_url, email),
-      report_templates(name, type, schema)
-    `
-    )
+    .select("*")
     .eq("id", id)
     .single();
 
   if (!entry || entryError) {
     notFound();
   }
+
+  // Fetch user separately
+  const { data: entryUser } = await adminClient
+    .from("users")
+    .select("id, name, avatar_url, email")
+    .eq("id", entry.user_id)
+    .single();
+
+  // Fetch template separately
+  const { data: entryTemplate } = await adminClient
+    .from("report_templates")
+    .select("name, type, schema")
+    .eq("id", entry.template_id)
+    .single();
 
   // Fetch reactions
   const { data: reactions } = await adminClient
@@ -54,8 +63,8 @@ export default async function ReportDetailPage({
     .eq("entry_id", id)
     .order("created_at", { ascending: true });
 
-  const user = (entry.users ?? {}) as Record<string, unknown>;
-  const template = (entry.report_templates ?? {}) as Record<string, unknown>;
+  const user = (entryUser ?? {}) as Record<string, unknown>;
+  const template = (entryTemplate ?? {}) as Record<string, unknown>;
   const schema = template.schema as TemplateSchema | null;
 
   const statusLabels: Record<string, { label: string; color: string }> = {
