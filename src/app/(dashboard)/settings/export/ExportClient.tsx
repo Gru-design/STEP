@@ -42,7 +42,7 @@ const exportTargets = [
 
 type ExportTarget = (typeof exportTargets)[number]["id"];
 
-export function ExportClient({ tenantId: _tenantId, userId: _userId }: ExportClientProps) { // eslint-disable-line @typescript-eslint/no-unused-vars
+export function ExportClient(_props: ExportClientProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 

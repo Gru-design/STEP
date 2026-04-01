@@ -36,11 +36,10 @@ export function DynamicForm({
 
   return (
     <div className="space-y-6">
-      {schema.sections.map((section, index) => (
+      {schema.sections.map((section) => (
         <SectionRenderer
           key={section.id}
           section={section}
-          sectionIndex={index}
           totalSections={schema.sections.length}
           values={values}
           setValue={setValue}
@@ -53,14 +52,12 @@ export function DynamicForm({
 
 function SectionRenderer({
   section,
-  sectionIndex: _sectionIndex, // eslint-disable-line @typescript-eslint/no-unused-vars
   totalSections,
   values,
   setValue,
   readOnly,
 }: {
   section: TemplateSection;
-  sectionIndex: number;
   totalSections: number;
   values: Record<string, unknown>;
   setValue: (key: string, value: unknown) => void;

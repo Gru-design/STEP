@@ -44,7 +44,6 @@ function formatYen(value: number | null): string {
 export function DealDetailClient({
   deal,
   stage,
-  stages: _stages, // eslint-disable-line @typescript-eslint/no-unused-vars
   history,
 }: DealDetailClientProps) {
   const router = useRouter();
