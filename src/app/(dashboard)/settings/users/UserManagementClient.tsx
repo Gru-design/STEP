@@ -43,7 +43,6 @@ const roleBadgeColors: Record<string, string> = {
 
 export function UserManagementClient({
   users: initialUsers,
-  tenantId,
 }: UserManagementClientProps) {
   const [users, setUsers] = useState(initialUsers);
   const [showInvite, setShowInvite] = useState(false);

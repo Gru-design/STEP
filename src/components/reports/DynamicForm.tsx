@@ -7,11 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
-  Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { OptionalSelect } from "@/components/shared/OptionalSelect";
 import { Plus, Trash2, Star, ChevronDown, Check } from "lucide-react";
@@ -40,11 +36,10 @@ export function DynamicForm({
 
   return (
     <div className="space-y-6">
-      {schema.sections.map((section, index) => (
+      {schema.sections.map((section) => (
         <SectionRenderer
           key={section.id}
           section={section}
-          sectionIndex={index}
           totalSections={schema.sections.length}
           values={values}
           setValue={setValue}
@@ -57,14 +52,12 @@ export function DynamicForm({
 
 function SectionRenderer({
   section,
-  sectionIndex,
   totalSections,
   values,
   setValue,
   readOnly,
 }: {
   section: TemplateSection;
-  sectionIndex: number;
   totalSections: number;
   values: Record<string, unknown>;
   setValue: (key: string, value: unknown) => void;

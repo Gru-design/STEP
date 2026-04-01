@@ -12,7 +12,6 @@ import {
   Calendar,
   ArrowLeft,
   ClipboardCheck,
-  Star,
   AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";

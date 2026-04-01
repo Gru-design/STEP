@@ -71,7 +71,6 @@ export function PlansPageClient({
   approvalLogs,
   planReviews = [],
   isManager,
-  userId: _userId,
 }: PlansPageClientProps) {
   const currentMonday = getMonday(new Date()).toISOString().split("T")[0];
   const currentPlan = plans.find((p) => p.week_start === currentMonday);

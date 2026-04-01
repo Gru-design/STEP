@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -298,7 +299,7 @@ export function DashboardShell({
         <div className="flex h-14 items-center border-b border-border px-5">
           <Link href="/dashboard" className="flex items-center gap-2 text-xl font-bold text-primary">
             {logoUrl ? (
-              <img src={logoUrl} alt={appName} className="h-7 w-auto" />
+              <Image src={logoUrl} alt={appName} height={28} width={100} className="h-7 w-auto" />
             ) : (
               appName
             )}
@@ -361,7 +362,7 @@ export function DashboardShell({
               className="flex items-center gap-2 text-xl font-bold text-primary lg:hidden"
             >
               {logoUrl ? (
-                <img src={logoUrl} alt={appName} className="h-7 w-auto" />
+                <Image src={logoUrl} alt={appName} height={28} width={100} className="h-7 w-auto" />
               ) : (
                 appName
               )}

@@ -42,7 +42,7 @@ const exportTargets = [
 
 type ExportTarget = (typeof exportTargets)[number]["id"];
 
-export function ExportClient({ tenantId, userId }: ExportClientProps) {
+export function ExportClient(_props: ExportClientProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
