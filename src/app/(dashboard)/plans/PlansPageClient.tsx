@@ -56,7 +56,7 @@ export function PlansPageClient({
   plans,
   templates,
   approvalLogs,
-  isManager,
+  isManager: _isManager,
   userId: _userId,
 }: PlansPageClientProps) {
   const currentMonday = getMonday(new Date()).toISOString().split("T")[0];
@@ -298,14 +298,14 @@ export function PlansPageClient({
             <p className="text-sm text-success">{successMsg}</p>
           )}
 
-          {/* Approval flow for current plan */}
+          {/* Approval flow for current plan (read-only - approval actions are in the approval queue) */}
           {currentPlan &&
             currentPlan.status !== "draft" && (
               <ApprovalFlow
                 targetType="weekly_plan"
                 targetId={currentPlan.id}
                 currentStatus={currentPlan.status}
-                isManager={isManager}
+                isManager={false}
                 logs={currentPlanLogs}
               />
             )}
