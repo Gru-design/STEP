@@ -101,7 +101,7 @@ export default async function PlansPage({
   if (isManager) {
     const { data: pendingData } = await supabase
       .from("weekly_plans")
-      .select("*, users!inner(name, email)")
+      .select("*, users!weekly_plans_user_id_fkey(name, email)")
       .eq("tenant_id", dbUser.tenant_id)
       .eq("status", "submitted")
       .neq("user_id", dbUser.id)
