@@ -267,7 +267,7 @@ function ReadOnlyValue({
               key={i}
               className={`h-5 w-5 ${
                 i < rating
-                  ? "fill-[#D97706] text-warning"
+                  ? "fill-warning text-warning"
                   : "text-slate-200"
               }`}
             />
@@ -417,7 +417,7 @@ function RatingInput({
             <Star
               className={`h-6 w-6 ${
                 i < value
-                  ? "fill-[#D97706] text-warning"
+                  ? "fill-warning text-warning"
                   : "text-slate-200 hover:text-warning"
               }`}
             />

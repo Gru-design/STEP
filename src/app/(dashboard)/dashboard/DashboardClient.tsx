@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FunnelChart } from "@/components/deals/FunnelChart";
+import { chartColors } from "@/lib/chart-theme";
 import { exportToCSV } from "@/lib/csv-export";
 import {
   FileEdit,
@@ -321,22 +322,22 @@ function ManagerDashboard({ stats }: { stats: ManagerStats }) {
           <CardContent>
             <ResponsiveContainer width="100%" height={240}>
               <LineChart data={stats.weeklyTrends}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.border} />
                 <XAxis
                   dataKey="week"
-                  tick={{ fontSize: 12, fill: "#78716C" }}
-                  axisLine={{ stroke: "#E7E5E4" }}
+                  tick={{ fontSize: 12, fill: chartColors.mutedForeground }}
+                  axisLine={{ stroke: chartColors.border }}
                 />
                 <YAxis
                   domain={[0, 100]}
-                  tick={{ fontSize: 12, fill: "#78716C" }}
-                  axisLine={{ stroke: "#E7E5E4" }}
+                  tick={{ fontSize: 12, fill: chartColors.mutedForeground }}
+                  axisLine={{ stroke: chartColors.border }}
                   tickFormatter={(v: number) => `${v}%`}
                 />
                 <Tooltip
                   formatter={(value) => [`${value}%`, "提出率"]}
                   contentStyle={{
-                    border: "1px solid #e2e8f0",
+                    border: `1px solid ${chartColors.border}`,
                     borderRadius: "0.5rem",
                     boxShadow: "none",
                   }}
@@ -344,9 +345,9 @@ function ManagerDashboard({ stats }: { stats: ManagerStats }) {
                 <Line
                   type="monotone"
                   dataKey="rate"
-                  stroke="#0D9488"
+                  stroke={chartColors.primary}
                   strokeWidth={2}
-                  dot={{ r: 4, fill: "#0D9488" }}
+                  dot={{ r: 4, fill: chartColors.primary }}
                 />
               </LineChart>
             </ResponsiveContainer>

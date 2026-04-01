@@ -250,7 +250,7 @@ function renderInput(
                 className={cn(
                   "h-6 w-6",
                   star <= current
-                    ? "fill-[#D97706] text-warning"
+                    ? "fill-warning text-warning"
                     : "text-slate-300"
                 )}
               />

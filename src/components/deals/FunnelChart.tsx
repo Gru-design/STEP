@@ -10,6 +10,7 @@ import {
   Cell,
   LabelList,
 } from "recharts";
+import { chartColors } from "@/lib/chart-theme";
 
 interface StageData {
   name: string;
@@ -22,12 +23,12 @@ interface FunnelChartProps {
 }
 
 const GRADIENT_COLORS = [
-  "#0D9488",
+  chartColors.primary,
   "#3B71EC",
   "#5180ED",
   "#678EEF",
   "#7D9DF0",
-  "#0D9488",
+  chartColors.primary,
 ];
 
 export function FunnelChart({ stages }: FunnelChartProps) {
@@ -53,7 +54,7 @@ export function FunnelChart({ stages }: FunnelChartProps) {
             type="category"
             dataKey="name"
             width={100}
-            tick={{ fontSize: 13, fill: "#1C1917" }}
+            tick={{ fontSize: 13, fill: chartColors.foreground }}
             axisLine={false}
             tickLine={false}
           />
@@ -73,7 +74,7 @@ export function FunnelChart({ stages }: FunnelChartProps) {
               dataKey="count"
               position="right"
               formatter={(value) => `${value}件`}
-              style={{ fontSize: 12, fill: "#78716C" }}
+              style={{ fontSize: 12, fill: chartColors.mutedForeground }}
             />
           </Bar>
         </BarChart>

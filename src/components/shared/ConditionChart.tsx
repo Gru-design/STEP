@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { chartColors } from "@/lib/chart-theme";
 
 interface ConditionDataPoint {
   date: string;
@@ -61,19 +62,19 @@ export function ConditionChart({ data }: ConditionChartProps) {
         data={data}
         margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
       >
-        <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+        <CartesianGrid strokeDasharray="3 3" stroke={chartColors.border} />
         <XAxis
           dataKey="date"
-          tick={{ fontSize: 12, fill: "#78716C" }}
+          tick={{ fontSize: 12, fill: chartColors.mutedForeground }}
           tickLine={false}
-          axisLine={{ stroke: "#E2E8F0" }}
+          axisLine={{ stroke: chartColors.border }}
         />
         <YAxis
           domain={[1, 5]}
           ticks={[1, 2, 3, 4, 5]}
-          tick={{ fontSize: 12, fill: "#78716C" }}
+          tick={{ fontSize: 12, fill: chartColors.mutedForeground }}
           tickLine={false}
-          axisLine={{ stroke: "#E2E8F0" }}
+          axisLine={{ stroke: chartColors.border }}
         />
         <Tooltip content={<CustomTooltip />} />
         <Legend
@@ -85,19 +86,19 @@ export function ConditionChart({ data }: ConditionChartProps) {
         <Line
           type="monotone"
           dataKey="individual"
-          stroke="#0D9488"
+          stroke={chartColors.primary}
           strokeWidth={2}
-          dot={{ fill: "#0D9488", r: 3 }}
+          dot={{ fill: chartColors.primary, r: 3 }}
           activeDot={{ r: 5 }}
           name="individual"
         />
         <Line
           type="monotone"
           dataKey="teamAvg"
-          stroke="#94A3B8"
+          stroke={chartColors.secondaryLine}
           strokeWidth={2}
           strokeDasharray="4 4"
-          dot={{ fill: "#94A3B8", r: 3 }}
+          dot={{ fill: chartColors.secondaryLine, r: 3 }}
           activeDot={{ r: 5 }}
           name="teamAvg"
         />
