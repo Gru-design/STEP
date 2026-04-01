@@ -2,6 +2,13 @@
 
 import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DynamicForm } from "@/components/reports/DynamicForm";
 import { ApprovalFlow } from "@/components/shared/ApprovalFlow";
 import { FileEdit, ChevronRight, Calendar, CheckCircle2 } from "lucide-react";
@@ -264,17 +271,21 @@ export function PlansPageClient({
                   <label className="text-sm font-medium text-foreground">
                     テンプレート
                   </label>
-                  <select
+                  <Select
                     value={selectedTemplate}
-                    onChange={(e) => setSelectedTemplate(e.target.value)}
-                    className="flex h-10 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+                    onValueChange={setSelectedTemplate}
                   >
-                    {templates.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="テンプレート選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {templates.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 

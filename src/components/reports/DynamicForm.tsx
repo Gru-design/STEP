@@ -6,6 +6,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { OptionalSelect } from "@/components/shared/OptionalSelect";
 import { Plus, Trash2, Star } from "lucide-react";
 import type {
   TemplateSchema,
@@ -160,20 +168,18 @@ function renderField(
 
     case "select_single":
       return (
-        <select
-          value={(value as string) ?? ""}
-          onChange={(e) => onChange(e.target.value)}
-          className="flex h-10 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+        <OptionalSelect
+          value={(value as string) || null}
+          onValueChange={(v) => onChange(v ?? "")}
+          placeholder={field.placeholder ?? "選択してください"}
+          noneLabel="未選択"
         >
-          <option value="">
-            {field.placeholder ?? "選択してください"}
-          </option>
-          {field.options?.map((opt) => (
-            <option key={opt} value={opt}>
+          {(field.options ?? []).map((opt) => (
+            <SelectItem key={opt} value={opt}>
               {opt}
-            </option>
+            </SelectItem>
           ))}
-        </select>
+        </OptionalSelect>
       );
 
     case "select_multi":
