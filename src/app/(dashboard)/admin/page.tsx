@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { listAllTenants, getAdminStats } from "./actions";
 import { AdminDashboard } from "./AdminDashboard";
 
@@ -43,12 +44,12 @@ export default async function AdminPage() {
         <h1 className="text-2xl font-bold text-navy">
           スーパーアドミン
         </h1>
-        <a
+        <Link
           href="/admin/global-templates"
           className="px-4 py-2 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 transition-colors"
         >
           グローバルテンプレート管理
-        </a>
+        </Link>
       </div>
       <p className="text-gray mb-8">
         全テナントの管理・監視ダッシュボード
