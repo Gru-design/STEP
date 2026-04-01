@@ -1,36 +1,37 @@
--- Migration: Add global templates support
--- Global templates have tenant_id = NULL and can be auto-distributed to all tenants.
--- source_template_id tracks which global template a tenant copy originated from.
+-- Migration: Fix conflicting RLS policies on report_templates
+--
+-- The 00011 migration added new policies but failed to drop the old ones
+-- from 00002, causing duplicate SELECT/INSERT/UPDATE/DELETE policies.
+-- When multiple policies exist for the same operation, PostgreSQL requires
+-- ALL of them to pass (AND logic), which breaks queries on templates
+-- with tenant_id IS NULL (global templates) and JOIN queries.
 
--- 1. Make tenant_id nullable on report_templates (NULL = global template)
-ALTER TABLE report_templates ALTER COLUMN tenant_id DROP NOT NULL;
-
--- 2. Add source_template_id to track the origin global template
-ALTER TABLE report_templates
-  ADD COLUMN source_template_id uuid REFERENCES report_templates(id) ON DELETE SET NULL;
-
--- 3. Index for efficient lookup of global templates
-CREATE INDEX idx_report_templates_global ON report_templates (id) WHERE tenant_id IS NULL;
-
--- 4. Index for finding tenant copies of a global template
-CREATE INDEX idx_report_templates_source ON report_templates (source_template_id) WHERE source_template_id IS NOT NULL;
-
--- 5. Update RLS policies to allow super_admin to manage global templates
--- Global templates (tenant_id IS NULL) are readable by all authenticated users
--- but only writable by super_admin
-
--- Drop ALL existing policies on report_templates before recreating
-DROP POLICY IF EXISTS "tenant_isolation" ON report_templates;
+-- 1. Drop the old policies from 00002_report_templates.sql
 DROP POLICY IF EXISTS "templates_select_tenant" ON report_templates;
 DROP POLICY IF EXISTS "templates_insert_admin" ON report_templates;
 DROP POLICY IF EXISTS "templates_update_admin" ON report_templates;
 DROP POLICY IF EXISTS "templates_delete_admin" ON report_templates;
 
--- Read: users can see their tenant's templates + global templates
+-- 2. Drop the new policies from 00011 (to recreate them cleanly)
+DROP POLICY IF EXISTS "template_read_policy" ON report_templates;
+DROP POLICY IF EXISTS "template_insert_policy" ON report_templates;
+DROP POLICY IF EXISTS "template_update_policy" ON report_templates;
+DROP POLICY IF EXISTS "template_delete_policy" ON report_templates;
+
+-- 3. Recreate correct policies that support both tenant-specific and global templates
+
+-- Read: users can see their tenant's templates (published or if admin) + global templates
 CREATE POLICY "template_read_policy" ON report_templates
   FOR SELECT USING (
-    tenant_id IS NULL
-    OR tenant_id = (auth.jwt() ->> 'tenant_id')::uuid
+    (
+      tenant_id IS NOT NULL
+      AND tenant_id = (auth.jwt() ->> 'tenant_id')::uuid
+      AND (
+        is_published = true
+        OR (auth.jwt() ->> 'role') IN ('admin', 'super_admin')
+      )
+    )
+    OR tenant_id IS NULL
     OR (auth.jwt() ->> 'role') = 'super_admin'
   );
 

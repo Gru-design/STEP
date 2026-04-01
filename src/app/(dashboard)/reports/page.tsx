@@ -28,6 +28,7 @@ export default async function ReportsPage() {
   }
 
   // Fetch submitted report entries with user and template info
+  // Use separate queries to avoid issues with RLS on report_templates joins
   const { data: entries } = await supabase
     .from("report_entries")
     .select(
@@ -38,8 +39,9 @@ export default async function ReportsPage() {
       data,
       submitted_at,
       user_id,
-      users!inner(name, avatar_url),
-      report_templates!inner(name)
+      template_id,
+      users(name, avatar_url),
+      report_templates(name)
     `
     )
     .eq("tenant_id", dbUser.tenant_id)
