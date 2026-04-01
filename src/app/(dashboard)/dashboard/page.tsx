@@ -146,6 +146,46 @@ export default async function DashboardPage() {
     }
   }
 
+  // ── Peer Bonus Stats ──
+  const [receivedBonusesResult, sentTodayResult, totalReceivedResult] = await Promise.all([
+    supabase
+      .from("peer_bonuses")
+      .select("id, from_user_id, message, bonus_date")
+      .eq("to_user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("peer_bonuses")
+      .select("id")
+      .eq("from_user_id", user.id)
+      .eq("bonus_date", today)
+      .single(),
+    supabase
+      .from("peer_bonuses")
+      .select("*", { count: "exact", head: true })
+      .eq("to_user_id", user.id),
+  ]);
+
+  // Resolve sender names for received bonuses
+  const receivedBonuses: { fromName: string; message: string; date: string }[] = [];
+  const bonusData = receivedBonusesResult.data ?? [];
+  if (bonusData.length > 0) {
+    const senderIds = [...new Set(bonusData.map((b) => b.from_user_id))];
+    const { data: senders } = await supabase
+      .from("users")
+      .select("id, name")
+      .in("id", senderIds);
+    const senderMap = new Map((senders ?? []).map((s) => [s.id, s.name]));
+
+    for (const bonus of bonusData) {
+      receivedBonuses.push({
+        fromName: senderMap.get(bonus.from_user_id) ?? "不明",
+        message: bonus.message,
+        date: bonus.bonus_date,
+      });
+    }
+  }
+
   const memberStats = {
     submittedToday,
     streak,
@@ -154,6 +194,11 @@ export default async function DashboardPage() {
     xpForNextLevel: getNextLevelXP(level),
     weeklyKPIs: weeklyKPIs.slice(0, 5),
     recentBadges,
+    peerBonus: {
+      totalReceived: totalReceivedResult.count ?? 0,
+      sentToday: !!sentTodayResult.data,
+      recentReceived: receivedBonuses,
+    },
   };
 
   // ── Manager Stats ──
