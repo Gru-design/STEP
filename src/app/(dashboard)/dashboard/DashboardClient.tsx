@@ -32,10 +32,18 @@ import {
   ChevronRight,
   Zap,
   Star,
+  Heart,
+  Gift,
 } from "lucide-react";
 import type { Role, User } from "@/types/database";
 
 // -- Types --
+
+interface PeerBonusStats {
+  totalReceived: number;
+  sentToday: boolean;
+  recentReceived: { fromName: string; message: string; date: string }[];
+}
 
 interface MemberStats {
   submittedToday: boolean;
@@ -45,6 +53,7 @@ interface MemberStats {
   xpForNextLevel: number;
   weeklyKPIs: { label: string; value: string }[];
   recentBadges: { name: string; icon: string; earnedAt: string }[];
+  peerBonus?: PeerBonusStats;
 }
 
 interface TeamMemberStatus {
@@ -621,6 +630,57 @@ function DeviationAlerts({
   );
 }
 
+// -- Peer Bonus Card --
+
+function PeerBonusCard({ bonus }: { bonus: PeerBonusStats }) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Heart className="h-4 w-4 text-accent-color" />
+            もらったピアボーナス
+          </CardTitle>
+          <span className="flex items-center gap-1 rounded-full bg-accent-color/10 px-2.5 py-0.5 text-xs font-bold text-accent-color">
+            <Gift className="h-3 w-3" />
+            {bonus.totalReceived}P
+          </span>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {bonus.recentReceived.map((item, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-3 rounded-lg border border-border bg-muted/20 p-3"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-color/10 text-sm">
+                <Heart className="h-3.5 w-3.5 text-accent-color" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-foreground">
+                    {item.fromName}
+                  </span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {new Date(item.date).toLocaleDateString("ja-JP", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-sm text-muted-foreground leading-relaxed">
+                  {item.message}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // -- Quick Actions --
 
 function QuickActions({ role }: { role: Role }) {
@@ -750,6 +810,11 @@ export function DashboardClient({
 
       {/* KPI Summary */}
       {memberStats && <KPISummary kpis={memberStats.weeklyKPIs} />}
+
+      {/* Peer Bonus */}
+      {memberStats?.peerBonus && memberStats.peerBonus.recentReceived.length > 0 && (
+        <PeerBonusCard bonus={memberStats.peerBonus} />
+      )}
 
       {/* Recent Badges */}
       {memberStats && <RecentBadges badges={memberStats.recentBadges} />}

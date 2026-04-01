@@ -158,6 +158,19 @@ export interface UserLevel {
   updated_at: string;
 }
 
+// ── Peer Bonus ──
+
+export interface PeerBonus {
+  id: string;
+  tenant_id: string;
+  from_user_id: string;
+  to_user_id: string;
+  report_entry_id: string | null;
+  message: string;
+  bonus_date: string;
+  created_at: string;
+}
+
 // ── Deals & Pipeline ──
 
 export type DealStatus = "active" | "won" | "lost" | "hold";

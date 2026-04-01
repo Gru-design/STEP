@@ -26,19 +26,17 @@ export default async function NewReportPage() {
   }
 
   // Fetch published templates for this tenant
-  const { data: templates } = await supabase
-    .from("report_templates")
-    .select("*")
-    .eq("tenant_id", dbUser.tenant_id)
-    .eq("is_published", true)
-    .in("type", ["daily", "weekly"])
-    .order("name");
-
-  // Calculate today's team submission rate for social proof
   const today = new Date().toISOString().split("T")[0];
 
-  const [{ count: totalMembers }, { count: submittedToday }] =
+  const [templatesResult, totalMembersResult, submittedTodayResult, teamMembersResult, peerBonusSentResult] =
     await Promise.all([
+      supabase
+        .from("report_templates")
+        .select("*")
+        .eq("tenant_id", dbUser.tenant_id)
+        .eq("is_published", true)
+        .in("type", ["daily", "weekly"])
+        .order("name"),
       supabase
         .from("users")
         .select("id", { count: "exact", head: true })
@@ -49,12 +47,35 @@ export default async function NewReportPage() {
         .eq("tenant_id", dbUser.tenant_id)
         .eq("report_date", today)
         .eq("status", "submitted"),
+      // Fetch team members for peer bonus (exclude self)
+      supabase
+        .from("users")
+        .select("id, name, avatar_url")
+        .eq("tenant_id", dbUser.tenant_id)
+        .neq("id", dbUser.id)
+        .eq("is_active", true)
+        .order("name"),
+      // Check if peer bonus already sent today
+      supabase
+        .from("peer_bonuses")
+        .select("id")
+        .eq("from_user_id", dbUser.id)
+        .eq("bonus_date", today)
+        .single(),
     ]);
 
   const teamSubmissionRate =
-    totalMembers && totalMembers > 0
-      ? ((submittedToday ?? 0) / totalMembers) * 100
+    (totalMembersResult.count ?? 0) > 0
+      ? ((submittedTodayResult.count ?? 0) / (totalMembersResult.count ?? 1)) * 100
       : 0;
+
+  const teamMembers = (teamMembersResult.data ?? []).map((m) => ({
+    id: m.id,
+    name: m.name,
+    avatar_url: m.avatar_url,
+  }));
+
+  const peerBonusAvailable = !peerBonusSentResult.data;
 
   return (
     <div className="space-y-5">
@@ -70,7 +91,9 @@ export default async function NewReportPage() {
       <SocialProofBanner teamSubmissionRate={teamSubmissionRate} />
 
       <NewReportForm
-        templates={(templates as ReportTemplate[]) ?? []}
+        templates={(templatesResult.data as ReportTemplate[]) ?? []}
+        teamMembers={teamMembers}
+        peerBonusAvailable={peerBonusAvailable}
       />
     </div>
   );

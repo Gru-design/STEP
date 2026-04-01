@@ -7,17 +7,35 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DynamicForm } from "@/components/reports/DynamicForm";
-import { createReportEntry } from "@/app/(dashboard)/reports/actions";
+import { PeerBonusSelector } from "@/components/reports/PeerBonusSelector";
+import { createReportEntry, sendPeerBonus } from "@/app/(dashboard)/reports/actions";
 import { useToast } from "@/components/ui/use-toast";
 import { Save, Send, FileText, ChevronLeft, Check } from "lucide-react";
 import { XPToast } from "@/components/gamification/XPToast";
 import type { ReportTemplate, TemplateSchema } from "@/types/database";
 
-interface NewReportFormProps {
-  templates: ReportTemplate[];
+interface TeamMember {
+  id: string;
+  name: string;
+  avatar_url: string | null;
 }
 
-export function NewReportForm({ templates }: NewReportFormProps) {
+interface PeerBonusSelection {
+  toUserId: string;
+  message: string;
+}
+
+interface NewReportFormProps {
+  templates: ReportTemplate[];
+  teamMembers?: TeamMember[];
+  peerBonusAvailable?: boolean;
+}
+
+export function NewReportForm({
+  templates,
+  teamMembers = [],
+  peerBonusAvailable = true,
+}: NewReportFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
@@ -30,6 +48,9 @@ export function NewReportForm({ templates }: NewReportFormProps) {
   );
   const [formValues, setFormValues] = useState<Record<string, unknown>>({});
   const [showXPToast, setShowXPToast] = useState(false);
+  const [xpAmount, setXpAmount] = useState(10);
+  const [xpMessage, setXpMessage] = useState("日報提出ボーナス");
+  const [peerBonusSelection, setPeerBonusSelection] = useState<PeerBonusSelection | null>(null);
 
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
 
@@ -82,8 +103,22 @@ export function NewReportForm({ templates }: NewReportFormProps) {
       });
 
       if (result.success) {
+        // Send peer bonus if selected (only on submit, not draft)
+        if (status === "submitted" && peerBonusSelection) {
+          const entryId = (result.data as { id: string } | undefined)?.id;
+          const bonusResult = await sendPeerBonus({
+            toUserId: peerBonusSelection.toUserId,
+            message: peerBonusSelection.message,
+            reportEntryId: entryId,
+          });
+
+          if (bonusResult.success) {
+            setXpAmount(13); // 10 (report) + 3 (peer bonus send)
+            setXpMessage("日報提出 + ピアボーナス送信");
+          }
+        }
+
         if (status === "submitted") {
-          // Show XP animation before redirect
           setShowXPToast(true);
           toast({ title: "日報を提出しました" });
           setTimeout(() => router.push("/reports"), 1800);
@@ -104,7 +139,7 @@ export function NewReportForm({ templates }: NewReportFormProps) {
     <div className="space-y-5">
       {/* XP Toast animation */}
       {showXPToast && (
-        <XPToast xp={10} message="日報提出ボーナス" />
+        <XPToast xp={xpAmount} message={xpMessage} />
       )}
 
       {/* Header with date and template info */}
@@ -200,8 +235,6 @@ export function NewReportForm({ templates }: NewReportFormProps) {
                   background:
                     progressPercent === 100
                       ? "var(--color-success)"
-                      : progressPercent >= 50
-                      ? "var(--color-primary)"
                       : "var(--color-primary)",
                   opacity: progressPercent === 0 ? 0.3 : 1,
                 }}
@@ -219,6 +252,15 @@ export function NewReportForm({ templates }: NewReportFormProps) {
               />
             </CardContent>
           </Card>
+
+          {/* Peer Bonus Selector - after form, before submit */}
+          {teamMembers.length > 0 && (
+            <PeerBonusSelector
+              members={teamMembers}
+              available={peerBonusAvailable}
+              onChange={setPeerBonusSelection}
+            />
+          )}
 
           {/* Sticky action buttons for mobile */}
           <div className="sticky bottom-16 z-30 -mx-4 border-t border-border bg-white/95 px-4 py-3 backdrop-blur-sm sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none lg:bottom-0">
