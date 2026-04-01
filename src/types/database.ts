@@ -287,7 +287,7 @@ export interface WeeklyDigest {
 
 // ── Integrations ──
 
-export type IntegrationProvider = "google_calendar" | "gmail" | "slack" | "teams" | "cti";
+export type IntegrationProvider = "google_calendar" | "gmail" | "slack" | "chatwork" | "teams" | "cti";
 export type IntegrationStatus = "active" | "inactive" | "error";
 
 export interface Integration {
