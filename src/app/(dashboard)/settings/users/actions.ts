@@ -111,7 +111,22 @@ export async function updateUserRole(
   const admin = await requireAdmin();
   if (!admin) return { success: false, error: "権限がありません" };
 
+  // super_admin のロール変更を禁止
   const supabase = createAdminClient();
+  const { data: targetUser } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", userId)
+    .single();
+
+  if (targetUser?.role === "super_admin") {
+    return { success: false, error: "スーパーアドミンのロールは変更できません" };
+  }
+
+  // super_admin への昇格も禁止 (CLIまたはSQL Editorからのみ)
+  if (newRole === "super_admin") {
+    return { success: false, error: "スーパーアドミンへの昇格はできません" };
+  }
 
   const { error } = await supabase
     .from("users")
@@ -149,6 +164,17 @@ export async function deactivateUser(
   }
 
   const supabase = createAdminClient();
+
+  // super_admin の削除を禁止
+  const { data: targetUser } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", userId)
+    .single();
+
+  if (targetUser?.role === "super_admin") {
+    return { success: false, error: "スーパーアドミンは無効化できません" };
+  }
 
   // Delete from users table (cascade will clean up team_members etc.)
   const { error } = await supabase

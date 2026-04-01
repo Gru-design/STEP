@@ -340,6 +340,21 @@ Lv1: 0, Lv2: 100, Lv3: 500, Lv4: 1500, Lv5: 5000
 - ダッシュボード UI からは発行できない（セキュリティ上の意図的な設計）
 - 「STEP運営」テナントに所属させる
 
+### SuperAdmin ロール保護 (修正済み)
+
+**症状**: ユーザー管理画面 (`/settings/users`) で super_admin のロールが admin/manager/member に変更できてしまい、管理権限を喪失する。
+
+**原因**: `updateUserRole` に super_admin の保護チェックがなかった。また UI のロール選択ドロップダウンに super_admin が含まれていなかったため、変更操作で自動的に降格された。
+
+**対処法**:
+- `updateUserRole` / `deactivateUser` の両方で super_admin 対象の操作をサーバーサイドで拒否
+- UI 側で super_admin ユーザーのロール変更ドロップダウンと削除ボタンを非表示
+- 万が一降格した場合は Supabase SQL Editor で復旧:
+  ```sql
+  UPDATE public.users SET role = 'super_admin' WHERE id = '{user_id}';
+  UPDATE auth.users SET raw_user_meta_data = jsonb_set(raw_user_meta_data, '{role}', '"super_admin"') WHERE id = '{user_id}';
+  ```
+
 ## Phase 一覧
 
 | Phase | 名称 | 指示書 |
