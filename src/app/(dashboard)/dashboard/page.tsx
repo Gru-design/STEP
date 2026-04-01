@@ -138,7 +138,7 @@ export default async function DashboardPage() {
   const userTeamIds = (userTeamMemberships ?? []).map((m) => m.team_id);
 
   // Build goal query: individual goals owned by user OR team goals for user's teams
-  let goalsQuery = supabase
+  const goalsQuery = supabase
     .from("goals")
     .select("id, name, target_value, kpi_field_key, template_id, period_start, period_end, level, owner_id, team_id")
     .eq("tenant_id", tenantId)
@@ -178,7 +178,7 @@ export default async function DashboardPage() {
 
   // Also calculate this week's contribution for goals with kpi_field_key
   const goalsWithKPI = relevantGoals.filter((g) => g.kpi_field_key && g.template_id);
-  let weeklyContributions = new Map<string, number>();
+  const weeklyContributions = new Map<string, number>();
 
   if (goalsWithKPI.length > 0) {
     // Fetch this week's report entries for this user
