@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+
+export const dynamic = "force-dynamic";
 import { ReportFeed } from "@/components/reports/ReportFeed";
 import type { ReportFeedEntry } from "@/components/reports/ReportFeed";
 

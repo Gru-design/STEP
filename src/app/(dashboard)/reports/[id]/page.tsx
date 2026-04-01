@@ -3,6 +3,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect, notFound } from "next/navigation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+
+// Disable ISR caching — this page depends on auth + real-time DB data
+export const dynamic = "force-dynamic";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { DynamicForm } from "@/components/reports/DynamicForm";
