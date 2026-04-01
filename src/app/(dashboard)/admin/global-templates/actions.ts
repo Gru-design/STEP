@@ -341,6 +341,213 @@ export async function applyGlobalTemplatesToTenant(tenantId: string) {
 }
 
 // --------------------------------------------------------------------------
+// Sync a global template to ALL existing tenant copies
+// Updates name, type, schema, target_roles, visibility for all copies.
+// --------------------------------------------------------------------------
+export async function syncGlobalTemplateToTenants(globalTemplateId: string) {
+  const auth = await requireSuperAdmin();
+  if ("error" in auth && auth.error) {
+    return { success: false, error: auth.error };
+  }
+
+  try {
+    const adminClient = createAdminClient();
+
+    // 1. Get the global template
+    const { data: globalTemplate, error: gtError } = await adminClient
+      .from("report_templates")
+      .select("*")
+      .eq("id", globalTemplateId)
+      .is("tenant_id", null)
+      .single();
+
+    if (gtError || !globalTemplate) {
+      return { success: false, error: "グローバルテンプレートが見つかりません。" };
+    }
+
+    // 2. Find all tenant copies
+    const { data: copies, error: copyError } = await adminClient
+      .from("report_templates")
+      .select("id, tenant_id")
+      .eq("source_template_id", globalTemplateId);
+
+    if (copyError) throw copyError;
+
+    if (!copies || copies.length === 0) {
+      return { success: true, data: { updated: 0, created: 0 } };
+    }
+
+    // 3. Update each copy with the global template's current state
+    let updated = 0;
+    for (const copy of copies) {
+      const { error: updateError } = await adminClient
+        .from("report_templates")
+        .update({
+          name: globalTemplate.name,
+          type: globalTemplate.type,
+          target_roles: globalTemplate.target_roles,
+          schema: globalTemplate.schema,
+          visibility_override: globalTemplate.visibility_override,
+          version: globalTemplate.version,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", copy.id);
+
+      if (updateError) {
+        console.error(
+          `[Admin] Failed to sync template ${copy.id} in tenant ${copy.tenant_id}:`,
+          updateError
+        );
+      } else {
+        updated++;
+      }
+    }
+
+    // 4. Also distribute to tenants that don't have a copy yet
+    const copiedTenantIds = new Set(copies.map((c: { id: string; tenant_id: string }) => c.tenant_id));
+
+    const { data: allTenants } = await adminClient
+      .from("tenants")
+      .select("id")
+      .or("is_active.is.null,is_active.eq.true");
+
+    let created = 0;
+    for (const tenant of allTenants ?? []) {
+      if (copiedTenantIds.has(tenant.id)) continue;
+
+      const { error: insertError } = await adminClient
+        .from("report_templates")
+        .insert({
+          tenant_id: tenant.id,
+          name: globalTemplate.name,
+          type: globalTemplate.type,
+          target_roles: globalTemplate.target_roles,
+          schema: globalTemplate.schema,
+          visibility_override: globalTemplate.visibility_override,
+          is_system: true,
+          is_published: true,
+          version: globalTemplate.version,
+          source_template_id: globalTemplate.id,
+        });
+
+      if (!insertError) created++;
+    }
+
+    revalidatePath("/admin/global-templates");
+    return { success: true, data: { updated, created } };
+  } catch (error) {
+    console.error("[Admin] syncGlobalTemplateToTenants error:", error);
+    return { success: false, error: "テンプレートの同期に失敗しました。" };
+  }
+}
+
+// --------------------------------------------------------------------------
+// Promote a tenant template to a global template
+// Copies the tenant template as a new global template (tenant_id = NULL).
+// --------------------------------------------------------------------------
+export async function promoteToGlobalTemplate(tenantTemplateId: string) {
+  const auth = await requireSuperAdmin();
+  if ("error" in auth && auth.error) {
+    return { success: false, error: auth.error };
+  }
+
+  try {
+    const adminClient = createAdminClient();
+
+    // 1. Fetch the tenant template
+    const { data: source, error: fetchError } = await adminClient
+      .from("report_templates")
+      .select("*, tenants!inner(name)")
+      .eq("id", tenantTemplateId)
+      .not("tenant_id", "is", null)
+      .single();
+
+    if (fetchError || !source) {
+      return { success: false, error: "テンプレートが見つかりません。" };
+    }
+
+    const tenantName = (source.tenants as { name: string })?.name ?? "";
+
+    // 2. Create the global copy
+    const { data: globalTemplate, error: insertError } = await adminClient
+      .from("report_templates")
+      .insert({
+        tenant_id: null,
+        name: source.name,
+        type: source.type,
+        target_roles: source.target_roles,
+        schema: source.schema,
+        visibility_override: source.visibility_override,
+        is_system: true,
+        is_published: true,
+        version: 1,
+      })
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+
+    // 3. Link the original as a copy of this new global template
+    await adminClient
+      .from("report_templates")
+      .update({ source_template_id: globalTemplate.id })
+      .eq("id", tenantTemplateId);
+
+    revalidatePath("/admin/global-templates");
+    return {
+      success: true,
+      data: {
+        globalTemplateId: globalTemplate.id,
+        sourceTenantName: tenantName,
+      },
+    };
+  } catch (error) {
+    console.error("[Admin] promoteToGlobalTemplate error:", error);
+    return { success: false, error: "グローバルテンプレートへの昇格に失敗しました。" };
+  }
+}
+
+// --------------------------------------------------------------------------
+// List all tenant templates (for the promote picker)
+// --------------------------------------------------------------------------
+export async function listAllTenantTemplates(options?: {
+  search?: string;
+  type?: TemplateType;
+}) {
+  const auth = await requireSuperAdmin();
+  if ("error" in auth && auth.error) {
+    return { success: false, error: auth.error };
+  }
+
+  try {
+    const adminClient = createAdminClient();
+
+    let query = adminClient
+      .from("report_templates")
+      .select("*, tenants!inner(name)")
+      .not("tenant_id", "is", null)
+      .is("source_template_id", null) // Exclude copies of global templates
+      .order("updated_at", { ascending: false })
+      .limit(50);
+
+    if (options?.search) {
+      query = query.ilike("name", `%${options.search}%`);
+    }
+    if (options?.type) {
+      query = query.eq("type", options.type);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    return { success: true, data: data ?? [] };
+  } catch (error) {
+    console.error("[Admin] listAllTenantTemplates error:", error);
+    return { success: false, error: "テナントテンプレートの取得に失敗しました。" };
+  }
+}
+
+// --------------------------------------------------------------------------
 // Get distribution status for a global template
 // --------------------------------------------------------------------------
 export async function getTemplateDistributionStatus(templateId: string) {

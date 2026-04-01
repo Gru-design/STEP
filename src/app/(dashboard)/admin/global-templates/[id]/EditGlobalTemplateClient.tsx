@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { TemplateBuilder } from "@/components/template-builder/TemplateBuilder";
-import { updateGlobalTemplate, applyGlobalTemplatesToAllTenants } from "../actions";
+import { updateGlobalTemplate, syncGlobalTemplateToTenants } from "../actions";
 import type {
   ReportTemplate,
   TemplateType,
@@ -93,7 +93,7 @@ export function EditGlobalTemplateClient({ template }: EditGlobalTemplateClientP
     });
   };
 
-  const handleSaveAndApply = () => {
+  const handleSaveAndSync = () => {
     setError(null);
     setSuccess(null);
     startTransition(async () => {
@@ -113,13 +113,19 @@ export function EditGlobalTemplateClient({ template }: EditGlobalTemplateClientP
         return;
       }
 
-      const applyResult = await applyGlobalTemplatesToAllTenants();
-      if (applyResult.success && applyResult.data) {
+      const syncResult = await syncGlobalTemplateToTenants(template.id);
+      if (syncResult.success && syncResult.data) {
+        const { updated, created } = syncResult.data;
+        const parts: string[] = [];
+        if (updated > 0) parts.push(`${updated}件を更新`);
+        if (created > 0) parts.push(`${created}件を新規配布`);
         setSuccess(
-          `保存し、${applyResult.data.distributed}件のテナントに新規配布しました。`
+          parts.length > 0
+            ? `保存し、全テナントに反映しました（${parts.join("、")}）`
+            : "保存しました。全テナントに配布済みです。"
         );
       } else {
-        setSuccess("保存しましたが、配布に失敗しました。");
+        setSuccess("保存しましたが、同期に失敗しました。");
       }
     });
   };
@@ -244,10 +250,10 @@ export function EditGlobalTemplateClient({ template }: EditGlobalTemplateClientP
           </Button>
           <Button
             className="bg-primary text-white hover:bg-primary/90"
-            onClick={handleSaveAndApply}
+            onClick={handleSaveAndSync}
             disabled={isPending}
           >
-            {isPending ? "処理中..." : "保存して全テナントに配布"}
+            {isPending ? "処理中..." : "保存して全テナントに反映"}
           </Button>
         </div>
       </div>
