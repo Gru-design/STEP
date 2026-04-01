@@ -35,12 +35,20 @@ VALUES (
 
 -- ============================================================
 -- 2. Auth ユーザー (トリガーで public.users にも自動作成)
+--    ※ 既にデモユーザーが存在する場合は一度削除してから再作成
 -- ============================================================
+
+-- 既存データクリーンアップ (再実行対応)
+DELETE FROM auth.users WHERE email IN (
+  'demo-admin@step-app.jp', 'demo-manager@step-app.jp', 'demo-member@step-app.jp'
+);
 
 -- Admin: 山本 太郎
 INSERT INTO auth.users (
   id, instance_id, email, encrypted_password, email_confirmed_at,
-  raw_user_meta_data, raw_app_meta_data, aud, role, created_at, updated_at
+  raw_user_meta_data, raw_app_meta_data,
+  is_sso_user, confirmation_token, recovery_token, email_change_token_new,
+  aud, role, created_at, updated_at
 ) VALUES (
   'b0000000-0000-0000-0000-000000000001',
   '00000000-0000-0000-0000-000000000000',
@@ -49,20 +57,23 @@ INSERT INTO auth.users (
   now(),
   '{"tenant_id": "a0000000-0000-0000-0000-000000000001", "name": "山本 太郎", "role": "admin"}'::jsonb,
   '{"provider": "email", "providers": ["email"]}'::jsonb,
+  false, '', '', '',
   'authenticated', 'authenticated', now(), now()
 );
 INSERT INTO auth.identities (id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at)
 VALUES (
   'b0000000-0000-0000-0000-000000000001',
   'b0000000-0000-0000-0000-000000000001',
-  '{"sub": "b0000000-0000-0000-0000-000000000001", "email": "demo-admin@step-app.jp"}'::jsonb,
+  '{"sub": "b0000000-0000-0000-0000-000000000001", "email": "demo-admin@step-app.jp", "email_verified": true}'::jsonb,
   'email', 'b0000000-0000-0000-0000-000000000001', now(), now(), now()
 );
 
 -- Manager: 佐々木 あおい
 INSERT INTO auth.users (
   id, instance_id, email, encrypted_password, email_confirmed_at,
-  raw_user_meta_data, raw_app_meta_data, aud, role, created_at, updated_at
+  raw_user_meta_data, raw_app_meta_data,
+  is_sso_user, confirmation_token, recovery_token, email_change_token_new,
+  aud, role, created_at, updated_at
 ) VALUES (
   'b0000000-0000-0000-0000-000000000002',
   '00000000-0000-0000-0000-000000000000',
@@ -71,20 +82,23 @@ INSERT INTO auth.users (
   now(),
   '{"tenant_id": "a0000000-0000-0000-0000-000000000001", "name": "佐々木 あおい", "role": "manager"}'::jsonb,
   '{"provider": "email", "providers": ["email"]}'::jsonb,
+  false, '', '', '',
   'authenticated', 'authenticated', now(), now()
 );
 INSERT INTO auth.identities (id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at)
 VALUES (
   'b0000000-0000-0000-0000-000000000002',
   'b0000000-0000-0000-0000-000000000002',
-  '{"sub": "b0000000-0000-0000-0000-000000000002", "email": "demo-manager@step-app.jp"}'::jsonb,
+  '{"sub": "b0000000-0000-0000-0000-000000000002", "email": "demo-manager@step-app.jp", "email_verified": true}'::jsonb,
   'email', 'b0000000-0000-0000-0000-000000000002', now(), now(), now()
 );
 
 -- Member: 中村 翔太
 INSERT INTO auth.users (
   id, instance_id, email, encrypted_password, email_confirmed_at,
-  raw_user_meta_data, raw_app_meta_data, aud, role, created_at, updated_at
+  raw_user_meta_data, raw_app_meta_data,
+  is_sso_user, confirmation_token, recovery_token, email_change_token_new,
+  aud, role, created_at, updated_at
 ) VALUES (
   'b0000000-0000-0000-0000-000000000003',
   '00000000-0000-0000-0000-000000000000',
@@ -93,13 +107,14 @@ INSERT INTO auth.users (
   now(),
   '{"tenant_id": "a0000000-0000-0000-0000-000000000001", "name": "中村 翔太", "role": "member"}'::jsonb,
   '{"provider": "email", "providers": ["email"]}'::jsonb,
+  false, '', '', '',
   'authenticated', 'authenticated', now(), now()
 );
 INSERT INTO auth.identities (id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at)
 VALUES (
   'b0000000-0000-0000-0000-000000000003',
   'b0000000-0000-0000-0000-000000000003',
-  '{"sub": "b0000000-0000-0000-0000-000000000003", "email": "demo-member@step-app.jp"}'::jsonb,
+  '{"sub": "b0000000-0000-0000-0000-000000000003", "email": "demo-member@step-app.jp", "email_verified": true}'::jsonb,
   'email', 'b0000000-0000-0000-0000-000000000003', now(), now(), now()
 );
 
