@@ -88,9 +88,57 @@ export default async function DashboardLayout({
   );
   const themeStyle = themeToStyle(theme);
 
+  // Fetch gamification data for header display
+  const LEVEL_THRESHOLDS = [0, 100, 500, 1500, 5000];
+  const [levelResult, streakResult] = await Promise.all([
+    supabase
+      .from("user_levels")
+      .select("level, xp")
+      .eq("user_id", user.id)
+      .single(),
+    supabase
+      .from("report_entries")
+      .select("report_date")
+      .eq("user_id", user.id)
+      .eq("status", "submitted")
+      .order("report_date", { ascending: false })
+      .limit(60),
+  ]);
+
+  const level = levelResult.data?.level ?? 1;
+  const xp = levelResult.data?.xp ?? 0;
+  const xpForNextLevel = LEVEL_THRESHOLDS[level] ?? LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
+
+  // Calculate streak
+  const today = new Date().toISOString().split("T")[0];
+  const entries = streakResult.data ?? [];
+  const submittedToday = entries.length > 0 && entries[0].report_date === today;
+  let streak = 0;
+  if (entries.length > 0) {
+    const dates = new Set(entries.map((e) => e.report_date));
+    const checkDate = new Date();
+    if (!submittedToday) checkDate.setDate(checkDate.getDate() - 1);
+    for (let i = 0; i < 60; i++) {
+      const dateStr = checkDate.toISOString().split("T")[0];
+      const dayOfWeek = checkDate.getDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        checkDate.setDate(checkDate.getDate() - 1);
+        continue;
+      }
+      if (dates.has(dateStr)) {
+        streak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+  }
+
+  const gamification = { level, xp, xpForNextLevel, streak };
+
   return (
     <div style={themeStyle ?? undefined}>
-      <DashboardShell user={user} plan={tenantPlan} appName={theme.appName} logoUrl={theme.logoUrl}>
+      <DashboardShell user={user} plan={tenantPlan} appName={theme.appName} logoUrl={theme.logoUrl} gamification={gamification}>
         {children}
         <CheckinModal userId={user.id} tenantId={user.tenant_id} />
         <NudgeTrigger />

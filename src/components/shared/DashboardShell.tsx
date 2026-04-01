@@ -22,6 +22,8 @@ import {
   CheckCircle2,
   UserPlus,
   Download,
+  Flame,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -209,12 +211,20 @@ const roleLabels: Record<Role, string> = {
   member: "メンバー",
 };
 
+interface GamificationData {
+  level: number;
+  xp: number;
+  xpForNextLevel: number;
+  streak: number;
+}
+
 interface DashboardShellProps {
   user: UserType;
   plan?: Plan;
   children: React.ReactNode;
   appName?: string;
   logoUrl?: string | null;
+  gamification?: GamificationData;
 }
 
 export function DashboardShell({
@@ -223,6 +233,7 @@ export function DashboardShell({
   children,
   appName = "STEP",
   logoUrl,
+  gamification,
 }: DashboardShellProps) {
   const pathname = usePathname();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -372,8 +383,23 @@ export function DashboardShell({
             </button>
           </div>
 
-          {/* Right side: notifications + user menu */}
+          {/* Right side: gamification + notifications + user menu */}
           <div className="flex items-center gap-1">
+            {/* Gamification indicators */}
+            {gamification && (
+              <div className="hidden sm:flex items-center gap-2 mr-1 rounded-lg border border-border bg-muted/30 px-2.5 py-1">
+                {gamification.streak > 0 && (
+                  <span className="flex items-center gap-0.5 text-xs font-medium text-orange-500">
+                    <Flame className="h-3.5 w-3.5" />
+                    {gamification.streak}
+                  </span>
+                )}
+                <span className="flex items-center gap-0.5 text-xs font-bold text-accent-color">
+                  <Zap className="h-3.5 w-3.5" />
+                  Lv.{gamification.level}
+                </span>
+              </div>
+            )}
             <NotificationBell userId={user.id} />
 
             <DropdownMenu>
