@@ -44,7 +44,8 @@ import { createClient } from "@/lib/supabase/client";
 import { BottomNav } from "./BottomNav";
 import { CommandPalette } from "./CommandPalette";
 import { NotificationBell } from "./NotificationBell";
-import type { User as UserType, Role } from "@/types/database";
+import type { User as UserType, Role, Plan } from "@/types/database";
+import { canAccessFeature } from "@/lib/plan-limits";
 
 // ── Nav Groups ──
 
@@ -53,6 +54,7 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   roles: Role[];
+  feature?: string; // plan-gated feature key
 }
 
 interface NavGroup {
@@ -81,12 +83,14 @@ const navGroups: NavGroup[] = [
         href: "/plans",
         icon: ClipboardList,
         roles: ["super_admin", "admin", "manager", "member"],
+        feature: "weekly_plan",
       },
       {
         label: "案件",
         href: "/deals",
         icon: Briefcase,
         roles: ["super_admin", "admin", "manager", "member"],
+        feature: "deals",
       },
     ],
   },
@@ -104,12 +108,14 @@ const navGroups: NavGroup[] = [
         href: "/goals",
         icon: Target,
         roles: ["super_admin", "admin", "manager"],
+        feature: "goals",
       },
       {
         label: "承認",
         href: "/plans?tab=approval",
         icon: CheckCircle2,
         roles: ["super_admin", "admin", "manager"],
+        feature: "approval",
       },
     ],
   },
@@ -121,18 +127,21 @@ const navGroups: NavGroup[] = [
         href: "/knowledge",
         icon: BookOpen,
         roles: ["super_admin", "admin", "manager", "member"],
+        feature: "knowledge",
       },
       {
         label: "バッジ",
         href: "/badges",
         icon: Award,
         roles: ["super_admin", "admin", "manager", "member"],
+        feature: "gamification",
       },
       {
         label: "週刊STEP",
         href: "/weekly-digest",
         icon: Newspaper,
         roles: ["super_admin", "admin", "manager", "member"],
+        feature: "weekly_digest",
       },
     ],
   },
@@ -150,6 +159,7 @@ const navGroups: NavGroup[] = [
         href: "/settings/templates",
         icon: FileText,
         roles: ["super_admin", "admin"],
+        feature: "template_builder",
       },
       {
         label: "ユーザー管理",
@@ -162,16 +172,21 @@ const navGroups: NavGroup[] = [
         href: "/settings/export",
         icon: Download,
         roles: ["super_admin", "admin"],
+        feature: "csv_export",
       },
     ],
   },
 ];
 
-function getVisibleGroups(role: Role): NavGroup[] {
+function getVisibleGroups(role: Role, plan: Plan): NavGroup[] {
   return navGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => item.roles.includes(role)),
+      items: group.items.filter(
+        (item) =>
+          item.roles.includes(role) &&
+          (!item.feature || canAccessFeature(plan, item.feature))
+      ),
     }))
     .filter((group) => group.items.length > 0);
 }
@@ -185,6 +200,7 @@ const roleLabels: Record<Role, string> = {
 
 interface DashboardShellProps {
   user: UserType;
+  plan?: Plan;
   children: React.ReactNode;
   appName?: string;
   logoUrl?: string | null;
@@ -192,13 +208,14 @@ interface DashboardShellProps {
 
 export function DashboardShell({
   user,
+  plan = "free",
   children,
   appName = "STEP",
   logoUrl,
 }: DashboardShellProps) {
   const pathname = usePathname();
   const [sheetOpen, setSheetOpen] = useState(false);
-  const visibleGroups = getVisibleGroups(user.role);
+  const visibleGroups = getVisibleGroups(user.role, plan);
 
   const handleLogout = async () => {
     const supabase = createClient();

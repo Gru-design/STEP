@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { dispatchWebhook } from "@/lib/webhook-outbound";
+import { checkFeatureAccess } from "@/lib/plan-gate";
 
 
 interface ActionResult<T = unknown> {
@@ -37,6 +38,11 @@ export async function createOrUpdatePlan(data: {
 
     if (!dbUser) {
       return { success: false, error: "ユーザーが見つかりません" };
+    }
+
+    const gate = await checkFeatureAccess(dbUser.tenant_id, "weekly_plan");
+    if (!gate.allowed) {
+      return { success: false, error: gate.error };
     }
 
     const { data: plan, error } = await supabase

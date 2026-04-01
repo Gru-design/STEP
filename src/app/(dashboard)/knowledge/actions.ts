@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { createKnowledgeSchema } from "@/lib/validations";
+import { checkFeatureAccess } from "@/lib/plan-gate";
 
 interface ActionResult<T = unknown> {
   success: boolean;
@@ -35,6 +36,11 @@ export async function createKnowledgePost(data: {
 
     if (!dbUser) {
       return { success: false, error: "ユーザーが見つかりません" };
+    }
+
+    const gate = await checkFeatureAccess(dbUser.tenant_id, "knowledge");
+    if (!gate.allowed) {
+      return { success: false, error: gate.error };
     }
 
     const parsed = createKnowledgeSchema.safeParse(data);

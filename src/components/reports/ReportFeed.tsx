@@ -28,15 +28,21 @@ interface TeamMember {
 interface ReportFeedProps {
   entries: ReportFeedEntry[];
   members: TeamMember[];
+  /** マネージャーの場合、自チームメンバーのIDリスト（デフォルト表示用） */
+  defaultTeamMemberIds?: string[];
 }
 
-export function ReportFeed({ entries, members }: ReportFeedProps) {
+export function ReportFeed({ entries, members, defaultTeamMemberIds }: ReportFeedProps) {
   const router = useRouter();
   const [dateFilter, setDateFilter] = useState("");
   const [memberFilter, setMemberFilter] = useState("");
+  const [showMyTeamOnly, setShowMyTeamOnly] = useState(!!defaultTeamMemberIds);
 
   const filtered = useMemo(() => {
     let result = entries;
+    if (showMyTeamOnly && defaultTeamMemberIds) {
+      result = result.filter((e) => defaultTeamMemberIds.includes(e.user_id));
+    }
     if (dateFilter) {
       result = result.filter((e) => e.report_date === dateFilter);
     }
@@ -44,7 +50,7 @@ export function ReportFeed({ entries, members }: ReportFeedProps) {
       result = result.filter((e) => e.user_id === memberFilter);
     }
     return result;
-  }, [entries, dateFilter, memberFilter]);
+  }, [entries, dateFilter, memberFilter, showMyTeamOnly, defaultTeamMemberIds]);
 
   const getPreviewText = (data: Record<string, unknown>): string => {
     for (const val of Object.values(data)) {
@@ -87,6 +93,18 @@ export function ReportFeed({ entries, members }: ReportFeedProps) {
             ))}
           </select>
         </div>
+        {defaultTeamMemberIds && (
+          <button
+            onClick={() => setShowMyTeamOnly((v) => !v)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              showMyTeamOnly
+                ? "bg-primary text-white"
+                : "border border-border bg-white text-foreground hover:bg-muted"
+            }`}
+          >
+            マイチーム
+          </button>
+        )}
         {(dateFilter || memberFilter) && (
           <button
             onClick={() => {
