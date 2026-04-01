@@ -1,0 +1,56 @@
+import { createClient } from "@/lib/supabase/server";
+import { redirect, notFound } from "next/navigation";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { ReportTemplate } from "@/types/database";
+import { EditGlobalTemplateClient } from "./EditGlobalTemplateClient";
+
+interface EditGlobalTemplatePageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function EditGlobalTemplatePage({
+  params,
+}: EditGlobalTemplatePageProps) {
+  const { id } = await params;
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: dbUser } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (dbUser?.role !== "super_admin") {
+    redirect("/");
+  }
+
+  // Use admin client to fetch global template (tenant_id IS NULL)
+  const adminClient = createAdminClient();
+  const { data: template } = await adminClient
+    .from("report_templates")
+    .select("*")
+    .eq("id", id)
+    .is("tenant_id", null)
+    .single();
+
+  if (!template) {
+    notFound();
+  }
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold text-primary mb-6">
+        グローバルテンプレート編集
+      </h1>
+      <EditGlobalTemplateClient template={template as ReportTemplate} />
+    </div>
+  );
+}

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Plus, Pencil, Copy, Trash2, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Copy, Trash2, Eye, EyeOff, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -117,6 +117,15 @@ export function TemplateListClient({ templates }: TemplateListClientProps) {
                         {template.name}
                       </CardTitle>
                       <div className="flex shrink-0 gap-1.5">
+                        {template.source_template_id && (
+                          <Badge
+                            variant="outline"
+                            className="border-primary text-primary text-[10px] gap-0.5"
+                          >
+                            <Globe className="h-3 w-3" />
+                            共通
+                          </Badge>
+                        )}
                         <Badge
                           className={typeBadgeColors[template.type]}
                         >

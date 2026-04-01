@@ -77,7 +77,7 @@ export interface TemplateSchema {
 
 export interface ReportTemplate {
   id: string;
-  tenant_id: string;
+  tenant_id: string | null;
   name: string;
   type: TemplateType;
   target_roles: string[];
@@ -86,6 +86,7 @@ export interface ReportTemplate {
   is_system: boolean;
   is_published: boolean;
   version: number;
+  source_template_id: string | null;
   created_at: string;
   updated_at: string;
 }

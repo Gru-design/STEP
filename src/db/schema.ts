@@ -99,7 +99,7 @@ export const teamMembers = pgTable(
 
 export const reportTemplates = pgTable("report_templates", {
   id: uuid("id").defaultRandom().primaryKey(),
-  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  tenantId: uuid("tenant_id").references(() => tenants.id),
   name: text("name").notNull(),
   type: text("type", { enum: ["daily", "weekly", "plan", "checkin"] }).notNull(),
   targetRoles: text("target_roles").array().default(["member"]),
@@ -108,6 +108,7 @@ export const reportTemplates = pgTable("report_templates", {
   isSystem: boolean("is_system").default(false),
   isPublished: boolean("is_published").default(false),
   version: integer("version").default(1),
+  sourceTemplateId: uuid("source_template_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
