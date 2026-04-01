@@ -88,9 +88,51 @@ export default async function ReportDetailPage({
     });
   }
 
+  // --- DEBUG: Log data shapes to diagnose rendering errors ---
+  const rawSchema = entryTemplate?.schema;
+  console.log("[ReportDetail] DEBUG data shapes:", {
+    entryId: id,
+    entryKeys: entry ? Object.keys(entry) : "null",
+    entryStatus: entry?.status,
+    entryDataType: typeof entry?.data,
+    entryDataKeys: entry?.data && typeof entry.data === "object" ? Object.keys(entry.data as object) : String(entry?.data),
+    templateFound: !!entryTemplate,
+    schemaType: typeof rawSchema,
+    schemaHasSections: rawSchema && typeof rawSchema === "object" && "sections" in (rawSchema as object),
+    schemaSectionsIsArray: rawSchema && typeof rawSchema === "object" && "sections" in (rawSchema as object) && Array.isArray((rawSchema as Record<string, unknown>).sections),
+    reactionsCount: reactions?.length ?? 0,
+    reactionsIsArray: Array.isArray(reactions),
+  });
+
   const user = (entryUser ?? {}) as Record<string, unknown>;
   const template = (entryTemplate ?? {}) as Record<string, unknown>;
-  const schema = (template.schema as TemplateSchema) ?? null;
+
+  // Validate schema: ensure it has a proper sections array to prevent
+  // DynamicForm from crashing on malformed data
+  const rawTemplateSchema = template.schema as TemplateSchema | null | undefined;
+  const schema: TemplateSchema | null =
+    rawTemplateSchema &&
+    typeof rawTemplateSchema === "object" &&
+    Array.isArray(rawTemplateSchema.sections)
+      ? rawTemplateSchema
+      : null;
+
+  if (template.schema && !schema) {
+    console.error("[ReportDetail] Schema validation failed - malformed schema:", {
+      templateId: entry.template_id,
+      schemaType: typeof template.schema,
+      schemaValue: JSON.stringify(template.schema).slice(0, 500),
+    });
+  }
+
+  // Validate entry.data is a plain object
+  const entryData: Record<string, unknown> =
+    entry.data && typeof entry.data === "object" && !Array.isArray(entry.data)
+      ? (entry.data as Record<string, unknown>)
+      : {};
+
+  // Validate reactions is an array
+  const safeReactions: Reaction[] = Array.isArray(reactions) ? (reactions as Reaction[]) : [];
 
   const statusLabels: Record<string, { label: string; color: string }> = {
     draft: {
@@ -118,15 +160,15 @@ export default async function ReportDetailPage({
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-xl font-bold text-primary">
-              {user.name as string}
+              {(user.name as string) ?? ""}
             </h1>
             <Badge variant="outline" className={statusInfo.color}>
               {statusInfo.label}
             </Badge>
           </div>
           <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
-            <span>{entry.report_date as string}</span>
-            <span>{template.name as string}</span>
+            <span>{String(entry.report_date ?? "")}</span>
+            <span>{String(template.name ?? "")}</span>
           </div>
         </div>
       </div>
@@ -137,14 +179,14 @@ export default async function ReportDetailPage({
       <Card className="border-border">
         <CardHeader className="pb-2">
           <h2 className="text-base font-semibold text-primary">
-            {template.name as string}
+            {String(template.name ?? "")}
           </h2>
         </CardHeader>
         <CardContent>
           {schema ? (
             <DynamicForm
               schema={schema}
-              values={(entry.data as Record<string, unknown>) ?? {}}
+              values={entryData}
               onChange={() => {}}
               readOnly
             />
@@ -159,7 +201,7 @@ export default async function ReportDetailPage({
         <CardContent className="p-4">
           <ReactionBar
             entryId={id}
-            reactions={(reactions as Reaction[]) ?? []}
+            reactions={safeReactions}
             currentUserId={authUser.id}
           />
         </CardContent>
