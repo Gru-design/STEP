@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { OptionalSelect } from "@/components/shared/OptionalSelect";
-import { Plus, Trash2, Star } from "lucide-react";
+import { Plus, Trash2, Star, ChevronDown, Check } from "lucide-react";
 import type {
   TemplateSchema,
   TemplateSection,
@@ -39,11 +39,13 @@ export function DynamicForm({
   };
 
   return (
-    <div className="space-y-8">
-      {schema.sections.map((section) => (
+    <div className="space-y-6">
+      {schema.sections.map((section, index) => (
         <SectionRenderer
           key={section.id}
           section={section}
+          sectionIndex={index}
+          totalSections={schema.sections.length}
           values={values}
           setValue={setValue}
           readOnly={readOnly}
@@ -55,34 +57,78 @@ export function DynamicForm({
 
 function SectionRenderer({
   section,
+  sectionIndex,
+  totalSections,
   values,
   setValue,
   readOnly,
 }: {
   section: TemplateSection;
+  sectionIndex: number;
+  totalSections: number;
   values: Record<string, unknown>;
   setValue: (key: string, value: unknown) => void;
   readOnly: boolean;
 }) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Calculate section completion
+  const sectionFields = section.fields.filter((f) => f.type !== "section");
+  const filledCount = sectionFields.filter((f) => {
+    const val = values[f.key];
+    return val !== undefined && val !== null && val !== "" && !(Array.isArray(val) && val.length === 0);
+  }).length;
+  const isComplete = filledCount === sectionFields.length && sectionFields.length > 0;
+
   return (
     <div className="space-y-4">
-      <div>
-        <h3 className="text-base font-semibold text-primary">
-          {section.label}
-        </h3>
-        <Separator className="mt-2" />
-      </div>
-      <div className="space-y-4">
-        {section.fields.map((field) => (
-          <FieldRenderer
-            key={field.key}
-            field={field}
-            value={values[field.key]}
-            onChange={(val) => setValue(field.key, val)}
-            readOnly={readOnly}
+      <button
+        type="button"
+        onClick={() => !readOnly && totalSections > 1 && setIsCollapsed(!isCollapsed)}
+        className={`flex w-full items-center justify-between ${
+          !readOnly && totalSections > 1 ? "cursor-pointer" : "cursor-default"
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <h3 className="text-base font-semibold text-primary">
+            {section.label}
+          </h3>
+          {!readOnly && sectionFields.length > 0 && (
+            <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+              isComplete
+                ? "bg-success/10 text-success"
+                : "bg-muted text-muted-foreground"
+            }`}>
+              {isComplete ? (
+                <><Check className="h-3 w-3" /> 完了</>
+              ) : (
+                `${filledCount}/${sectionFields.length}`
+              )}
+            </span>
+          )}
+        </div>
+        {!readOnly && totalSections > 1 && (
+          <ChevronDown
+            className={`h-4 w-4 text-muted-foreground motion-safe:transition-transform ${
+              isCollapsed ? "-rotate-90" : ""
+            }`}
           />
-        ))}
-      </div>
+        )}
+      </button>
+      <Separator />
+      {!isCollapsed && (
+        <div className="space-y-4">
+          {section.fields.map((field) => (
+            <FieldRenderer
+              key={field.key}
+              field={field}
+              value={values[field.key]}
+              onChange={(val) => setValue(field.key, val)}
+              readOnly={readOnly}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -151,6 +197,7 @@ function renderField(
         <div className="flex items-center gap-2">
           <Input
             type="number"
+            inputMode="numeric"
             value={(value as number) ?? ""}
             onChange={(e) => onChange(e.target.value ? Number(e.target.value) : "")}
             placeholder={field.placeholder}
@@ -378,18 +425,31 @@ function MultiCheckbox({
   };
 
   return (
-    <div className="flex flex-wrap gap-3">
-      {options.map((opt) => (
-        <label key={opt} className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={value.includes(opt)}
-            onChange={() => toggle(opt)}
-            className="h-4 w-4 rounded border-border text-accent-color focus:ring-ring"
-          />
-          <span className="text-sm text-foreground">{opt}</span>
-        </label>
-      ))}
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => {
+        const selected = value.includes(opt);
+        return (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => toggle(opt)}
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm motion-safe:transition-all ${
+              selected
+                ? "border-primary/30 bg-primary/5 text-primary font-medium"
+                : "border-border bg-white text-foreground hover:border-primary/20 hover:bg-muted"
+            }`}
+          >
+            <div className={`flex h-4 w-4 items-center justify-center rounded border ${
+              selected
+                ? "border-primary bg-primary text-white"
+                : "border-border"
+            }`}>
+              {selected && <Check className="h-3 w-3" />}
+            </div>
+            {opt}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -412,13 +472,13 @@ function RatingInput({
             key={i}
             type="button"
             onClick={() => onChange(starValue === value ? 0 : starValue)}
-            className="rounded p-0.5 transition-colors hover:bg-muted"
+            className="rounded p-1 motion-safe:transition-colors hover:bg-muted active:scale-90"
           >
             <Star
-              className={`h-6 w-6 ${
+              className={`h-7 w-7 sm:h-6 sm:w-6 ${
                 i < value
                   ? "fill-warning text-warning"
-                  : "text-slate-200 hover:text-warning"
+                  : "text-slate-200 hover:text-warning/50"
               }`}
             />
           </button>

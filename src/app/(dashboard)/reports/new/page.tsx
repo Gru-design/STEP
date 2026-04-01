@@ -57,12 +57,14 @@ export default async function NewReportPage() {
       : 0;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-primary">日報を書く</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          テンプレートを選んで日報を作成してください
-        </p>
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-foreground sm:text-2xl">日報を書く</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {new Date().toLocaleDateString("ja-JP", { month: "long", day: "numeric", weekday: "short" })}
+          </p>
+        </div>
       </div>
 
       <SocialProofBanner teamSubmissionRate={teamSubmissionRate} />
