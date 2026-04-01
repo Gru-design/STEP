@@ -16,7 +16,7 @@ import type {
 interface DynamicFormProps {
   schema: TemplateSchema;
   values: Record<string, unknown>;
-  onChange: (values: Record<string, unknown>) => void;
+  onChange?: (values: Record<string, unknown>) => void;
   readOnly?: boolean;
 }
 
@@ -27,7 +27,7 @@ export function DynamicForm({
   readOnly = false,
 }: DynamicFormProps) {
   const setValue = (key: string, value: unknown) => {
-    onChange({ ...values, [key]: value });
+    onChange?.({ ...values, [key]: value });
   };
 
   return (

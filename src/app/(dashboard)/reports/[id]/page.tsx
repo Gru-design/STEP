@@ -187,7 +187,6 @@ export default async function ReportDetailPage({
             <DynamicForm
               schema={schema}
               values={entryData}
-              onChange={() => {}}
               readOnly
             />
           ) : (
