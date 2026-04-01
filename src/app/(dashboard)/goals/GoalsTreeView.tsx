@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { ChevronRight, ChevronDown, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ import {
   parseOptionalSelect,
 } from "@/components/shared/OptionalSelect";
 import { createGoal, deleteGoal } from "./actions";
+import { useServerAction } from "@/hooks/useServerAction";
 import type {
   Goal,
   GoalSnapshot,
@@ -219,8 +220,6 @@ export function GoalsTreeView({
   currentUserRole,
 }: GoalsTreeViewProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const tree = buildTree(goals, snapshotMap);
 
@@ -229,21 +228,30 @@ export function GoalsTreeView({
     currentUserRole === "admin" ||
     currentUserRole === "manager";
 
-  const handleDelete = async (goalId: string) => {
-    if (!confirm("この目標を削除しますか？")) return;
-    const result = await deleteGoal(goalId);
-    if (!result.success) {
-      alert(result.error ?? "削除に失敗しました");
-    }
-  };
+  const {
+    execute: execCreate,
+    isPending: isCreating,
+    error: createError,
+  } = useServerAction(createGoal, {
+    onSuccess: () => setDialogOpen(false),
+  });
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const { execute: execDelete } = useServerAction(deleteGoal, {
+    onError: (msg) => alert(msg),
+  });
+
+  const handleDelete = useCallback(
+    (goalId: string) => {
+      if (!confirm("この目標を削除しますか？")) return;
+      execDelete(goalId);
+    },
+    [execDelete]
+  );
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setError(null);
-
     const formData = new FormData(e.currentTarget);
-    const result = await createGoal({
+    execCreate({
       name: formData.get("name") as string,
       level: formData.get("level") as GoalLevel,
       target_value: Number(formData.get("target_value")),
@@ -255,14 +263,6 @@ export function GoalsTreeView({
       team_id: parseOptionalSelect(formData, "team_id"),
       parent_id: parseOptionalSelect(formData, "parent_id"),
     });
-
-    setIsSubmitting(false);
-
-    if (result.success) {
-      setDialogOpen(false);
-    } else {
-      setError(result.error ?? "作成に失敗しました");
-    }
   };
 
   return (
@@ -414,8 +414,8 @@ export function GoalsTreeView({
                   </OptionalSelect>
                 </div>
 
-                {error && (
-                  <p className="text-sm text-danger">{error}</p>
+                {createError && (
+                  <p className="text-sm text-danger">{createError}</p>
                 )}
 
                 <div className="flex justify-end gap-2 pt-2">
@@ -428,10 +428,10 @@ export function GoalsTreeView({
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isCreating}
                     className="bg-primary hover:bg-primary/90"
                   >
-                    {isSubmitting ? "作成中..." : "作成"}
+                    {isCreating ? "作成中..." : "作成"}
                   </Button>
                 </div>
               </form>

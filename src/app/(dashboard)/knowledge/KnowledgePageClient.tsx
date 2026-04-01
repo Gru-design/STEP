@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +19,7 @@ import {
   searchKnowledge,
   deleteKnowledgePost,
 } from "./actions";
+import { useServerAction } from "@/hooks/useServerAction";
 
 interface KnowledgePostWithUser {
   id: string;
@@ -62,8 +63,7 @@ export function KnowledgePageClient({
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
   const [newTags, setNewTags] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [clientError, setClientError] = useState<string | null>(null);
 
   // Filter posts by selected tag (client-side)
   const filteredPosts = useMemo(() => {
@@ -110,53 +110,57 @@ export function KnowledgePageClient({
     }
   };
 
-  const handleCreatePost = async () => {
-    setFormError(null);
+  const {
+    execute: execCreate,
+    isPending: isCreating,
+    error: createError,
+  } = useServerAction(createKnowledgePost, {
+    onSuccess: () => {
+      setNewTitle("");
+      setNewBody("");
+      setNewTags("");
+      setShowNewPostDialog(false);
+      window.location.reload();
+    },
+  });
+
+  const {
+    execute: execDelete,
+  } = useServerAction(deleteKnowledgePost, {
+    onSuccess: () => {
+      // revalidatePath runs server-side; also remove locally for instant feedback
+    },
+  });
+
+  const handleCreatePost = () => {
+    setClientError(null);
 
     if (!newTitle.trim()) {
-      setFormError("タイトルは必須です");
+      setClientError("タイトルは必須です");
       return;
     }
     if (!newBody.trim()) {
-      setFormError("本文は必須です");
+      setClientError("本文は必須です");
       return;
     }
-
-    setCreating(true);
 
     const tags = newTags
       .split(",")
       .map((t) => t.trim())
       .filter((t) => t.length > 0);
 
-    const result = await createKnowledgePost({
-      title: newTitle.trim(),
-      body: newBody.trim(),
-      tags,
-    });
-
-    setCreating(false);
-
-    if (result.success) {
-      setNewTitle("");
-      setNewBody("");
-      setNewTags("");
-      setShowNewPostDialog(false);
-      // Refresh by resetting search
-      window.location.reload();
-    } else {
-      setFormError(result.error ?? "投稿に失敗しました");
-    }
+    execCreate({ title: newTitle.trim(), body: newBody.trim(), tags });
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("この投稿を削除しますか？")) return;
-
-    const result = await deleteKnowledgePost(id);
-    if (result.success) {
+  const handleDelete = useCallback(
+    (id: string) => {
+      if (!confirm("この投稿を削除しますか？")) return;
+      execDelete(id);
+      // Optimistic removal
       setPosts((prev) => prev.filter((p) => p.id !== id));
-    }
-  };
+    },
+    [execDelete]
+  );
 
   return (
     <div className="space-y-6">
@@ -345,7 +349,7 @@ export function KnowledgePageClient({
               <button
                 onClick={() => {
                   setShowNewPostDialog(false);
-                  setFormError(null);
+                  setClientError(null);
                 }}
                 className="rounded-lg p-2 text-muted-foreground hover:bg-muted transition-colors"
               >
@@ -395,8 +399,8 @@ export function KnowledgePageClient({
                 </p>
               </div>
 
-              {formError && (
-                <p className="text-sm text-danger">{formError}</p>
+              {(clientError || createError) && (
+                <p className="text-sm text-danger">{clientError || createError}</p>
               )}
 
               <div className="flex items-center justify-end gap-3 pt-2">
@@ -404,19 +408,19 @@ export function KnowledgePageClient({
                   variant="outline"
                   onClick={() => {
                     setShowNewPostDialog(false);
-                    setFormError(null);
+                    setClientError(null);
                   }}
-                  disabled={creating}
+                  disabled={isCreating}
                   className="border-border"
                 >
                   キャンセル
                 </Button>
                 <Button
                   onClick={handleCreatePost}
-                  disabled={creating}
+                  disabled={isCreating}
                   className="bg-primary hover:bg-primary/90 text-white"
                 >
-                  {creating ? "投稿中..." : "投稿する"}
+                  {isCreating ? "投稿中..." : "投稿する"}
                 </Button>
               </div>
             </div>

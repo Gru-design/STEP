@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, UserPlus, X } from "lucide-react";
 import { createTeam, addTeamMember, removeTeamMember } from "./actions";
+import { useServerAction } from "@/hooks/useServerAction";
 import type { User, Team, TeamMember } from "@/types/database";
 
 interface TeamWithMembers extends Team {
@@ -50,48 +51,49 @@ export function TeamPageClient({
   allUsers,
   canManage,
 }: TeamPageClientProps) {
-  const [isPending, startTransition] = useTransition();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [addMemberDialogTeamId, setAddMemberDialogTeamId] = useState<
     string | null
   >(null);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
 
-  const handleCreateTeam = async (formData: FormData) => {
-    setError(null);
-    startTransition(async () => {
-      const result = await createTeam(formData);
-      if (result.success) {
-        setCreateDialogOpen(false);
-      } else {
-        setError(result.error ?? "エラーが発生しました");
-      }
-    });
-  };
+  const {
+    execute: execCreateTeam,
+    isPending: isCreatingTeam,
+    error: createTeamError,
+  } = useServerAction(createTeam, {
+    onSuccess: () => setCreateDialogOpen(false),
+  });
+
+  const addMemberAction = useCallback(
+    (input: { teamId: string; userId: string }) =>
+      addTeamMember(input.teamId, input.userId),
+    []
+  );
+  const {
+    execute: execAddMember,
+    isPending: isAddingMember,
+    error: addMemberError,
+  } = useServerAction(addMemberAction, {
+    onSuccess: () => {
+      setAddMemberDialogTeamId(null);
+      setSelectedUserId("");
+    },
+  });
+
+  const {
+    execute: execRemoveMember,
+    isPending: isRemovingMember,
+    error: removeMemberError,
+  } = useServerAction(removeTeamMember);
 
   const handleAddMember = () => {
     if (!addMemberDialogTeamId || !selectedUserId) return;
-    setError(null);
-    startTransition(async () => {
-      const result = await addTeamMember(addMemberDialogTeamId, selectedUserId);
-      if (result.success) {
-        setAddMemberDialogTeamId(null);
-        setSelectedUserId("");
-      } else {
-        setError(result.error ?? "エラーが発生しました");
-      }
-    });
+    execAddMember({ teamId: addMemberDialogTeamId, userId: selectedUserId });
   };
 
-  const handleRemoveMember = (memberId: string) => {
-    startTransition(async () => {
-      const result = await removeTeamMember(memberId);
-      if (!result.success) {
-        setError(result.error ?? "エラーが発生しました");
-      }
-    });
-  };
+  // 各操作のエラーを集約（ダイアログ外で表示用）
+  const generalError = removeMemberError;
 
   return (
     <div className="space-y-6">
@@ -109,7 +111,12 @@ export function TeamPageClient({
               <DialogHeader>
                 <DialogTitle>新しいチームを作成</DialogTitle>
               </DialogHeader>
-              <form action={handleCreateTeam}>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  execCreateTeam(new FormData(e.currentTarget));
+                }}
+              >
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
                     <Label htmlFor="team-name">チーム名</Label>
@@ -120,8 +127,8 @@ export function TeamPageClient({
                       required
                     />
                   </div>
-                  {error && (
-                    <p className="text-sm text-danger">{error}</p>
+                  {createTeamError && (
+                    <p className="text-sm text-danger">{createTeamError}</p>
                   )}
                 </div>
                 <DialogFooter>
@@ -130,8 +137,8 @@ export function TeamPageClient({
                       キャンセル
                     </Button>
                   </DialogClose>
-                  <Button type="submit" disabled={isPending}>
-                    {isPending ? "作成中..." : "作成"}
+                  <Button type="submit" disabled={isCreatingTeam}>
+                    {isCreatingTeam ? "作成中..." : "作成"}
                   </Button>
                 </DialogFooter>
               </form>
@@ -140,8 +147,8 @@ export function TeamPageClient({
         )}
       </div>
 
-      {error && !createDialogOpen && !addMemberDialogTeamId && (
-        <p className="text-sm text-danger">{error}</p>
+      {generalError && !createDialogOpen && !addMemberDialogTeamId && (
+        <p className="text-sm text-danger">{generalError}</p>
       )}
 
       {teams.length === 0 ? (
@@ -165,7 +172,6 @@ export function TeamPageClient({
                     onClick={() => {
                       setAddMemberDialogTeamId(team.id);
                       setSelectedUserId("");
-                      setError(null);
                     }}
                   >
                     <UserPlus className="h-4 w-4" />
@@ -205,8 +211,8 @@ export function TeamPageClient({
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() => handleRemoveMember(member.id)}
-                          disabled={isPending}
+                          onClick={() => execRemoveMember(member.id)}
+                          disabled={isRemovingMember}
                         >
                           <X className="h-3 w-3" />
                           <span className="sr-only">削除</span>
@@ -233,7 +239,6 @@ export function TeamPageClient({
           if (!open) {
             setAddMemberDialogTeamId(null);
             setSelectedUserId("");
-            setError(null);
           }
         }}
       >
@@ -257,7 +262,7 @@ export function TeamPageClient({
                 </SelectContent>
               </Select>
             </div>
-            {error && <p className="text-sm text-danger">{error}</p>}
+            {addMemberError && <p className="text-sm text-danger">{addMemberError}</p>}
           </div>
           <DialogFooter>
             <Button
@@ -265,16 +270,15 @@ export function TeamPageClient({
               onClick={() => {
                 setAddMemberDialogTeamId(null);
                 setSelectedUserId("");
-                setError(null);
               }}
             >
               キャンセル
             </Button>
             <Button
               onClick={handleAddMember}
-              disabled={isPending || !selectedUserId}
+              disabled={isAddingMember || !selectedUserId}
             >
-              {isPending ? "追加中..." : "追加"}
+              {isAddingMember ? "追加中..." : "追加"}
             </Button>
           </DialogFooter>
         </DialogContent>
