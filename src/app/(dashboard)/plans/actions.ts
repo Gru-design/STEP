@@ -170,6 +170,21 @@ export async function approvePlan(planId: string): Promise<ActionResult> {
       return { success: false, error: "承認権限がありません" };
     }
 
+    // Prevent self-approval and ensure tenant isolation
+    const { data: targetPlan } = await supabase
+      .from("weekly_plans")
+      .select("tenant_id, user_id")
+      .eq("id", planId)
+      .single();
+
+    if (!targetPlan || targetPlan.tenant_id !== dbUser.tenant_id) {
+      return { success: false, error: "対象の計画が見つかりません" };
+    }
+
+    if (targetPlan.user_id === user.id) {
+      return { success: false, error: "自分の計画は承認できません" };
+    }
+
     const { error } = await supabase
       .from("weekly_plans")
       .update({
@@ -178,7 +193,8 @@ export async function approvePlan(planId: string): Promise<ActionResult> {
         approved_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .eq("id", planId);
+      .eq("id", planId)
+      .eq("tenant_id", dbUser.tenant_id);
 
     if (error) {
       return { success: false, error: "承認に失敗しました" };
@@ -241,13 +257,29 @@ export async function rejectPlan(
       return { success: false, error: "承認権限がありません" };
     }
 
+    // Prevent self-rejection and ensure tenant isolation
+    const { data: targetPlan } = await supabase
+      .from("weekly_plans")
+      .select("tenant_id, user_id")
+      .eq("id", planId)
+      .single();
+
+    if (!targetPlan || targetPlan.tenant_id !== dbUser.tenant_id) {
+      return { success: false, error: "対象の計画が見つかりません" };
+    }
+
+    if (targetPlan.user_id === user.id) {
+      return { success: false, error: "自分の計画は差し戻しできません" };
+    }
+
     const { error } = await supabase
       .from("weekly_plans")
       .update({
         status: "rejected",
         updated_at: new Date().toISOString(),
       })
-      .eq("id", planId);
+      .eq("id", planId)
+      .eq("tenant_id", dbUser.tenant_id);
 
     if (error) {
       return { success: false, error: "差し戻しに失敗しました" };
