@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { DynamicForm } from "@/components/reports/DynamicForm";
 import { ReactionBar } from "@/components/reports/ReactionBar";
+import { CommentThread } from "@/components/reports/CommentThread";
 import type { TemplateSchema, Reaction } from "@/types/database";
 
 interface ReportDetailPageProps {
@@ -133,6 +134,20 @@ export default async function ReportDetailPage({
     }
   }
 
+  // Fetch comments
+  const { data: comments } = await adminClient
+    .from("report_comments")
+    .select("*, users(name, avatar_url)")
+    .eq("entry_id", id)
+    .order("created_at", { ascending: true });
+
+  // Get current user's role for comment permissions
+  const { data: currentDbUser } = await adminClient
+    .from("users")
+    .select("role")
+    .eq("id", authUser.id)
+    .single();
+
   const statusLabels: Record<string, { label: string; color: string }> = {
     draft: {
       label: "下書き",
@@ -202,6 +217,26 @@ export default async function ReportDetailPage({
             reactions={safeReactions}
             currentUserId={authUser.id}
             userNames={reactionUsersMap}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Comments */}
+      <Card className="border-border">
+        <CardContent className="p-4">
+          <CommentThread
+            entryId={id}
+            comments={(comments ?? []) as {
+              id: string;
+              entry_id: string;
+              user_id: string;
+              parent_id: string | null;
+              body: string;
+              created_at: string;
+              users: { name: string; avatar_url: string | null } | null;
+            }[]}
+            currentUserId={authUser.id}
+            currentUserRole={currentDbUser?.role ?? "member"}
           />
         </CardContent>
       </Card>
