@@ -317,3 +317,164 @@ export async function rejectPlan(
     return { success: false, error: "予期しないエラーが発生しました" };
   }
 }
+
+// ── Weekly Review ──
+
+export async function submitReview(data: {
+  planId: string;
+  selfRating: number;
+  wentWell: string;
+  toImprove: string;
+  nextActions: string;
+}): Promise<ActionResult> {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "認証が必要です" };
+    }
+
+    if (data.selfRating < 1 || data.selfRating > 5) {
+      return { success: false, error: "自己評価は1〜5で入力してください" };
+    }
+
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!dbUser) {
+      return { success: false, error: "ユーザーが見つかりません" };
+    }
+
+    // Verify plan belongs to user and is review_pending or approved
+    const { data: plan } = await supabase
+      .from("weekly_plans")
+      .select("id, user_id, status, tenant_id")
+      .eq("id", data.planId)
+      .single();
+
+    if (!plan || plan.tenant_id !== dbUser.tenant_id) {
+      return { success: false, error: "対象の計画が見つかりません" };
+    }
+
+    if (plan.user_id !== user.id) {
+      return { success: false, error: "自分の計画のみ振り返りできます" };
+    }
+
+    if (plan.status !== "review_pending" && plan.status !== "approved") {
+      return { success: false, error: "この計画は振り返り対象ではありません" };
+    }
+
+    // Insert review
+    const { error: reviewError } = await supabase.from("plan_reviews").insert({
+      tenant_id: dbUser.tenant_id,
+      plan_id: data.planId,
+      user_id: user.id,
+      self_rating: data.selfRating,
+      went_well: data.wentWell.trim() || null,
+      to_improve: data.toImprove.trim() || null,
+      next_actions: data.nextActions.trim() || null,
+    });
+
+    if (reviewError) {
+      if (reviewError.code === "23505") {
+        return { success: false, error: "この計画の振り返りは既に提出済みです" };
+      }
+      return { success: false, error: "振り返りの保存に失敗しました" };
+    }
+
+    // Update plan status to reviewed
+    await supabase
+      .from("weekly_plans")
+      .update({ status: "reviewed", updated_at: new Date().toISOString() })
+      .eq("id", data.planId);
+
+    // Award XP
+    const { awardXP } = await import("@/lib/gamification/xp");
+    await awardXP(user.id, "weekly_review");
+
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: user.id,
+      action: "create",
+      resource: "plan_review",
+      resourceId: data.planId,
+    });
+
+    revalidatePath("/plans");
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch {
+    return { success: false, error: "予期しないエラーが発生しました" };
+  }
+}
+
+export async function addManagerFeedback(data: {
+  planId: string;
+  comment: string;
+}): Promise<ActionResult> {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "認証が必要です" };
+    }
+
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("tenant_id, role")
+      .eq("id", user.id)
+      .single();
+
+    if (!dbUser || !["admin", "manager", "super_admin"].includes(dbUser.role)) {
+      return { success: false, error: "マネージャー権限が必要です" };
+    }
+
+    const { data: review } = await supabase
+      .from("plan_reviews")
+      .select("id, tenant_id")
+      .eq("plan_id", data.planId)
+      .single();
+
+    if (!review || review.tenant_id !== dbUser.tenant_id) {
+      return { success: false, error: "振り返りが見つかりません" };
+    }
+
+    const { error } = await supabase
+      .from("plan_reviews")
+      .update({
+        manager_id: user.id,
+        manager_comment: data.comment.trim(),
+        manager_reviewed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", review.id);
+
+    if (error) {
+      return { success: false, error: "フィードバックの保存に失敗しました" };
+    }
+
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: user.id,
+      action: "update",
+      resource: "plan_review",
+      resourceId: review.id,
+    });
+
+    revalidatePath("/plans");
+    return { success: true };
+  } catch {
+    return { success: false, error: "予期しないエラーが発生しました" };
+  }
+}

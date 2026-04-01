@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import type { WeeklyPlan, ReportTemplate, ApprovalLog } from "@/types/database";
+import type { WeeklyPlan, ReportTemplate, ApprovalLog, PlanReview } from "@/types/database";
 import { PlansPageClient } from "./PlansPageClient";
 import { ApprovalQueueClient } from "./ApprovalQueueClient";
 import { ApprovedPlansClient } from "./ApprovedPlansClient";
@@ -95,6 +95,17 @@ export default async function PlansPage({
     );
   }
 
+  // Fetch plan reviews for user's plans
+  let planReviews: PlanReview[] = [];
+  if (planIds.length > 0) {
+    const { data: reviewsData } = await supabase
+      .from("plan_reviews")
+      .select("*")
+      .in("plan_id", planIds);
+
+    planReviews = (reviewsData ?? []) as PlanReview[];
+  }
+
   // For managers: fetch submitted plans from the same tenant (excluding own)
   let pendingPlans: PlanWithUser[] = [];
   let pendingApprovalLogs: (ApprovalLog & { actor_name?: string })[] = [];
@@ -159,7 +170,7 @@ export default async function PlansPage({
       .from("weekly_plans")
       .select("*, users!weekly_plans_user_id_fkey(name, email)")
       .eq("tenant_id", dbUser.tenant_id)
-      .in("status", ["approved", "rejected"])
+      .in("status", ["approved", "rejected", "review_pending", "reviewed"])
       .neq("user_id", dbUser.id)
       .order("updated_at", { ascending: false })
       .limit(20);
@@ -253,6 +264,7 @@ export default async function PlansPage({
           plans={plans}
           templates={templates}
           approvalLogs={approvalLogs}
+          planReviews={planReviews}
           isManager={isManager}
           userId={dbUser.id}
         />
