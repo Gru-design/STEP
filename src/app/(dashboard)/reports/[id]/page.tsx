@@ -42,33 +42,55 @@ export default async function ReportDetailPage({
     .single();
 
   if (!entry || entryError) {
+    console.error("[ReportDetail] Entry fetch failed:", { id, entryError });
     notFound();
   }
 
-  // Fetch user separately
-  const { data: entryUser } = await adminClient
+  // Fetch user separately (with error logging)
+  const { data: entryUser, error: userError } = await adminClient
     .from("users")
     .select("id, name, avatar_url, email")
     .eq("id", entry.user_id)
     .single();
 
-  // Fetch template separately
-  const { data: entryTemplate } = await adminClient
+  if (userError) {
+    console.error("[ReportDetail] User fetch failed:", {
+      userId: entry.user_id,
+      error: userError,
+    });
+  }
+
+  // Fetch template separately (with error logging)
+  const { data: entryTemplate, error: templateError } = await adminClient
     .from("report_templates")
     .select("name, type, schema")
     .eq("id", entry.template_id)
     .single();
 
+  if (templateError) {
+    console.error("[ReportDetail] Template fetch failed:", {
+      templateId: entry.template_id,
+      error: templateError,
+    });
+  }
+
   // Fetch reactions
-  const { data: reactions } = await adminClient
+  const { data: reactions, error: reactionsError } = await adminClient
     .from("reactions")
     .select("*")
     .eq("entry_id", id)
     .order("created_at", { ascending: true });
 
+  if (reactionsError) {
+    console.error("[ReportDetail] Reactions fetch failed:", {
+      entryId: id,
+      error: reactionsError,
+    });
+  }
+
   const user = (entryUser ?? {}) as Record<string, unknown>;
   const template = (entryTemplate ?? {}) as Record<string, unknown>;
-  const schema = template.schema as TemplateSchema | null;
+  const schema = (template.schema as TemplateSchema) ?? null;
 
   const statusLabels: Record<string, { label: string; color: string }> = {
     draft: {

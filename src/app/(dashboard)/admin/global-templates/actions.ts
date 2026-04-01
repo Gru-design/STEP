@@ -96,9 +96,16 @@ export async function createGlobalTemplate(data: CreateGlobalTemplateData) {
 
     revalidatePath("/admin/global-templates");
     return { success: true, data: template };
-  } catch (error) {
-    console.error("[Admin] createGlobalTemplate error:", error);
-    return { success: false, error: "グローバルテンプレートの作成に失敗しました。" };
+  } catch (error: unknown) {
+    const supaErr = error as { code?: string; message?: string; details?: string; hint?: string };
+    console.error("[Admin] createGlobalTemplate error:", {
+      code: supaErr.code,
+      message: supaErr.message,
+      details: supaErr.details,
+      hint: supaErr.hint,
+    });
+    const detail = supaErr.message ? `: ${supaErr.message}` : "";
+    return { success: false, error: `グローバルテンプレートの作成に失敗しました${detail}` };
   }
 }
 
@@ -157,9 +164,16 @@ export async function updateGlobalTemplate(id: string, data: UpdateGlobalTemplat
 
     revalidatePath("/admin/global-templates");
     return { success: true };
-  } catch (error) {
-    console.error("[Admin] updateGlobalTemplate error:", error);
-    return { success: false, error: "グローバルテンプレートの更新に失敗しました。" };
+  } catch (error: unknown) {
+    const supaErr = error as { code?: string; message?: string; details?: string; hint?: string };
+    console.error("[Admin] updateGlobalTemplate error:", {
+      code: supaErr.code,
+      message: supaErr.message,
+      details: supaErr.details,
+      hint: supaErr.hint,
+    });
+    const detail = supaErr.message ? `: ${supaErr.message}` : "";
+    return { success: false, error: `グローバルテンプレートの更新に失敗しました${detail}` };
   }
 }
 

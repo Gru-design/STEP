@@ -50,6 +50,10 @@ export async function createGoal(input: GoalInput): Promise<{
 
     const gate = await checkFeatureAccess(dbUser.tenant_id, "goals");
     if (!gate.allowed) {
+      console.error("[Goals] Feature access denied:", {
+        tenantId: dbUser.tenant_id,
+        error: gate.error,
+      });
       return { success: false, error: gate.error };
     }
 
@@ -68,7 +72,14 @@ export async function createGoal(input: GoalInput): Promise<{
     });
 
     if (error) {
-      return { success: false, error: "目標の作成に失敗しました" };
+      console.error("[Goals] Insert failed:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        tenantId: dbUser.tenant_id,
+      });
+      return { success: false, error: `目標の作成に失敗しました: ${error.message}` };
     }
 
     await writeAuditLog({
@@ -81,7 +92,8 @@ export async function createGoal(input: GoalInput): Promise<{
 
     revalidatePath("/goals");
     return { success: true };
-  } catch {
+  } catch (err) {
+    console.error("[Goals] createGoal unexpected error:", err);
     return { success: false, error: "予期しないエラーが発生しました" };
   }
 }
@@ -144,7 +156,13 @@ export async function updateGoal(
       .eq("tenant_id", dbUser.tenant_id);
 
     if (error) {
-      return { success: false, error: "目標の更新に失敗しました" };
+      console.error("[Goals] Update failed:", {
+        goalId,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+      });
+      return { success: false, error: `目標の更新に失敗しました: ${error.message}` };
     }
 
     await writeAuditLog({
@@ -158,7 +176,8 @@ export async function updateGoal(
 
     revalidatePath("/goals");
     return { success: true };
-  } catch {
+  } catch (err) {
+    console.error("[Goals] updateGoal unexpected error:", err);
     return { success: false, error: "予期しないエラーが発生しました" };
   }
 }
@@ -207,7 +226,12 @@ export async function deleteGoal(
       .eq("tenant_id", dbUser.tenant_id);
 
     if (error) {
-      return { success: false, error: "目標の削除に失敗しました" };
+      console.error("[Goals] Delete failed:", {
+        goalId,
+        code: error.code,
+        message: error.message,
+      });
+      return { success: false, error: `目標の削除に失敗しました: ${error.message}` };
     }
 
     await writeAuditLog({
@@ -220,7 +244,8 @@ export async function deleteGoal(
 
     revalidatePath("/goals");
     return { success: true };
-  } catch {
+  } catch (err) {
+    console.error("[Goals] deleteGoal unexpected error:", err);
     return { success: false, error: "予期しないエラーが発生しました" };
   }
 }
