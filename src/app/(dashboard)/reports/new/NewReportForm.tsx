@@ -262,41 +262,39 @@ export function NewReportForm({
             />
           )}
 
-          {/* Sticky action buttons for mobile */}
-          <div className="sticky bottom-16 z-30 -mx-4 border-t border-border bg-white/95 px-4 py-3 backdrop-blur-sm sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none lg:bottom-0">
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isPending}
-                onClick={() => handleSave("draft")}
-                className="border-border"
-              >
-                <Save className="mr-1.5 h-4 w-4" />
-                下書き
-              </Button>
-              <Button
-                type="button"
-                disabled={isPending}
-                onClick={() => handleSave("submitted")}
-                className="flex-1 bg-primary hover:bg-primary-hover text-white sm:flex-none"
-              >
-                {isPending ? (
-                  "送信中..."
-                ) : (
-                  <>
-                    <Send className="mr-1.5 h-4 w-4" />
-                    提出する
-                  </>
-                )}
-              </Button>
-              {progressPercent === 100 && !isPending && (
-                <span className="hidden sm:flex items-center gap-1 text-xs text-success">
-                  <Check className="h-3.5 w-3.5" />
-                  全項目入力済み
-                </span>
+          {/* Action buttons */}
+          <div className="flex items-center gap-3 pb-4">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isPending}
+              onClick={() => handleSave("draft")}
+              className="border-border h-12"
+            >
+              <Save className="mr-1.5 h-4 w-4" />
+              下書き
+            </Button>
+            <Button
+              type="button"
+              disabled={isPending}
+              onClick={() => handleSave("submitted")}
+              className="flex-1 bg-primary hover:bg-primary-hover text-white h-12 text-base sm:flex-none"
+            >
+              {isPending ? (
+                "送信中..."
+              ) : (
+                <>
+                  <Send className="mr-1.5 h-4 w-4" />
+                  提出する
+                </>
               )}
-            </div>
+            </Button>
+            {progressPercent === 100 && !isPending && (
+              <span className="hidden sm:flex items-center gap-1 text-xs text-success">
+                <Check className="h-3.5 w-3.5" />
+                全項目入力済み
+              </span>
+            )}
           </div>
         </>
       )}
