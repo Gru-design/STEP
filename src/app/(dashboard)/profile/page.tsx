@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useTransition, useEffect } from "react";
+import React, { useState, useTransition, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
-import { updateProfile } from "./actions";
+import { updateProfile, uploadAvatar, deleteAvatar } from "./actions";
 import { LevelBadge } from "@/components/gamification/LevelBadge";
 import { StreakCounter } from "@/components/gamification/StreakCounter";
 import { BadgeDisplay } from "@/components/gamification/BadgeDisplay";
@@ -24,6 +25,12 @@ export default function ProfilePage() {
   const [levelData, setLevelData] = useState<{ level: number; xp: number } | null>(null);
   const [streak, setStreak] = useState(0);
   const [earnedBadges, setEarnedBadges] = useState<(Badge & { earned: boolean })[]>([]);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarMessage, setAvatarMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -97,6 +104,44 @@ export default function ProfilePage() {
     fetchUser();
   }, []);
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAvatarUploading(true);
+    setAvatarMessage(null);
+
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    const result = await uploadAvatar(formData);
+    if (result.success && result.avatarUrl) {
+      setUser((prev: User | null) => prev ? { ...prev, avatar_url: result.avatarUrl! } : prev);
+      setAvatarMessage({ type: "success", text: "写真を更新しました" });
+    } else {
+      setAvatarMessage({ type: "error", text: result.error ?? "アップロードに失敗しました" });
+    }
+    setAvatarUploading(false);
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleAvatarDelete = async () => {
+    setAvatarUploading(true);
+    setAvatarMessage(null);
+
+    const result = await deleteAvatar();
+    if (result.success) {
+      setUser((prev: User | null) => prev ? { ...prev, avatar_url: null } : prev);
+      setAvatarMessage({ type: "success", text: "写真を削除しました" });
+    } else {
+      setAvatarMessage({ type: "error", text: result.error ?? "削除に失敗しました" });
+    }
+    setAvatarUploading(false);
+  };
+
   const handleSubmit = (formData: FormData) => {
     setMessage(null);
     startTransition(async () => {
@@ -169,6 +214,69 @@ export default function ProfilePage() {
               <BadgeDisplay badges={earnedBadges} />
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Avatar Upload Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">プロフィール写真</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-6">
+            <Avatar className="h-20 w-20">
+              <AvatarImage src={user.avatar_url ?? undefined} />
+              <AvatarFallback className="text-2xl font-medium">
+                {user.name?.charAt(0) ?? "U"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={avatarUploading}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {avatarUploading ? "アップロード中..." : "写真を変更"}
+                </Button>
+                {user.avatar_url && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={avatarUploading}
+                    onClick={handleAvatarDelete}
+                    className="text-danger hover:text-danger"
+                  >
+                    削除
+                  </Button>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+              <p className="text-xs text-muted-foreground">
+                JPEG, PNG, WebP, GIF（2MB以下）
+              </p>
+              {avatarMessage && (
+                <p
+                  className={`text-xs ${
+                    avatarMessage.type === "success"
+                      ? "text-success"
+                      : "text-danger"
+                  }`}
+                >
+                  {avatarMessage.text}
+                </p>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
