@@ -45,13 +45,25 @@ interface PeerBonusStats {
   recentReceived: { fromName: string; message: string; date: string }[];
 }
 
+interface GoalProgress {
+  id: string;
+  name: string;
+  level: string;
+  target: number;
+  actual: number;
+  rate: number;
+  expectedRate: number;
+  weeklyContribution: number | null;
+  isOnTrack: boolean;
+}
+
 interface MemberStats {
   submittedToday: boolean;
   streak: number;
   level: number;
   xp: number;
   xpForNextLevel: number;
-  weeklyKPIs: { label: string; value: string }[];
+  goalsProgress: GoalProgress[];
   recentBadges: { name: string; icon: string; earnedAt: string }[];
   peerBonus?: PeerBonusStats;
 }
@@ -351,33 +363,97 @@ function TeamSubmissionProgress({
   );
 }
 
-// -- KPI Summary --
+// -- Goals Progress --
 
-function KPISummary({ kpis }: { kpis: { label: string; value: string }[] }) {
-  if (kpis.length === 0) return null;
+function GoalsProgressCard({ goals }: { goals: GoalProgress[] }) {
+  if (goals.length === 0) return null;
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <TrendingUp className="h-4 w-4 text-primary" />
-          今週のKPI
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3">
-          {kpis.map((kpi) => (
-            <div
-              key={kpi.label}
-              className="rounded-lg border border-border bg-muted/30 p-3 text-center"
-            >
-              <p className="text-xs text-muted-foreground truncate">{kpi.label}</p>
-              <p className="mt-1 font-mono text-lg font-bold text-foreground">
-                {kpi.value}
-              </p>
-            </div>
-          ))}
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Target className="h-4 w-4 text-primary" />
+            目標進捗
+          </CardTitle>
+          <Link
+            href="/goals"
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary motion-safe:transition-colors"
+          >
+            すべて見る
+            <ChevronRight className="h-3 w-3" />
+          </Link>
         </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {goals.map((goal) => {
+          const barColor = goal.rate >= 100
+            ? "var(--color-success)"
+            : goal.isOnTrack
+            ? "var(--color-primary)"
+            : "var(--color-warning)";
+
+          return (
+            <div key={goal.id} className="space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-flex items-center rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      {goal.level}
+                    </span>
+                    <span className="text-sm font-medium text-foreground truncate">
+                      {goal.name}
+                    </span>
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <span className="font-mono text-sm font-bold" style={{ color: barColor }}>
+                    {goal.rate}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Progress bar with expected marker */}
+              <div className="relative">
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full motion-safe:transition-all duration-500"
+                    style={{ width: `${Math.min(100, goal.rate)}%`, background: barColor }}
+                  />
+                </div>
+                {/* Expected progress marker */}
+                {goal.expectedRate > 0 && goal.expectedRate < 100 && (
+                  <div
+                    className="absolute top-0 h-2.5 w-0.5 bg-foreground/30"
+                    style={{ left: `${goal.expectedRate}%` }}
+                    title={`期待進捗: ${goal.expectedRate}%`}
+                  />
+                )}
+              </div>
+
+              {/* Detail row */}
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span className="font-mono">
+                  {goal.actual.toLocaleString()} / {goal.target.toLocaleString()}
+                </span>
+                <div className="flex items-center gap-2">
+                  {goal.weeklyContribution !== null && goal.weeklyContribution > 0 && (
+                    <span className="flex items-center gap-0.5 text-primary">
+                      <TrendingUp className="h-3 w-3" />
+                      今週 +{goal.weeklyContribution.toLocaleString()}
+                    </span>
+                  )}
+                  {!goal.isOnTrack && (
+                    <span className="flex items-center gap-0.5 text-warning">
+                      <AlertTriangle className="h-3 w-3" />
+                      遅れ
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </CardContent>
     </Card>
   );
@@ -799,17 +875,20 @@ export function DashboardClient({
             color="accent"
           />
           <StatCard
-            label="今週のKPI"
-            value={memberStats.weeklyKPIs.length > 0 ? memberStats.weeklyKPIs[0].value : "-"}
-            unit={memberStats.weeklyKPIs.length > 0 ? memberStats.weeklyKPIs[0].label : ""}
-            icon={TrendingUp}
-            color="primary"
+            label="目標"
+            value={memberStats.goalsProgress.length > 0
+              ? `${memberStats.goalsProgress.filter((g) => g.isOnTrack).length}/${memberStats.goalsProgress.length}`
+              : "-"}
+            unit="順調"
+            icon={Target}
+            color={memberStats.goalsProgress.length > 0 && memberStats.goalsProgress.every((g) => g.isOnTrack) ? "success" : memberStats.goalsProgress.some((g) => !g.isOnTrack) ? "warning" : "primary"}
+            href="/goals"
           />
         </div>
       )}
 
-      {/* KPI Summary */}
-      {memberStats && <KPISummary kpis={memberStats.weeklyKPIs} />}
+      {/* Goals Progress */}
+      {memberStats && <GoalsProgressCard goals={memberStats.goalsProgress} />}
 
       {/* Peer Bonus */}
       {memberStats?.peerBonus && memberStats.peerBonus.recentReceived.length > 0 && (

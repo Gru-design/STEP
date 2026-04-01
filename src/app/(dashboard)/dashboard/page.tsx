@@ -45,7 +45,7 @@ export default async function DashboardPage() {
   weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
   const weekStartStr = weekStart.toISOString().split("T")[0];
 
-  const [recentEntriesResult, userLevelResult, userBadgesResult, weeklyReportsResult] =
+  const [recentEntriesResult, userLevelResult, userBadgesResult] =
     await Promise.all([
       // Single query for both today-check and streak calculation
       supabase
@@ -66,14 +66,6 @@ export default async function DashboardPage() {
         .eq("user_id", user.id)
         .order("earned_at", { ascending: false })
         .limit(5),
-      supabase
-        .from("report_entries")
-        .select("data")
-        .eq("user_id", user.id)
-        .eq("status", "submitted")
-        .gte("report_date", weekStartStr)
-        .order("report_date", { ascending: false })
-        .limit(1),
     ]);
 
   const recentEntries = recentEntriesResult.data;
@@ -135,16 +127,113 @@ export default async function DashboardPage() {
     }
   }
 
-  const weeklyReports = weeklyReportsResult.data;
-  const weeklyKPIs: { label: string; value: string }[] = [];
-  if (weeklyReports && weeklyReports.length > 0) {
-    const reportData = weeklyReports[0].data as Record<string, unknown>;
-    for (const [key, val] of Object.entries(reportData)) {
-      if (typeof val === "number") {
-        weeklyKPIs.push({ label: key, value: String(val) });
+  // ── Goals with Progress ──
+  // Fetch active goals relevant to this user (individual goals owned by user,
+  // team goals for user's teams, or company/department goals)
+  const { data: userTeamMemberships } = await supabase
+    .from("team_members")
+    .select("team_id")
+    .eq("user_id", user.id);
+
+  const userTeamIds = (userTeamMemberships ?? []).map((m) => m.team_id);
+
+  // Build goal query: individual goals owned by user OR team goals for user's teams
+  let goalsQuery = supabase
+    .from("goals")
+    .select("id, name, target_value, kpi_field_key, template_id, period_start, period_end, level, owner_id, team_id")
+    .eq("tenant_id", tenantId)
+    .lte("period_start", today)
+    .gte("period_end", today)
+    .order("level", { ascending: false }); // individual first
+
+  const { data: allActiveGoals } = await goalsQuery;
+
+  // Filter to goals relevant to this user
+  const relevantGoals = (allActiveGoals ?? []).filter((g) => {
+    if (g.level === "individual" && g.owner_id === user.id) return true;
+    if (g.level === "team" && g.team_id && userTeamIds.includes(g.team_id)) return true;
+    if (g.level === "company" || g.level === "department") return true;
+    return false;
+  }).slice(0, 6);
+
+  // Fetch latest snapshots for these goals
+  const goalIds = relevantGoals.map((g) => g.id);
+  const { data: snapshotsData } = goalIds.length > 0
+    ? await supabase
+        .from("goal_snapshots")
+        .select("goal_id, actual_value, progress_rate, snapshot_date")
+        .in("goal_id", goalIds)
+        .order("snapshot_date", { ascending: false })
+    : { data: [] as { goal_id: string; actual_value: number; progress_rate: number; snapshot_date: string }[] };
+
+  const latestSnapshots = new Map<string, { actual: number; rate: number }>();
+  for (const snap of snapshotsData ?? []) {
+    if (!latestSnapshots.has(snap.goal_id)) {
+      latestSnapshots.set(snap.goal_id, {
+        actual: Number(snap.actual_value),
+        rate: Number(snap.progress_rate),
+      });
+    }
+  }
+
+  // Also calculate this week's contribution for goals with kpi_field_key
+  const goalsWithKPI = relevantGoals.filter((g) => g.kpi_field_key && g.template_id);
+  let weeklyContributions = new Map<string, number>();
+
+  if (goalsWithKPI.length > 0) {
+    // Fetch this week's report entries for this user
+    const { data: weekEntries } = await supabase
+      .from("report_entries")
+      .select("data, template_id")
+      .eq("user_id", user.id)
+      .eq("status", "submitted")
+      .gte("report_date", weekStartStr);
+
+    if (weekEntries) {
+      for (const goal of goalsWithKPI) {
+        let weekSum = 0;
+        for (const entry of weekEntries) {
+          if (entry.template_id === goal.template_id) {
+            const val = Number((entry.data as Record<string, unknown>)[goal.kpi_field_key!]);
+            if (!isNaN(val)) weekSum += val;
+          }
+        }
+        weeklyContributions.set(goal.id, weekSum);
       }
     }
   }
+
+  const levelLabels: Record<string, string> = {
+    company: "全社",
+    department: "部門",
+    team: "チーム",
+    individual: "個人",
+  };
+
+  const goalsProgress = relevantGoals.map((g) => {
+    const snapshot = latestSnapshots.get(g.id);
+    const target = Number(g.target_value);
+    const actual = snapshot?.actual ?? 0;
+    const rate = snapshot?.rate ?? 0;
+
+    // Calculate expected progress based on elapsed time
+    const start = new Date(g.period_start).getTime();
+    const end = new Date(g.period_end).getTime();
+    const elapsed = Math.max(0, Math.min(1, (nowMs - start) / (end - start)));
+    const expectedRate = Math.round(elapsed * 100);
+
+    return {
+      id: g.id,
+      name: g.name,
+      level: levelLabels[g.level] ?? g.level,
+      target,
+      actual,
+      rate: Math.round(rate),
+      expectedRate,
+      weeklyContribution: weeklyContributions.get(g.id) ?? null,
+      isOnTrack: rate >= expectedRate - 5,
+    };
+  });
 
   // ── Peer Bonus Stats ──
   const [receivedBonusesResult, sentTodayResult, totalReceivedResult] = await Promise.all([
@@ -192,7 +281,7 @@ export default async function DashboardPage() {
     level,
     xp,
     xpForNextLevel: getNextLevelXP(level),
-    weeklyKPIs: weeklyKPIs.slice(0, 5),
+    goalsProgress,
     recentBadges,
     peerBonus: {
       totalReceived: totalReceivedResult.count ?? 0,
