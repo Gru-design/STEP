@@ -53,6 +53,11 @@ export function UserManagementClient({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    name: string;
+    email: string;
+    password: string;
+  } | null>(null);
 
   async function handleInvite() {
     setLoading(true);
@@ -61,10 +66,13 @@ export function UserManagementClient({
     if (result.success && result.user) {
       setUsers((prev) => [...prev, result.user!]);
       setShowInvite(false);
+      setCreatedCredentials({
+        name: inviteName,
+        email: inviteEmail,
+        password: result.user.tempPassword,
+      });
       setInviteEmail("");
       setInviteName("");
-      setSuccess(`${inviteName} を招待しました`);
-      setTimeout(() => setSuccess(null), 3000);
     } else {
       setError(result.error ?? "招待に失敗しました");
     }
@@ -90,6 +98,55 @@ export function UserManagementClient({
 
   return (
     <div className="space-y-4">
+      {/* Created credentials dialog */}
+      {createdCredentials && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-xl border border-border w-full max-w-md p-6 shadow-lg">
+            <h3 className="text-lg font-bold text-foreground mb-2">
+              ユーザーを作成しました
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              以下のログイン情報を本人に共有してください。このダイアログを閉じるとパスワードは再表示できません。
+            </p>
+            <div className="space-y-3 bg-muted rounded-lg p-4 border border-border">
+              <div>
+                <p className="text-xs text-muted-foreground">名前</p>
+                <p className="font-medium text-foreground">{createdCredentials.name}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">メールアドレス</p>
+                <p className="font-mono text-foreground">{createdCredentials.email}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">初期パスワード</p>
+                <p className="font-mono text-foreground select-all">{createdCredentials.password}</p>
+              </div>
+            </div>
+            <p className="text-xs text-danger mt-3">
+              ※ 初回ログイン後、パスワードの変更を推奨します。
+            </p>
+            <div className="flex gap-3 mt-4 justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    `名前: ${createdCredentials.name}\nメール: ${createdCredentials.email}\nパスワード: ${createdCredentials.password}`
+                  );
+                  setSuccess("クリップボードにコピーしました");
+                  setTimeout(() => setSuccess(null), 3000);
+                }}
+              >
+                コピー
+              </Button>
+              <Button size="sm" onClick={() => setCreatedCredentials(null)}>
+                閉じる
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="rounded-lg border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
           {error}

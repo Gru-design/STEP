@@ -31,7 +31,7 @@ export async function inviteUser(
 ): Promise<{
   success: boolean;
   error?: string;
-  user?: { id: string; name: string; email: string; role: string; created_at: string };
+  user?: { id: string; name: string; email: string; role: string; created_at: string; tempPassword: string };
 }> {
   const admin = await requireAdmin();
   if (!admin) return { success: false, error: "権限がありません" };
@@ -100,6 +100,7 @@ export async function inviteUser(
       email,
       role,
       created_at: new Date().toISOString(),
+      tempPassword,
     },
   };
 }
