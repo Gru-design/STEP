@@ -20,12 +20,14 @@ interface ReactionBarProps {
   entryId: string;
   reactions: Reaction[];
   currentUserId: string;
+  userNames?: Record<string, string>;
 }
 
 export function ReactionBar({
   entryId,
   reactions,
   currentUserId,
+  userNames = {},
 }: ReactionBarProps) {
   const [isPending, startTransition] = useTransition();
   const [showCommentInput, setShowCommentInput] = useState(false);
@@ -130,6 +132,10 @@ export function ReactionBar({
                 <span className="text-muted-foreground">
                   {REACTION_EMOJIS.find((e) => e.type === r.type)?.emoji}{" "}
                 </span>
+                <span className="font-medium text-primary">
+                  {userNames[r.user_id] ?? "ユーザー"}
+                </span>
+                <span className="text-muted-foreground mx-1">:</span>
                 <span className="text-foreground">{r.comment}</span>
               </div>
             ))}
