@@ -29,6 +29,7 @@ interface UserManagementClientProps {
 }
 
 const roleLabels: Record<string, string> = {
+  super_admin: "スーパーアドミン",
   admin: "管理者",
   manager: "マネージャー",
   member: "メンバー",
@@ -187,25 +188,31 @@ export function UserManagementClient({
               </p>
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              <select
-                value={user.role}
-                onChange={(e) =>
-                  handleRoleChange(user.id, e.target.value as Role)
-                }
-                className="rounded border border-border bg-white px-2 py-1 text-xs text-foreground"
-              >
-                <option value="member">メンバー</option>
-                <option value="manager">マネージャー</option>
-                <option value="admin">管理者</option>
-              </select>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-danger"
-                onClick={() => handleDeactivate(user.id, user.name)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {user.role === "super_admin" ? (
+                <span className="text-xs text-muted-foreground px-2">変更不可</span>
+              ) : (
+                <>
+                  <select
+                    value={user.role}
+                    onChange={(e) =>
+                      handleRoleChange(user.id, e.target.value as Role)
+                    }
+                    className="rounded border border-border bg-white px-2 py-1 text-xs text-foreground"
+                  >
+                    <option value="member">メンバー</option>
+                    <option value="manager">マネージャー</option>
+                    <option value="admin">管理者</option>
+                  </select>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-danger"
+                    onClick={() => handleDeactivate(user.id, user.name)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         ))}
