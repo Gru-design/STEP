@@ -16,11 +16,34 @@ VALUES (
 -- パスワード: Step2024!
 
 -- 既存データクリーンアップ (再実行対応)
-DELETE FROM auth.users WHERE email IN (
-  'tsuruta@protagonist-inc.jp', 'tauchi@protagonist-inc.jp',
-  'toki@protagonist-inc.jp', 'atsumi@protagonist-inc.jp',
-  'koshida@protagonist-inc.jp'
-);
+DO $$
+DECLARE
+  v_ids uuid[] := ARRAY[
+    'b0000001-0000-0000-0000-000000000001',
+    'b0000002-0000-0000-0000-000000000002',
+    'b0000003-0000-0000-0000-000000000003',
+    'b0000004-0000-0000-0000-000000000004',
+    'b0000005-0000-0000-0000-000000000005'
+  ];
+BEGIN
+  DELETE FROM user_levels   WHERE user_id = ANY(v_ids);
+  DELETE FROM user_badges   WHERE user_id = ANY(v_ids);
+  DELETE FROM peer_bonuses  WHERE from_user_id = ANY(v_ids) OR to_user_id = ANY(v_ids);
+  DELETE FROM reactions     WHERE user_id = ANY(v_ids);
+  DELETE FROM report_comments WHERE user_id = ANY(v_ids);
+  DELETE FROM nudges        WHERE target_user_id = ANY(v_ids);
+  DELETE FROM approval_logs WHERE actor_id = ANY(v_ids);
+  DELETE FROM deals         WHERE user_id = ANY(v_ids);
+  DELETE FROM weekly_plans  WHERE user_id = ANY(v_ids);
+  DELETE FROM report_entries WHERE user_id = ANY(v_ids);
+  DELETE FROM knowledge_posts WHERE user_id = ANY(v_ids);
+  DELETE FROM goals         WHERE owner_id = ANY(v_ids);
+  DELETE FROM team_members  WHERE user_id = ANY(v_ids);
+  DELETE FROM teams         WHERE manager_id = ANY(v_ids);
+  DELETE FROM users         WHERE id = ANY(v_ids);
+  DELETE FROM auth.identities WHERE user_id = ANY(v_ids);
+  DELETE FROM auth.users    WHERE id = ANY(v_ids);
+END $$;
 
 -- 鶴田 悠貴 (admin)
 INSERT INTO auth.users (
