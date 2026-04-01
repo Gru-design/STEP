@@ -2,10 +2,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DashboardShell } from "@/components/shared/DashboardShell";
+import { OnboardingWizard } from "@/components/shared/OnboardingWizard";
 import { CheckinModal } from "@/components/shared/CheckinModal";
 import { NudgeTrigger } from "@/components/shared/NudgeTrigger";
 import { extractTheme, themeToStyle } from "@/lib/tenant-theme";
 import type { User, Plan } from "@/types/database";
+import type { OnboardingStep } from "@/app/(dashboard)/onboarding/actions";
 
 export default async function DashboardLayout({
   children,
@@ -75,10 +77,10 @@ export default async function DashboardLayout({
 
   const user = dbUser as User;
 
-  // Tenant info (plan + theme)
+  // Tenant info (plan + theme + onboarding)
   const { data: tenant } = await adminClient
     .from("tenants")
-    .select("plan, settings")
+    .select("plan, settings, name, onboarding_step")
     .eq("id", user.tenant_id)
     .single();
 
@@ -87,6 +89,22 @@ export default async function DashboardLayout({
     (tenant?.settings as Record<string, unknown>) ?? null
   );
   const themeStyle = themeToStyle(theme);
+
+  // Onboarding check: show wizard for admin users with pending onboarding
+  const onboardingStep = tenant?.onboarding_step as OnboardingStep | null;
+  if (onboardingStep && user.role === "admin") {
+    return (
+      <div style={themeStyle ?? undefined}>
+        <DashboardShell user={user} plan={tenantPlan} appName={theme.appName} logoUrl={theme.logoUrl}>
+          <OnboardingWizard
+            currentStep={onboardingStep}
+            tenantName={tenant?.name ?? ""}
+            userName={user.name}
+          />
+        </DashboardShell>
+      </div>
+    );
+  }
 
   // Fetch gamification data for header display
   const LEVEL_THRESHOLDS = [0, 100, 500, 1500, 5000];
