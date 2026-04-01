@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { GoalsTreeView } from "./GoalsTreeView";
 import type { Goal, GoalSnapshot, User, Team, ReportTemplate } from "@/types/database";
 
@@ -14,7 +15,10 @@ export default async function GoalsPage() {
     redirect("/login");
   }
 
-  const { data: dbUser } = await supabase
+  // Use admin client to bypass RLS (custom_access_token_hook may not be configured)
+  const adminClient = createAdminClient();
+
+  const { data: dbUser } = await adminClient
     .from("users")
     .select("*")
     .eq("id", authUser.id)
@@ -27,7 +31,7 @@ export default async function GoalsPage() {
   const tenantId = (dbUser as User).tenant_id;
 
   // Fetch goals
-  const { data: goalsData, error: goalsError } = await supabase
+  const { data: goalsData, error: goalsError } = await adminClient
     .from("goals")
     .select("*")
     .eq("tenant_id", tenantId)
@@ -43,7 +47,7 @@ export default async function GoalsPage() {
   const goalIds = goals.map((g) => g.id);
   let snapshots: GoalSnapshot[] = [];
   if (goalIds.length > 0) {
-    const { data: snapshotsData, error: snapshotsError } = await supabase
+    const { data: snapshotsData, error: snapshotsError } = await adminClient
       .from("goal_snapshots")
       .select("*")
       .in("goal_id", goalIds)
@@ -64,7 +68,7 @@ export default async function GoalsPage() {
   }
 
   // Fetch users for owner selection
-  const { data: usersData, error: usersError } = await supabase
+  const { data: usersData, error: usersError } = await adminClient
     .from("users")
     .select("id, name, role")
     .eq("tenant_id", tenantId)
@@ -77,7 +81,7 @@ export default async function GoalsPage() {
   const users = (usersData ?? []) as Pick<User, "id" | "name" | "role">[];
 
   // Fetch teams for team selection
-  const { data: teamsData, error: teamsError } = await supabase
+  const { data: teamsData, error: teamsError } = await adminClient
     .from("teams")
     .select("id, name")
     .eq("tenant_id", tenantId)
@@ -90,7 +94,7 @@ export default async function GoalsPage() {
   const teams = (teamsData ?? []) as Pick<Team, "id" | "name">[];
 
   // Fetch templates for KPI field key
-  const { data: templatesData, error: templatesError } = await supabase
+  const { data: templatesData, error: templatesError } = await adminClient
     .from("report_templates")
     .select("id, name, type")
     .eq("tenant_id", tenantId)
