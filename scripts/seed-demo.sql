@@ -47,29 +47,41 @@ DECLARE
     'b0000000-0000-0000-0000-000000000002',
     'b0000000-0000-0000-0000-000000000003'
   ];
+  v_tid uuid := 'a0000000-0000-0000-0000-000000000001';
 BEGIN
-  DELETE FROM user_levels   WHERE user_id = ANY(v_ids);
-  DELETE FROM user_badges   WHERE user_id = ANY(v_ids);
-  DELETE FROM peer_bonuses  WHERE from_user_id = ANY(v_ids) OR to_user_id = ANY(v_ids);
-  DELETE FROM reactions     WHERE user_id = ANY(v_ids);
-  DELETE FROM report_comments WHERE user_id = ANY(v_ids);
-  DELETE FROM nudges        WHERE target_user_id = ANY(v_ids);
-  DELETE FROM approval_logs WHERE actor_id = ANY(v_ids);
-  DELETE FROM deals         WHERE user_id = ANY(v_ids);
-  DELETE FROM weekly_plans  WHERE user_id = ANY(v_ids);
-  DELETE FROM report_entries WHERE user_id = ANY(v_ids);
+  -- ユーザー依存テーブル
+  DELETE FROM user_levels     WHERE user_id = ANY(v_ids);
+  DELETE FROM user_badges     WHERE user_id = ANY(v_ids);
+  DELETE FROM reactions       WHERE user_id = ANY(v_ids);
+  DELETE FROM nudges          WHERE target_user_id = ANY(v_ids);
+  DELETE FROM approval_logs   WHERE actor_id = ANY(v_ids);
+  DELETE FROM deals           WHERE user_id = ANY(v_ids);
+  DELETE FROM weekly_plans    WHERE user_id = ANY(v_ids);
+  DELETE FROM report_entries  WHERE user_id = ANY(v_ids);
   DELETE FROM knowledge_posts WHERE user_id = ANY(v_ids);
-  DELETE FROM goals         WHERE owner_id = ANY(v_ids);
-  DELETE FROM team_members  WHERE user_id = ANY(v_ids);
-  DELETE FROM teams         WHERE manager_id = ANY(v_ids);
-  DELETE FROM users         WHERE id = ANY(v_ids);
+  DELETE FROM goals           WHERE owner_id = ANY(v_ids);
+  DELETE FROM team_members    WHERE user_id = ANY(v_ids);
+  DELETE FROM teams           WHERE manager_id = ANY(v_ids);
+  DELETE FROM users           WHERE id = ANY(v_ids);
   DELETE FROM auth.identities WHERE user_id = ANY(v_ids);
-  DELETE FROM auth.users    WHERE id = ANY(v_ids);
-  -- テナント関連データも削除
-  DELETE FROM pipeline_stages  WHERE tenant_id = 'a0000000-0000-0000-0000-000000000001';
-  DELETE FROM report_templates WHERE tenant_id = 'a0000000-0000-0000-0000-000000000001';
-  DELETE FROM feature_requests WHERE tenant_id = 'a0000000-0000-0000-0000-000000000001';
-  DELETE FROM tenants          WHERE id = 'a0000000-0000-0000-0000-000000000001';
+  DELETE FROM auth.users      WHERE id = ANY(v_ids);
+  -- テーブルが存在する場合のみ削除 (未マイグレーション対応)
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'peer_bonuses') THEN
+    EXECUTE 'DELETE FROM peer_bonuses WHERE from_user_id = ANY($1) OR to_user_id = ANY($1)' USING v_ids;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'report_comments') THEN
+    EXECUTE 'DELETE FROM report_comments WHERE user_id = ANY($1)' USING v_ids;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'plan_reviews') THEN
+    EXECUTE 'DELETE FROM plan_reviews WHERE user_id = ANY($1)' USING v_ids;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'feature_requests') THEN
+    EXECUTE 'DELETE FROM feature_requests WHERE tenant_id = $1' USING v_tid;
+  END IF;
+  -- テナント関連
+  DELETE FROM pipeline_stages  WHERE tenant_id = v_tid;
+  DELETE FROM report_templates WHERE tenant_id = v_tid;
+  DELETE FROM tenants          WHERE id = v_tid;
 END $$;
 
 -- Admin: 山本 太郎
@@ -349,18 +361,20 @@ BEGIN
     'approved', v_mgr_id, NOW() - INTERVAL '5 days', 66.7
   ) RETURNING id INTO v_plan_id;
 
-  -- 先週の振り返り
-  INSERT INTO plan_reviews (tenant_id, plan_id, user_id, self_rating, went_well, to_improve, next_actions, manager_id, manager_comment, manager_reviewed_at)
-  VALUES (
-    v_tenant_id, v_plan_id, v_member_id,
-    4,
-    '新規架電は目標達成。A社提案が前進した。',
-    'B社の見積が遅れた。見積作成の時間確保が課題。',
-    '今週はB社見積を最優先で完了させる。',
-    v_mgr_id,
-    '架電頑張りました！見積は社内テンプレート使えば効率化できるので相談してください。',
-    NOW() - INTERVAL '4 days'
-  );
+  -- 先週の振り返り (plan_reviewsテーブルが存在する場合のみ)
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'plan_reviews') THEN
+    INSERT INTO plan_reviews (tenant_id, plan_id, user_id, self_rating, went_well, to_improve, next_actions, manager_id, manager_comment, manager_reviewed_at)
+    VALUES (
+      v_tenant_id, v_plan_id, v_member_id,
+      4,
+      '新規架電は目標達成。A社提案が前進した。',
+      'B社の見積が遅れた。見積作成の時間確保が課題。',
+      '今週はB社見積を最優先で完了させる。',
+      v_mgr_id,
+      '架電頑張りました！見積は社内テンプレート使えば効率化できるので相談してください。',
+      NOW() - INTERVAL '4 days'
+    );
+  END IF;
 
   -- 今週分 (提出済み)
   INSERT INTO weekly_plans (tenant_id, user_id, week_start, template_id, items, status)
@@ -399,21 +413,23 @@ BEGIN
     ARRAY['マネジメント','1on1','コミュニケーション']
   );
 
-  -- ── 11. ピアボーナス ──
-  SELECT id INTO v_report_id FROM report_entries
-  WHERE user_id = v_member_id AND status = 'submitted'
-  ORDER BY report_date DESC LIMIT 1;
+  -- ── 11. ピアボーナス (テーブルが存在する場合のみ) ──
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'peer_bonuses') THEN
+    SELECT id INTO v_report_id FROM report_entries
+    WHERE user_id = v_member_id AND status = 'submitted'
+    ORDER BY report_date DESC LIMIT 1;
 
-  IF v_report_id IS NOT NULL THEN
-    INSERT INTO peer_bonuses (tenant_id, from_user_id, to_user_id, report_entry_id, message, bonus_date)
-    VALUES (v_tenant_id, v_mgr_id, v_member_id, v_report_id, '今週の新規開拓、勢いがあって素晴らしいです！', CURRENT_DATE)
+    IF v_report_id IS NOT NULL THEN
+      INSERT INTO peer_bonuses (tenant_id, from_user_id, to_user_id, report_entry_id, message, bonus_date)
+      VALUES (v_tenant_id, v_mgr_id, v_member_id, v_report_id, '今週の新規開拓、勢いがあって素晴らしいです！', CURRENT_DATE)
+      ON CONFLICT DO NOTHING;
+    END IF;
+
+    INSERT INTO peer_bonuses (tenant_id, from_user_id, to_user_id, message, bonus_date) VALUES
+      (v_tenant_id, v_member_id, v_mgr_id,    '丁寧なフィードバックありがとうございます！', CURRENT_DATE - 1),
+      (v_tenant_id, v_admin_id,  v_member_id, '営業資料の整理、助かりました！',             CURRENT_DATE - 2)
     ON CONFLICT DO NOTHING;
   END IF;
-
-  INSERT INTO peer_bonuses (tenant_id, from_user_id, to_user_id, message, bonus_date) VALUES
-    (v_tenant_id, v_member_id, v_mgr_id,    '丁寧なフィードバックありがとうございます！', CURRENT_DATE - 1),
-    (v_tenant_id, v_admin_id,  v_member_id, '営業資料の整理、助かりました！',             CURRENT_DATE - 2)
-  ON CONFLICT DO NOTHING;
 
   -- ── 12. バッジ ──
   INSERT INTO badges (name, description, icon, condition, rarity) VALUES
