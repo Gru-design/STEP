@@ -241,6 +241,140 @@ export async function deactivateTenant(tenantId: string) {
 }
 
 // --------------------------------------------------------------------------
+// Delete tenant (hard delete — removes all data and auth users)
+// --------------------------------------------------------------------------
+export async function deleteTenant(tenantId: string) {
+  const auth = await requireSuperAdmin();
+  if ("error" in auth && auth.error) {
+    return { success: false, error: auth.error };
+  }
+
+  try {
+    const adminClient = createAdminClient();
+
+    // Prevent deleting the STEP運営 tenant
+    const { data: tenant } = await adminClient
+      .from("tenants")
+      .select("name")
+      .eq("id", tenantId)
+      .single();
+
+    if (tenant?.name === "STEP運営") {
+      return { success: false, error: "運営テナントは削除できません。" };
+    }
+
+    // 1. Get all users belonging to this tenant
+    const { data: tenantUsers } = await adminClient
+      .from("users")
+      .select("id")
+      .eq("tenant_id", tenantId);
+
+    // 2. Delete auth users (users table records cascade-delete from auth.users)
+    for (const u of tenantUsers ?? []) {
+      await adminClient.auth.admin.deleteUser(u.id);
+    }
+
+    // 3. Delete tenant (CASCADE removes teams, team_members, etc.)
+    const { error } = await adminClient
+      .from("tenants")
+      .delete()
+      .eq("id", tenantId);
+
+    if (error) throw error;
+
+    await writeAuditLog({
+      tenantId,
+      userId: auth.user!.id,
+      action: "delete",
+      resource: "tenant",
+      resourceId: tenantId,
+      details: { hard_delete: true },
+    });
+
+    return { success: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[Admin] deleteTenant error:", message, error);
+    return { success: false, error: `テナントの削除に失敗しました: ${message}` };
+  }
+}
+
+// --------------------------------------------------------------------------
+// List users for a specific tenant
+// --------------------------------------------------------------------------
+export async function listTenantUsers(tenantId: string) {
+  const auth = await requireSuperAdmin();
+  if ("error" in auth && auth.error) {
+    return { success: false, error: auth.error };
+  }
+
+  try {
+    const adminClient = createAdminClient();
+
+    const { data, error } = await adminClient
+      .from("users")
+      .select("id, email, name, role, created_at")
+      .eq("tenant_id", tenantId)
+      .order("created_at", { ascending: true });
+
+    if (error) throw error;
+
+    return { success: true, data: data ?? [] };
+  } catch (error) {
+    console.error("[Admin] listTenantUsers error:", error);
+    return { success: false, error: "ユーザー一覧の取得に失敗しました。" };
+  }
+}
+
+// --------------------------------------------------------------------------
+// Delete a specific user (super_admin only)
+// --------------------------------------------------------------------------
+export async function deleteUser(userId: string) {
+  const auth = await requireSuperAdmin();
+  if ("error" in auth && auth.error) {
+    return { success: false, error: auth.error };
+  }
+
+  try {
+    const adminClient = createAdminClient();
+
+    // Prevent deleting yourself
+    if (userId === auth.user!.id) {
+      return { success: false, error: "自分自身は削除できません。" };
+    }
+
+    // Prevent deleting other super_admins
+    const { data: targetUser } = await adminClient
+      .from("users")
+      .select("role, tenant_id")
+      .eq("id", userId)
+      .single();
+
+    if (targetUser?.role === "super_admin") {
+      return { success: false, error: "スーパーアドミンは削除できません。" };
+    }
+
+    // Delete auth user (cascade deletes users table record)
+    const { error: authError } = await adminClient.auth.admin.deleteUser(userId);
+    if (authError) throw authError;
+
+    await writeAuditLog({
+      tenantId: targetUser?.tenant_id ?? "",
+      userId: auth.user!.id,
+      action: "delete",
+      resource: "user",
+      resourceId: userId,
+    });
+
+    return { success: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[Admin] deleteUser error:", message, error);
+    return { success: false, error: `ユーザーの削除に失敗しました: ${message}` };
+  }
+}
+
+// --------------------------------------------------------------------------
 // Get admin stats
 // --------------------------------------------------------------------------
 export async function getAdminStats() {
