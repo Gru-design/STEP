@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect, notFound } from "next/navigation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,32 +27,36 @@ export default async function ReportDetailPage({
     redirect("/login");
   }
 
+  // Use admin client to bypass RLS (super_admin needs cross-tenant access)
+  const adminClient = createAdminClient();
+
   // Fetch report entry with user and template
-  const { data: entry } = await supabase
+  const { data: entry, error: entryError } = await adminClient
     .from("report_entries")
     .select(
       `
       *,
-      users!inner(id, name, avatar_url, email),
-      report_templates!inner(name, type, schema)
+      users(id, name, avatar_url, email),
+      report_templates(name, type, schema)
     `
     )
     .eq("id", id)
     .single();
 
-  if (!entry) {
+  if (!entry || entryError) {
     notFound();
   }
 
   // Fetch reactions
-  const { data: reactions } = await supabase
+  const { data: reactions } = await adminClient
     .from("reactions")
     .select("*")
     .eq("entry_id", id)
     .order("created_at", { ascending: true });
 
-  const user = entry.users as Record<string, unknown>;
-  const template = entry.report_templates as Record<string, unknown>;
+  const user = (entry.users ?? {}) as Record<string, unknown>;
+  const template = (entry.report_templates ?? {}) as Record<string, unknown>;
+  const schema = template.schema as TemplateSchema | null;
 
   const statusLabels: Record<string, { label: string; color: string }> = {
     draft: {
@@ -102,12 +107,16 @@ export default async function ReportDetailPage({
           </h2>
         </CardHeader>
         <CardContent>
-          <DynamicForm
-            schema={template.schema as TemplateSchema}
-            values={(entry.data as Record<string, unknown>) ?? {}}
-            onChange={() => {}}
-            readOnly
-          />
+          {schema ? (
+            <DynamicForm
+              schema={schema}
+              values={(entry.data as Record<string, unknown>) ?? {}}
+              onChange={() => {}}
+              readOnly
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">テンプレートが見つかりません。</p>
+          )}
         </CardContent>
       </Card>
 
