@@ -165,11 +165,12 @@ export async function deleteKnowledgePost(
       return { success: false, error: "ユーザーが見つかりません" };
     }
 
-    // Check ownership or admin
+    // テナント検証 + 所有権チェック
     const { data: post } = await supabase
       .from("knowledge_posts")
       .select("user_id")
       .eq("id", id)
+      .eq("tenant_id", dbUser.tenant_id)
       .single();
 
     if (!post) {
@@ -186,7 +187,8 @@ export async function deleteKnowledgePost(
     const { error } = await supabase
       .from("knowledge_posts")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq("tenant_id", dbUser.tenant_id);
 
     if (error) {
       return { success: false, error: "削除に失敗しました" };

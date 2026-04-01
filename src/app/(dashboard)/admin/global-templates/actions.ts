@@ -104,8 +104,7 @@ export async function createGlobalTemplate(data: CreateGlobalTemplateData) {
       details: supaErr.details,
       hint: supaErr.hint,
     });
-    const detail = supaErr.message ? `: ${supaErr.message}` : "";
-    return { success: false, error: `グローバルテンプレートの作成に失敗しました${detail}` };
+    return { success: false, error: "グローバルテンプレートの作成に失敗しました" };
   }
 }
 
@@ -172,8 +171,7 @@ export async function updateGlobalTemplate(id: string, data: UpdateGlobalTemplat
       details: supaErr.details,
       hint: supaErr.hint,
     });
-    const detail = supaErr.message ? `: ${supaErr.message}` : "";
-    return { success: false, error: `グローバルテンプレートの更新に失敗しました${detail}` };
+    return { success: false, error: "グローバルテンプレートの更新に失敗しました" };
   }
 }
 

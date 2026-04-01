@@ -7,6 +7,8 @@ import { Download, FileText, Users, Briefcase, Target } from "lucide-react";
 import { exportData } from "./actions";
 
 interface ExportClientProps {
+  // tenantId/userId はサーバーアクション内で認証から取得するため不要だが
+  // 既存の page.tsx との互換性のためプロパティは残す
   tenantId: string;
   userId: string;
 }
@@ -48,7 +50,7 @@ export function ExportClient({ tenantId, userId }: ExportClientProps) {
     setLoading(target);
     setError(null);
 
-    const result = await exportData(tenantId, userId, target);
+    const result = await exportData(target);
     if (!result.success) {
       setError(result.error ?? "エクスポートに失敗しました");
       setLoading(null);

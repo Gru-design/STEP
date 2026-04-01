@@ -1,20 +1,28 @@
 import { createClient } from "@/lib/supabase/server";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const userId = searchParams.get("userId");
-  const tenantId = searchParams.get("tenantId");
-
-  if (!userId || !tenantId) {
-    return NextResponse.json(
-      { needsCheckin: false },
-      { status: 400 }
-    );
-  }
-
+export async function GET() {
   try {
     const supabase = await createClient();
+
+    // 認証からユーザー・テナントを取得（クライアントパラメータは使わない）
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ needsCheckin: false }, { status: 401 });
+    }
+
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!dbUser) {
+      return NextResponse.json({ needsCheckin: false }, { status: 401 });
+    }
 
     // Check if today is Monday
     const today = new Date();
@@ -28,7 +36,7 @@ export async function GET(request: NextRequest) {
     const { data: template } = await supabase
       .from("report_templates")
       .select("*")
-      .eq("tenant_id", tenantId)
+      .eq("tenant_id", dbUser.tenant_id)
       .eq("type", "checkin")
       .eq("is_published", true)
       .limit(1)
@@ -42,7 +50,7 @@ export async function GET(request: NextRequest) {
     const { data: existing } = await supabase
       .from("report_entries")
       .select("id")
-      .eq("user_id", userId)
+      .eq("user_id", user.id)
       .eq("template_id", template.id)
       .eq("report_date", todayStr)
       .eq("status", "submitted")
@@ -57,9 +65,6 @@ export async function GET(request: NextRequest) {
       template,
     });
   } catch {
-    return NextResponse.json(
-      { needsCheckin: false },
-      { status: 500 }
-    );
+    return NextResponse.json({ needsCheckin: false }, { status: 500 });
   }
 }

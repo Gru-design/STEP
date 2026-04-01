@@ -82,7 +82,7 @@ export async function createGoal(input: GoalInput): Promise<{
         hint: error.hint,
         tenantId: dbUser.tenant_id,
       });
-      return { success: false, error: `目標の作成に失敗しました: ${error.message}` };
+      return { success: false, error: "目標の作成に失敗しました" };
     }
 
     await writeAuditLog({
@@ -166,7 +166,7 @@ export async function updateGoal(
         message: error.message,
         details: error.details,
       });
-      return { success: false, error: `目標の更新に失敗しました: ${error.message}` };
+      return { success: false, error: "目標の更新に失敗しました" };
     }
 
     await writeAuditLog({
@@ -236,7 +236,7 @@ export async function deleteGoal(
         code: error.code,
         message: error.message,
       });
-      return { success: false, error: `目標の削除に失敗しました: ${error.message}` };
+      return { success: false, error: "目標の削除に失敗しました" };
     }
 
     await writeAuditLog({

@@ -24,7 +24,6 @@ async function requireAdmin() {
 }
 
 export async function inviteUser(
-  tenantId: string,
   email: string,
   name: string,
   role: Role
@@ -33,169 +32,196 @@ export async function inviteUser(
   error?: string;
   user?: { id: string; name: string; email: string; role: string; created_at: string; tempPassword: string };
 }> {
-  const admin = await requireAdmin();
-  if (!admin) return { success: false, error: "権限がありません" };
+  try {
+    const admin = await requireAdmin();
+    if (!admin) return { success: false, error: "権限がありません" };
 
-  const supabase = createAdminClient();
+    // テナントIDは認証済み管理者から取得（クライアント入力は使わない）
+    const tenantId = admin.tenant_id;
+    const supabase = createAdminClient();
 
-  // Create auth user with temporary password
-  const tempPassword = crypto.randomUUID().slice(0, 16) + "Aa1!";
+    // Create auth user with temporary password
+    const tempPassword = crypto.randomUUID().slice(0, 16) + "Aa1!";
 
-  const { data: authData, error: authError } =
-    await supabase.auth.admin.createUser({
-      email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: { tenant_id: tenantId, name, role },
-    });
+    const { data: authData, error: authError } =
+      await supabase.auth.admin.createUser({
+        email,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: { tenant_id: tenantId, name, role },
+      });
 
-  if (authError) {
-    if (authError.message.includes("already been registered")) {
-      return { success: false, error: "このメールアドレスは既に登録されています" };
+    if (authError) {
+      if (authError.message.includes("already been registered")) {
+        return { success: false, error: "このメールアドレスは既に登録されています" };
+      }
+      return { success: false, error: "ユーザーの作成に失敗しました" };
     }
-    return { success: false, error: "ユーザーの作成に失敗しました" };
-  }
 
-  if (!authData.user) {
-    return { success: false, error: "ユーザーの作成に失敗しました" };
-  }
+    if (!authData.user) {
+      return { success: false, error: "ユーザーの作成に失敗しました" };
+    }
 
-  // Check if handle_new_user trigger already created the record
-  const { data: existingUser } = await supabase
-    .from("users")
-    .select("id")
-    .eq("id", authData.user.id)
-    .single();
-
-  if (!existingUser) {
-    await supabase.from("users").insert({
-      id: authData.user.id,
-      tenant_id: tenantId,
-      email,
-      name,
-      role,
-    });
-  } else {
-    // Update role if trigger set default
-    await supabase
+    // Check if handle_new_user trigger already created the record
+    const { data: existingUser } = await supabase
       .from("users")
-      .update({ role })
-      .eq("id", authData.user.id);
+      .select("id")
+      .eq("id", authData.user.id)
+      .single();
+
+    if (!existingUser) {
+      await supabase.from("users").insert({
+        id: authData.user.id,
+        tenant_id: tenantId,
+        email,
+        name,
+        role,
+      });
+    } else {
+      // Update role if trigger set default
+      await supabase
+        .from("users")
+        .update({ role })
+        .eq("id", authData.user.id);
+    }
+
+    await writeAuditLog({
+      tenantId: admin.tenant_id,
+      userId: admin.id,
+      action: "create",
+      resource: "user",
+      resourceId: authData.user.id,
+      details: { email, role },
+    });
+
+    return {
+      success: true,
+      user: {
+        id: authData.user.id,
+        name,
+        email,
+        role,
+        created_at: new Date().toISOString(),
+        tempPassword,
+      },
+    };
+  } catch (err) {
+    console.error("[Users] inviteUser unexpected error:", err);
+    return { success: false, error: "予期しないエラーが発生しました" };
   }
-
-  await writeAuditLog({
-    tenantId: admin.tenant_id,
-    userId: admin.id,
-    action: "create",
-    resource: "user",
-    resourceId: authData.user.id,
-    details: { email, role },
-  });
-
-  return {
-    success: true,
-    user: {
-      id: authData.user.id,
-      name,
-      email,
-      role,
-      created_at: new Date().toISOString(),
-      tempPassword,
-    },
-  };
 }
 
 export async function updateUserRole(
   userId: string,
   newRole: Role
 ): Promise<{ success: boolean; error?: string }> {
-  const admin = await requireAdmin();
-  if (!admin) return { success: false, error: "権限がありません" };
+  try {
+    const admin = await requireAdmin();
+    if (!admin) return { success: false, error: "権限がありません" };
 
-  // super_admin のロール変更を禁止
-  const supabase = createAdminClient();
-  const { data: targetUser } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", userId)
-    .single();
+    // super_admin のロール変更を禁止
+    const supabase = createAdminClient();
+    const { data: targetUser } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", userId)
+      .eq("tenant_id", admin.tenant_id)
+      .single();
 
-  if (targetUser?.role === "super_admin") {
-    return { success: false, error: "スーパーアドミンのロールは変更できません" };
+    if (!targetUser) {
+      return { success: false, error: "対象ユーザーが見つかりません" };
+    }
+
+    if (targetUser.role === "super_admin") {
+      return { success: false, error: "スーパーアドミンのロールは変更できません" };
+    }
+
+    // super_admin への昇格も禁止 (CLIまたはSQL Editorからのみ)
+    if (newRole === "super_admin") {
+      return { success: false, error: "スーパーアドミンへの昇格はできません" };
+    }
+
+    const { error } = await supabase
+      .from("users")
+      .update({ role: newRole })
+      .eq("id", userId)
+      .eq("tenant_id", admin.tenant_id);
+
+    if (error) return { success: false, error: "ロールの更新に失敗しました" };
+
+    // Update auth metadata too
+    await supabase.auth.admin.updateUserById(userId, {
+      user_metadata: { role: newRole },
+    });
+
+    await writeAuditLog({
+      tenantId: admin.tenant_id,
+      userId: admin.id,
+      action: "update",
+      resource: "user",
+      resourceId: userId,
+      details: { new_role: newRole },
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.error("[Users] updateUserRole unexpected error:", err);
+    return { success: false, error: "予期しないエラーが発生しました" };
   }
-
-  // super_admin への昇格も禁止 (CLIまたはSQL Editorからのみ)
-  if (newRole === "super_admin") {
-    return { success: false, error: "スーパーアドミンへの昇格はできません" };
-  }
-
-  const { error } = await supabase
-    .from("users")
-    .update({ role: newRole })
-    .eq("id", userId)
-    .eq("tenant_id", admin.tenant_id);
-
-  if (error) return { success: false, error: "ロールの更新に失敗しました" };
-
-  // Update auth metadata too
-  await supabase.auth.admin.updateUserById(userId, {
-    user_metadata: { role: newRole },
-  });
-
-  await writeAuditLog({
-    tenantId: admin.tenant_id,
-    userId: admin.id,
-    action: "update",
-    resource: "user",
-    resourceId: userId,
-    details: { new_role: newRole },
-  });
-
-  return { success: true };
 }
 
 export async function deactivateUser(
   userId: string
 ): Promise<{ success: boolean; error?: string }> {
-  const admin = await requireAdmin();
-  if (!admin) return { success: false, error: "権限がありません" };
+  try {
+    const admin = await requireAdmin();
+    if (!admin) return { success: false, error: "権限がありません" };
 
-  if (userId === admin.id) {
-    return { success: false, error: "自分自身を無効化することはできません" };
+    if (userId === admin.id) {
+      return { success: false, error: "自分自身を無効化することはできません" };
+    }
+
+    const supabase = createAdminClient();
+
+    // テナント検証 + super_admin の削除を禁止
+    const { data: targetUser } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", userId)
+      .eq("tenant_id", admin.tenant_id)
+      .single();
+
+    if (!targetUser) {
+      return { success: false, error: "対象ユーザーが見つかりません" };
+    }
+
+    if (targetUser.role === "super_admin") {
+      return { success: false, error: "スーパーアドミンは無効化できません" };
+    }
+
+    // Delete from users table (cascade will clean up team_members etc.)
+    const { error } = await supabase
+      .from("users")
+      .delete()
+      .eq("id", userId)
+      .eq("tenant_id", admin.tenant_id);
+
+    if (error) return { success: false, error: "ユーザーの無効化に失敗しました" };
+
+    // Delete auth user
+    await supabase.auth.admin.deleteUser(userId);
+
+    await writeAuditLog({
+      tenantId: admin.tenant_id,
+      userId: admin.id,
+      action: "delete",
+      resource: "user",
+      resourceId: userId,
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.error("[Users] deactivateUser unexpected error:", err);
+    return { success: false, error: "予期しないエラーが発生しました" };
   }
-
-  const supabase = createAdminClient();
-
-  // super_admin の削除を禁止
-  const { data: targetUser } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", userId)
-    .single();
-
-  if (targetUser?.role === "super_admin") {
-    return { success: false, error: "スーパーアドミンは無効化できません" };
-  }
-
-  // Delete from users table (cascade will clean up team_members etc.)
-  const { error } = await supabase
-    .from("users")
-    .delete()
-    .eq("id", userId)
-    .eq("tenant_id", admin.tenant_id);
-
-  if (error) return { success: false, error: "ユーザーの無効化に失敗しました" };
-
-  // Delete auth user
-  await supabase.auth.admin.deleteUser(userId);
-
-  await writeAuditLog({
-    tenantId: admin.tenant_id,
-    userId: admin.id,
-    action: "delete",
-    resource: "user",
-    resourceId: userId,
-  });
-
-  return { success: true };
 }

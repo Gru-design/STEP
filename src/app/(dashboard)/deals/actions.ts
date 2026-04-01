@@ -151,11 +151,22 @@ export async function moveDeal(dealId: string, newStageId: string) {
       return { success: false, error: "認証が必要です" };
     }
 
-    // Get current stage
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!dbUser) {
+      return { success: false, error: "ユーザーが見つかりません" };
+    }
+
+    // Get current stage (テナント検証付き)
     const { data: currentDeal } = await supabase
       .from("deals")
       .select("stage_id")
       .eq("id", dealId)
+      .eq("tenant_id", dbUser.tenant_id)
       .single();
 
     if (!currentDeal) {
@@ -166,11 +177,12 @@ export async function moveDeal(dealId: string, newStageId: string) {
       return { success: true };
     }
 
-    // Update deal stage
+    // Update deal stage (テナント検証付き)
     const { error: updateError } = await supabase
       .from("deals")
       .update({ stage_id: newStageId, updated_at: new Date().toISOString() })
-      .eq("id", dealId);
+      .eq("id", dealId)
+      .eq("tenant_id", dbUser.tenant_id);
 
     if (updateError) {
       return { success: false, error: "ステージの変更に失敗しました" };
