@@ -40,39 +40,59 @@ export default async function DashboardPage() {
   const nowMs = currentTime.getTime();
 
   // ── Member Stats (always fetched) ──
+  // Parallel fetch: streak entries, user level, badges, weekly KPIs
+  const weekStart = new Date();
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
+  const weekStartStr = weekStart.toISOString().split("T")[0];
 
-  // Check today's submission
-  const { data: todayEntry } = await supabase
-    .from("report_entries")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("report_date", today)
-    .eq("status", "submitted")
-    .limit(1);
+  const [recentEntriesResult, userLevelResult, userBadgesResult, weeklyReportsResult] =
+    await Promise.all([
+      // Single query for both today-check and streak calculation
+      supabase
+        .from("report_entries")
+        .select("report_date")
+        .eq("user_id", user.id)
+        .eq("status", "submitted")
+        .order("report_date", { ascending: false })
+        .limit(60),
+      supabase
+        .from("user_levels")
+        .select("level, xp")
+        .eq("user_id", user.id)
+        .single(),
+      supabase
+        .from("user_badges")
+        .select("earned_at, badge_id")
+        .eq("user_id", user.id)
+        .order("earned_at", { ascending: false })
+        .limit(5),
+      supabase
+        .from("report_entries")
+        .select("data")
+        .eq("user_id", user.id)
+        .eq("status", "submitted")
+        .gte("report_date", weekStartStr)
+        .order("report_date", { ascending: false })
+        .limit(1),
+    ]);
 
-  const submittedToday = (todayEntry?.length ?? 0) > 0;
+  const recentEntries = recentEntriesResult.data;
+  const submittedToday =
+    recentEntries != null &&
+    recentEntries.length > 0 &&
+    recentEntries[0].report_date === today;
 
-  // Calculate streak: count consecutive days with submissions going backward
-  const { data: recentEntries } = await supabase
-    .from("report_entries")
-    .select("report_date")
-    .eq("user_id", user.id)
-    .eq("status", "submitted")
-    .order("report_date", { ascending: false })
-    .limit(60);
-
+  // Calculate streak from the same result set
   let streak = 0;
   if (recentEntries && recentEntries.length > 0) {
     const dates = new Set(recentEntries.map((e) => e.report_date));
     const checkDate = new Date();
-    // If not submitted today, start checking from yesterday
     if (!submittedToday) {
       checkDate.setDate(checkDate.getDate() - 1);
     }
     for (let i = 0; i < 60; i++) {
       const dateStr = checkDate.toISOString().split("T")[0];
       const dayOfWeek = checkDate.getDay();
-      // Skip weekends
       if (dayOfWeek === 0 || dayOfWeek === 6) {
         checkDate.setDate(checkDate.getDate() - 1);
         continue;
@@ -86,24 +106,11 @@ export default async function DashboardPage() {
     }
   }
 
-  // User level/XP
-  const { data: userLevel } = await supabase
-    .from("user_levels")
-    .select("level, xp")
-    .eq("user_id", user.id)
-    .single();
+  const level = userLevelResult.data?.level ?? 1;
+  const xp = userLevelResult.data?.xp ?? 0;
 
-  const level = userLevel?.level ?? 1;
-  const xp = userLevel?.xp ?? 0;
-
-  // Recent badges
-  const { data: userBadges } = await supabase
-    .from("user_badges")
-    .select("earned_at, badge_id")
-    .eq("user_id", user.id)
-    .order("earned_at", { ascending: false })
-    .limit(5);
-
+  // Resolve badge details
+  const userBadges = userBadgesResult.data;
   let recentBadges: { name: string; icon: string; earnedAt: string }[] = [];
   if (userBadges && userBadges.length > 0) {
     const badgeIds = userBadges.map((ub) => ub.badge_id);
@@ -128,20 +135,7 @@ export default async function DashboardPage() {
     }
   }
 
-  // Weekly KPIs from latest report
-  const weekStart = new Date();
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
-  const weekStartStr = weekStart.toISOString().split("T")[0];
-
-  const { data: weeklyReports } = await supabase
-    .from("report_entries")
-    .select("data")
-    .eq("user_id", user.id)
-    .eq("status", "submitted")
-    .gte("report_date", weekStartStr)
-    .order("report_date", { ascending: false })
-    .limit(1);
-
+  const weeklyReports = weeklyReportsResult.data;
   const weeklyKPIs: { label: string; value: string }[] = [];
   if (weeklyReports && weeklyReports.length > 0) {
     const reportData = weeklyReports[0].data as Record<string, unknown>;
@@ -185,23 +179,22 @@ export default async function DashboardPage() {
       const memberIds = [...new Set(members?.map((m) => m.user_id) ?? [])];
 
       if (memberIds.length > 0) {
-        const { data: memberUsers } = await supabase
-          .from("users")
-          .select("id, name")
-          .in("id", memberIds);
-
-        const { data: todaySubmissions } = await supabase
-          .from("report_entries")
-          .select("user_id")
-          .in("user_id", memberIds)
-          .eq("report_date", today)
-          .eq("status", "submitted");
+        // Parallel: fetch member details and today's submissions
+        const [memberUsersResult, todaySubmissionsResult] = await Promise.all([
+          supabase.from("users").select("id, name").in("id", memberIds),
+          supabase
+            .from("report_entries")
+            .select("user_id")
+            .in("user_id", memberIds)
+            .eq("report_date", today)
+            .eq("status", "submitted"),
+        ]);
 
         const submittedIds = new Set(
-          todaySubmissions?.map((s) => s.user_id) ?? []
+          todaySubmissionsResult.data?.map((s) => s.user_id) ?? []
         );
 
-        teamMembers = (memberUsers ?? []).map((u) => ({
+        teamMembers = (memberUsersResult.data ?? []).map((u) => ({
           id: u.id,
           name: u.name,
           submitted: submittedIds.has(u.id),
@@ -248,41 +241,48 @@ export default async function DashboardPage() {
         ? Math.round((submittedCount / teamMembers.length) * 100)
         : 0;
 
-    // Weekly trends (last 4 weeks) - simplified calculation
-    const weeklyTrends: { week: string; rate: number }[] = [];
-    for (let w = 3; w >= 0; w--) {
+    // Weekly trends (last 4 weeks) - parallel count queries
+    const weekRanges = [3, 2, 1, 0].map((w) => {
       const wStart = new Date();
       wStart.setDate(wStart.getDate() - wStart.getDay() + 1 - w * 7);
       const wEnd = new Date(wStart);
       wEnd.setDate(wEnd.getDate() + 4); // Mon-Fri
+      return {
+        label: `${wStart.getMonth() + 1}/${wStart.getDate()}`,
+        start: wStart.toISOString().split("T")[0],
+        end: wEnd.toISOString().split("T")[0],
+      };
+    });
 
-      const wStartStr = wStart.toISOString().split("T")[0];
-      const wEndStr = wEnd.toISOString().split("T")[0];
-
-      const { count } = await supabase
-        .from("report_entries")
+    const [weekCountResults, nudgesResult] = await Promise.all([
+      Promise.all(
+        weekRanges.map((wr) =>
+          supabase
+            .from("report_entries")
+            .select("*", { count: "exact", head: true })
+            .eq("tenant_id", tenantId)
+            .eq("status", "submitted")
+            .gte("report_date", wr.start)
+            .lte("report_date", wr.end)
+        )
+      ),
+      supabase
+        .from("nudges")
         .select("*", { count: "exact", head: true })
         .eq("tenant_id", tenantId)
-        .eq("status", "submitted")
-        .gte("report_date", wStartStr)
-        .lte("report_date", wEndStr);
+        .eq("status", "pending"),
+    ]);
 
-      // Approximate: entries / (team members * 5 weekdays)
-      const expected = Math.max(1, teamMembers.length * 5);
-      const rate = Math.min(100, Math.round(((count ?? 0) / expected) * 100));
+    const expected = Math.max(1, teamMembers.length * 5);
+    const weeklyTrends = weekRanges.map((wr, i) => ({
+      week: wr.label,
+      rate: Math.min(
+        100,
+        Math.round(((weekCountResults[i].count ?? 0) / expected) * 100)
+      ),
+    }));
 
-      weeklyTrends.push({
-        week: `${wStart.getMonth() + 1}/${wStart.getDate()}`,
-        rate,
-      });
-    }
-
-    // Pending nudges
-    const { count: pendingNudges } = await supabase
-      .from("nudges")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId)
-      .eq("status", "pending");
+    const pendingNudges = nudgesResult.count;
 
     managerStats = {
       todaySubmissionRate: todayRate,
@@ -299,41 +299,33 @@ export default async function DashboardPage() {
   // ── Admin Stats ──
   let adminStats = undefined;
   if (role === "admin" || role === "super_admin") {
-    // Total users
-    const { count: totalUsers } = await supabase
-      .from("users")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId);
-
-    // Today's submission rate
-    const { count: todaySubmitted } = await supabase
-      .from("report_entries")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId)
-      .eq("report_date", today)
-      .eq("status", "submitted");
-
-    const submissionRate =
-      (totalUsers ?? 0) > 0
-        ? Math.round(((todaySubmitted ?? 0) / (totalUsers ?? 1)) * 100)
-        : 0;
-
-    // Active deals
-    const { count: activeDeals } = await supabase
-      .from("deals")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId)
-      .eq("status", "active");
-
-    // Teams overview — batch queries instead of N+1
-    const [teamsResult, allMembersResult, todayEntriesResult] = await Promise.all([
+    // Parallel: totalUsers, todaySubmitted, activeDeals, teams overview
+    const [
+      totalUsersResult,
+      todaySubmittedResult,
+      activeDealsResult_admin,
+      teamsResult,
+      todayEntriesResult,
+    ] = await Promise.all([
+      supabase
+        .from("users")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenantId),
+      supabase
+        .from("report_entries")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenantId)
+        .eq("report_date", today)
+        .eq("status", "submitted"),
+      supabase
+        .from("deals")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenantId)
+        .eq("status", "active"),
       supabase
         .from("teams")
         .select("id, name")
         .eq("tenant_id", tenantId),
-      supabase
-        .from("team_members")
-        .select("team_id, user_id"),
       supabase
         .from("report_entries")
         .select("user_id")
@@ -342,8 +334,26 @@ export default async function DashboardPage() {
         .eq("status", "submitted"),
     ]);
 
+    const totalUsers = totalUsersResult.count;
+    const todaySubmitted = todaySubmittedResult.count;
+    const activeDeals = activeDealsResult_admin.count;
+    const submissionRate =
+      (totalUsers ?? 0) > 0
+        ? Math.round(((todaySubmitted ?? 0) / (totalUsers ?? 1)) * 100)
+        : 0;
+
     const allTeams = teamsResult.data ?? [];
-    const allMembers = allMembersResult.data ?? [];
+    const teamIdsForAdmin = allTeams.map((t) => t.id);
+
+    // Fetch team_members filtered by tenant's teams
+    const { data: allMembersData } = teamIdsForAdmin.length > 0
+      ? await supabase
+          .from("team_members")
+          .select("team_id, user_id")
+          .in("team_id", teamIdsForAdmin)
+      : { data: [] as { team_id: string; user_id: string }[] };
+
+    const allMembers = allMembersData ?? [];
     const todayEntries = new Set(
       (todayEntriesResult.data ?? []).map((e) => e.user_id)
     );
@@ -359,30 +369,37 @@ export default async function DashboardPage() {
       };
     });
 
-    // Deviation alerts — batch queries instead of N+1
-    const [goalsResult, allSnapshotsResult, ownerUsersResult] = await Promise.all([
-      supabase
-        .from("goals")
-        .select("id, name, target_value, period_start, period_end, owner_id")
-        .eq("tenant_id", tenantId),
-      supabase
-        .from("goal_snapshots")
-        .select("goal_id, progress_rate, snapshot_date")
-        .order("snapshot_date", { ascending: false }),
-      supabase
-        .from("users")
-        .select("id, name")
-        .eq("tenant_id", tenantId),
-    ]);
+    // Deviation alerts — fetch goals first, then snapshots filtered by goal IDs
+    const { data: goalsData } = await supabase
+      .from("goals")
+      .select("id, name, target_value, period_start, period_end, owner_id")
+      .eq("tenant_id", tenantId);
 
-    const goals = goalsResult.data ?? [];
+    const goals = goalsData ?? [];
+    const goalIds = goals.map((g) => g.id);
+
+    // ownerUsersResult already fetched above (skip duplicate), reuse existing data
+    // Fetch snapshots only for this tenant's goals
+    const { data: snapshotsData } = goalIds.length > 0
+      ? await supabase
+          .from("goal_snapshots")
+          .select("goal_id, progress_rate, snapshot_date")
+          .in("goal_id", goalIds)
+          .order("snapshot_date", { ascending: false })
+      : { data: [] as { goal_id: string; progress_rate: number; snapshot_date: string }[] };
+
+    const { data: ownerUsersData } = await supabase
+      .from("users")
+      .select("id, name")
+      .eq("tenant_id", tenantId);
+
     const ownerMap = new Map(
-      (ownerUsersResult.data ?? []).map((u) => [u.id, u.name])
+      (ownerUsersData ?? []).map((u) => [u.id, u.name])
     );
 
     // Get latest snapshot per goal
     const latestSnapshotMap = new Map<string, number>();
-    for (const snap of allSnapshotsResult.data ?? []) {
+    for (const snap of snapshotsData ?? []) {
       if (!latestSnapshotMap.has(snap.goal_id)) {
         latestSnapshotMap.set(snap.goal_id, Number(snap.progress_rate));
       }
@@ -452,21 +469,22 @@ export default async function DashboardPage() {
   // ── Approval Stats (for managers) ──
   let approvalStats = undefined;
   if (role === "manager" || role === "admin" || role === "super_admin") {
-    const { count: pendingPlans } = await supabase
-      .from("weekly_plans")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId)
-      .eq("status", "submitted");
-
-    const { count: pendingDeals } = await supabase
-      .from("deals")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId)
-      .eq("status", "submitted" as string);
+    const [pendingPlansResult, pendingDealsResult] = await Promise.all([
+      supabase
+        .from("weekly_plans")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenantId)
+        .eq("status", "submitted"),
+      supabase
+        .from("deals")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenantId)
+        .eq("status", "submitted" as string),
+    ]);
 
     approvalStats = {
-      pendingPlans: pendingPlans ?? 0,
-      pendingDeals: pendingDeals ?? 0,
+      pendingPlans: pendingPlansResult.count ?? 0,
+      pendingDeals: pendingDealsResult.count ?? 0,
     };
   }
 
