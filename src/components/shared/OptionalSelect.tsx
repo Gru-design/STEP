@@ -41,6 +41,8 @@ interface OptionalSelectProps {
   noneLabel?: string;
   /** Controlled: 現在の値（null = 未選択） */
   value?: string | null;
+  /** Uncontrolled: 初期値 */
+  defaultValue?: string | null;
   /** Controlled: 値変更コールバック */
   onValueChange?: (value: string | null) => void;
   /** 子要素（SelectItem のリスト） */
@@ -54,6 +56,7 @@ export function OptionalSelect({
   placeholder,
   noneLabel = "なし",
   value,
+  defaultValue,
   onValueChange,
   children,
   disabled,
@@ -71,7 +74,10 @@ export function OptionalSelect({
       disabled={disabled}
       {...(isControlled
         ? { value: value ?? NONE_SENTINEL, onValueChange: handleChange }
-        : { onValueChange: onValueChange ? handleChange : undefined })}
+        : {
+            defaultValue: defaultValue ?? NONE_SENTINEL,
+            onValueChange: onValueChange ? handleChange : undefined,
+          })}
     >
       <SelectTrigger>
         <SelectValue placeholder={placeholder} />

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import type { WeeklyPlan, ReportTemplate, ApprovalLog } from "@/types/database";
 import { PlansPageClient } from "./PlansPageClient";
 import { ApprovalQueueClient } from "./ApprovalQueueClient";
+import { ApprovedPlansClient } from "./ApprovedPlansClient";
 
 export interface PlanWithUser extends WeeklyPlan {
   user_name: string;
@@ -97,6 +98,33 @@ export default async function PlansPage({
   // For managers: fetch submitted plans from the same tenant (excluding own)
   let pendingPlans: PlanWithUser[] = [];
   let pendingApprovalLogs: (ApprovalLog & { actor_name?: string })[] = [];
+  let approvedPlans: PlanWithUser[] = [];
+  let approvedPlanLogs: (ApprovalLog & { actor_name?: string })[] = [];
+
+  function mapPlanRows(
+    rows: Record<string, unknown>[],
+    statusType?: string
+  ): PlanWithUser[] {
+    return rows.map((row) => {
+      const user = row.users as Record<string, unknown>;
+      return {
+        id: row.id as string,
+        tenant_id: row.tenant_id as string,
+        user_id: row.user_id as string,
+        week_start: row.week_start as string,
+        template_id: row.template_id as string | null,
+        items: row.items as Record<string, unknown>,
+        status: (statusType ?? row.status) as "submitted",
+        approved_by: row.approved_by as string | null,
+        approved_at: row.approved_at as string | null,
+        execution_rate: row.execution_rate as number | null,
+        created_at: row.created_at as string,
+        updated_at: row.updated_at as string,
+        user_name: (user?.name as string) ?? "",
+        user_email: (user?.email as string) ?? "",
+      };
+    });
+  }
 
   if (isManager) {
     const { data: pendingData } = await supabase
@@ -107,26 +135,8 @@ export default async function PlansPage({
       .neq("user_id", dbUser.id)
       .order("updated_at", { ascending: false });
 
-    pendingPlans = ((pendingData ?? []) as Record<string, unknown>[]).map(
-      (row) => {
-        const user = row.users as Record<string, unknown>;
-        return {
-          id: row.id as string,
-          tenant_id: row.tenant_id as string,
-          user_id: row.user_id as string,
-          week_start: row.week_start as string,
-          template_id: row.template_id as string | null,
-          items: row.items as Record<string, unknown>,
-          status: row.status as "submitted",
-          approved_by: row.approved_by as string | null,
-          approved_at: row.approved_at as string | null,
-          execution_rate: row.execution_rate as number | null,
-          created_at: row.created_at as string,
-          updated_at: row.updated_at as string,
-          user_name: (user?.name as string) ?? "",
-          user_email: (user?.email as string) ?? "",
-        };
-      }
+    pendingPlans = mapPlanRows(
+      (pendingData ?? []) as Record<string, unknown>[]
     );
 
     // Fetch approval logs for pending plans
@@ -141,6 +151,35 @@ export default async function PlansPage({
 
       pendingApprovalLogs = parseApprovalLogs(
         (pendingLogsData ?? []) as Record<string, unknown>[]
+      );
+    }
+
+    // Fetch approved/rejected plans (recent 20, excluding own)
+    const { data: approvedData } = await supabase
+      .from("weekly_plans")
+      .select("*, users!weekly_plans_user_id_fkey(name, email)")
+      .eq("tenant_id", dbUser.tenant_id)
+      .in("status", ["approved", "rejected"])
+      .neq("user_id", dbUser.id)
+      .order("updated_at", { ascending: false })
+      .limit(20);
+
+    approvedPlans = mapPlanRows(
+      (approvedData ?? []) as Record<string, unknown>[]
+    );
+
+    // Fetch approval logs for approved plans
+    const approvedPlanIds = approvedPlans.map((p) => p.id);
+    if (approvedPlanIds.length > 0) {
+      const { data: approvedLogsData } = await supabase
+        .from("approval_logs")
+        .select("*, users!inner(name)")
+        .eq("target_type", "weekly_plan")
+        .in("target_id", approvedPlanIds)
+        .order("created_at", { ascending: true });
+
+      approvedPlanLogs = parseApprovalLogs(
+        (approvedLogsData ?? []) as Record<string, unknown>[]
       );
     }
   }
@@ -184,6 +223,16 @@ export default async function PlansPage({
               </span>
             )}
           </a>
+          <a
+            href="/plans?tab=approved"
+            className={`flex-1 rounded-md px-4 py-2 text-center text-sm font-medium transition-colors ${
+              activeTab === "approved"
+                ? "bg-white text-primary shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            承認済み
+          </a>
         </div>
       )}
 
@@ -192,6 +241,12 @@ export default async function PlansPage({
           pendingPlans={pendingPlans}
           templates={templates}
           approvalLogs={pendingApprovalLogs}
+        />
+      ) : activeTab === "approved" && isManager ? (
+        <ApprovedPlansClient
+          plans={approvedPlans}
+          templates={templates}
+          approvalLogs={approvedPlanLogs}
         />
       ) : (
         <PlansPageClient
