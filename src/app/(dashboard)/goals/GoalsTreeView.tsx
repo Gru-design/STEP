@@ -233,23 +233,29 @@ export function GoalsTreeView({
     }
   };
 
+  const NONE_VALUE = "__none__";
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
 
     const formData = new FormData(e.currentTarget);
+    const optionalField = (key: string) => {
+      const v = formData.get(key) as string;
+      return v && v !== NONE_VALUE ? v : undefined;
+    };
     const result = await createGoal({
       name: formData.get("name") as string,
       level: formData.get("level") as GoalLevel,
       target_value: Number(formData.get("target_value")),
       kpi_field_key: (formData.get("kpi_field_key") as string) || undefined,
-      template_id: (formData.get("template_id") as string) || undefined,
+      template_id: optionalField("template_id"),
       period_start: formData.get("period_start") as string,
       period_end: formData.get("period_end") as string,
-      owner_id: (formData.get("owner_id") as string) || undefined,
-      team_id: (formData.get("team_id") as string) || undefined,
-      parent_id: (formData.get("parent_id") as string) || undefined,
+      owner_id: optionalField("owner_id"),
+      team_id: optionalField("team_id"),
+      parent_id: optionalField("parent_id"),
     });
 
     setIsSubmitting(false);
@@ -338,7 +344,7 @@ export function GoalsTreeView({
                       <SelectValue placeholder="テンプレート選択（任意）" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">なし</SelectItem>
+                      <SelectItem value={NONE_VALUE}>なし</SelectItem>
                       {templates.map((t) => (
                         <SelectItem key={t.id} value={t.id}>
                           {t.name}
@@ -377,7 +383,7 @@ export function GoalsTreeView({
                         <SelectValue placeholder="担当者選択（任意）" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">なし</SelectItem>
+                        <SelectItem value={NONE_VALUE}>なし</SelectItem>
                         {users.map((u) => (
                           <SelectItem key={u.id} value={u.id}>
                             {u.name}
@@ -393,7 +399,7 @@ export function GoalsTreeView({
                         <SelectValue placeholder="チーム選択（任意）" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">なし</SelectItem>
+                        <SelectItem value={NONE_VALUE}>なし</SelectItem>
                         {teams.map((t) => (
                           <SelectItem key={t.id} value={t.id}>
                             {t.name}
@@ -411,7 +417,7 @@ export function GoalsTreeView({
                       <SelectValue placeholder="親目標選択（任意）" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">なし（ルート目標）</SelectItem>
+                      <SelectItem value={NONE_VALUE}>なし（ルート目標）</SelectItem>
                       {goals.map((g) => (
                         <SelectItem key={g.id} value={g.id}>
                           [{levelLabels[g.level]}] {g.name}
