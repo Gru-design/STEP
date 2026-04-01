@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkSubmissionReminder, checkMotivationDrop } from "@/lib/nudge/engine";
@@ -12,11 +13,17 @@ export const dynamic = "force-dynamic";
  * Schedule: "0 8,9 * * 1-5" (UTC) = 17:00, 18:00 JST on weekdays
  */
 export async function GET(request: Request) {
-  // Verify CRON_SECRET for security
+  // Verify CRON_SECRET for security (timing-safe comparison)
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || !authHeader) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const expected = Buffer.from(cronSecret, "utf-8");
+  const received = Buffer.from(authHeader.replace("Bearer ", ""), "utf-8");
+  if (expected.length !== received.length || !crypto.timingSafeEqual(expected, received)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

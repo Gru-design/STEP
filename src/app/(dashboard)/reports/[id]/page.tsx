@@ -88,22 +88,6 @@ export default async function ReportDetailPage({
     });
   }
 
-  // --- DEBUG: Log data shapes to diagnose rendering errors ---
-  const rawSchema = entryTemplate?.schema;
-  console.log("[ReportDetail] DEBUG data shapes:", {
-    entryId: id,
-    entryKeys: entry ? Object.keys(entry) : "null",
-    entryStatus: entry?.status,
-    entryDataType: typeof entry?.data,
-    entryDataKeys: entry?.data && typeof entry.data === "object" ? Object.keys(entry.data as object) : String(entry?.data),
-    templateFound: !!entryTemplate,
-    schemaType: typeof rawSchema,
-    schemaHasSections: rawSchema && typeof rawSchema === "object" && "sections" in (rawSchema as object),
-    schemaSectionsIsArray: rawSchema && typeof rawSchema === "object" && "sections" in (rawSchema as object) && Array.isArray((rawSchema as Record<string, unknown>).sections),
-    reactionsCount: reactions?.length ?? 0,
-    reactionsIsArray: Array.isArray(reactions),
-  });
-
   const user = (entryUser ?? {}) as Record<string, unknown>;
   const template = (entryTemplate ?? {}) as Record<string, unknown>;
 
