@@ -111,9 +111,11 @@ export async function createTenant(data: CreateTenantData) {
     if (tenantError) throw tenantError;
 
     // 2. Create admin user via Supabase Auth
+    const tempPassword = crypto.randomUUID().slice(0, 16) + "Aa1!";
     const { data: authUser, error: authError } =
       await adminClient.auth.admin.createUser({
         email: data.adminEmail,
+        password: tempPassword,
         email_confirm: true,
         user_metadata: {
           tenant_id: tenant.id,
@@ -124,16 +126,30 @@ export async function createTenant(data: CreateTenantData) {
 
     if (authError) throw authError;
 
-    // 3. Create user record in users table
-    const { error: userError } = await adminClient.from("users").insert({
-      id: authUser.user.id,
-      tenant_id: tenant.id,
-      email: data.adminEmail,
-      name: data.adminName,
-      role: "admin",
-    });
+    // 3. handle_new_user trigger may have already created the user record
+    const { data: existingUser } = await adminClient
+      .from("users")
+      .select("id")
+      .eq("id", authUser.user.id)
+      .single();
 
-    if (userError) throw userError;
+    if (existingUser) {
+      // Trigger created it — ensure role is correct
+      await adminClient
+        .from("users")
+        .update({ role: "admin", name: data.adminName })
+        .eq("id", authUser.user.id);
+    } else {
+      const { error: userError } = await adminClient.from("users").insert({
+        id: authUser.user.id,
+        tenant_id: tenant.id,
+        email: data.adminEmail,
+        name: data.adminName,
+        role: "admin",
+      });
+
+      if (userError) throw userError;
+    }
 
     await writeAuditLog({
       tenantId: tenant.id,
@@ -146,8 +162,9 @@ export async function createTenant(data: CreateTenantData) {
 
     return { success: true, data: tenant };
   } catch (error) {
-    console.error("[Admin] createTenant error:", error);
-    return { success: false, error: "テナントの作成に失敗しました。" };
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[Admin] createTenant error:", message, error);
+    return { success: false, error: `テナントの作成に失敗しました: ${message}` };
   }
 }
 
