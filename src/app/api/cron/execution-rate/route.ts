@@ -76,6 +76,15 @@ export async function GET(request: Request) {
       for (const plan of plans) {
         try {
           await updateExecutionRate(supabase, plan.id);
+
+          // Transition approved plans to review_pending
+          // so members are prompted to do their weekly review
+          await supabase
+            .from("weekly_plans")
+            .update({ status: "review_pending", updated_at: new Date().toISOString() })
+            .eq("id", plan.id)
+            .eq("status", "approved");
+
           stats.plansUpdated++;
         } catch (error) {
           console.error(

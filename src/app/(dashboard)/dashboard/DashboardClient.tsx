@@ -34,6 +34,7 @@ import {
   Star,
   Heart,
   Gift,
+  ClipboardCheck,
 } from "lucide-react";
 import type { Role, User } from "@/types/database";
 
@@ -43,6 +44,12 @@ interface PeerBonusStats {
   totalReceived: number;
   sentToday: boolean;
   recentReceived: { fromName: string; message: string; date: string }[];
+}
+
+interface PendingReview {
+  planId: string;
+  weekStart: string;
+  executionRate: number | null;
 }
 
 interface GoalProgress {
@@ -65,6 +72,7 @@ interface MemberStats {
   xpForNextLevel: number;
   goalsProgress: GoalProgress[];
   recentBadges: { name: string; icon: string; earnedAt: string }[];
+  pendingReview?: PendingReview | null;
   peerBonus?: PeerBonusStats;
 }
 
@@ -215,6 +223,41 @@ function ReportCTABanner({ submitted }: { submitted: boolean }) {
         </div>
       </div>
       <ArrowRight className="h-5 w-5 text-primary motion-safe:transition-transform group-hover:translate-x-1" />
+    </Link>
+  );
+}
+
+// -- Pending Review Banner --
+
+function PendingReviewBanner({ review }: { review: PendingReview }) {
+  const weekEnd = new Date(review.weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  const range = `${new Date(review.weekStart).toLocaleDateString("ja-JP", { month: "short", day: "numeric" })} - ${weekEnd.toLocaleDateString("ja-JP", { month: "short", day: "numeric" })}`;
+
+  return (
+    <Link
+      href="/plans"
+      className="group flex items-center justify-between rounded-xl border-2 border-amber-200 bg-amber-50/50 px-5 py-4 motion-safe:transition-all hover:border-amber-300 hover:shadow-md active:scale-[0.99]"
+    >
+      <div className="flex items-center gap-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+          <ClipboardCheck className="h-5 w-5 text-amber-600" />
+        </div>
+        <div>
+          <p className="text-sm font-bold text-foreground">
+            先週の振り返りをしましょう
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {range}
+            {review.executionRate !== null && (
+              <span className="ml-2 font-mono">
+                実行率 {Math.round(review.executionRate)}%
+              </span>
+            )}
+          </p>
+        </div>
+      </div>
+      <ChevronRight className="h-5 w-5 text-amber-500 motion-safe:transition-transform group-hover:translate-x-1" />
     </Link>
   );
 }
@@ -833,6 +876,11 @@ export function DashboardClient({
 
       {/* CTA: Write today's report */}
       {memberStats && <ReportCTABanner submitted={memberStats.submittedToday} />}
+
+      {/* Pending review prompt */}
+      {memberStats?.pendingReview && (
+        <PendingReviewBanner review={memberStats.pendingReview} />
+      )}
 
       {/* Approval section for managers */}
       {approvalStats &&

@@ -240,7 +240,7 @@ export interface GoalSnapshot {
 
 // ── Weekly Plans ──
 
-export type PlanStatus = "draft" | "submitted" | "approved" | "rejected";
+export type PlanStatus = "draft" | "submitted" | "approved" | "rejected" | "review_pending" | "reviewed";
 
 export interface WeeklyPlan {
   id: string;
@@ -253,6 +253,24 @@ export interface WeeklyPlan {
   approved_by: string | null;
   approved_at: string | null;
   execution_rate: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── Plan Reviews ──
+
+export interface PlanReview {
+  id: string;
+  tenant_id: string;
+  plan_id: string;
+  user_id: string;
+  self_rating: number | null;
+  went_well: string | null;
+  to_improve: string | null;
+  next_actions: string | null;
+  manager_id: string | null;
+  manager_comment: string | null;
+  manager_reviewed_at: string | null;
   created_at: string;
   updated_at: string;
 }

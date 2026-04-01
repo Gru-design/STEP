@@ -16,14 +16,18 @@ import type {
   WeeklyPlan,
   ReportTemplate,
   ApprovalLog,
+  PlanReview,
   TemplateSchema,
 } from "@/types/database";
 import { createOrUpdatePlan, submitPlan } from "./actions";
+import { WeeklyReviewForm } from "@/components/plans/WeeklyReviewForm";
+import { ReviewCard } from "@/components/plans/ReviewCard";
 
 interface PlansPageClientProps {
   plans: WeeklyPlan[];
   templates: ReportTemplate[];
   approvalLogs: (ApprovalLog & { actor_name?: string })[];
+  planReviews?: PlanReview[];
   isManager: boolean;
   userId: string;
 }
@@ -57,13 +61,16 @@ const statusConfig: Record<
   submitted: { label: "提出済", bg: "bg-blue-100", text: "text-blue-700" },
   approved: { label: "承認済", bg: "bg-green-100", text: "text-green-700" },
   rejected: { label: "差し戻し", bg: "bg-red-100", text: "text-red-700" },
+  review_pending: { label: "振り返り待ち", bg: "bg-amber-50", text: "text-amber-700" },
+  reviewed: { label: "振り返り済", bg: "bg-primary-light", text: "text-primary" },
 };
 
 export function PlansPageClient({
   plans,
   templates,
   approvalLogs,
-  isManager: _isManager,
+  planReviews = [],
+  isManager,
   userId: _userId,
 }: PlansPageClientProps) {
   const currentMonday = getMonday(new Date()).toISOString().split("T")[0];
@@ -341,6 +348,22 @@ export function PlansPageClient({
                 logs={currentPlanLogs}
               />
             )}
+
+          {/* Review section for current plan */}
+          {currentPlan && (currentPlan.status === "review_pending" || currentPlan.status === "approved") && !planReviews.find((r) => r.plan_id === currentPlan.id) && (
+            <WeeklyReviewForm
+              planId={currentPlan.id}
+              weekRange={formatWeekRange(currentPlan.week_start)}
+              executionRate={currentPlan.execution_rate}
+            />
+          )}
+          {currentPlan && planReviews.find((r) => r.plan_id === currentPlan.id) && (
+            <ReviewCard
+              review={planReviews.find((r) => r.plan_id === currentPlan.id)!}
+              isManager={isManager}
+              planId={currentPlan.id}
+            />
+          )}
         </div>
       </div>
 
@@ -408,6 +431,21 @@ export function PlansPageClient({
                           currentStatus={plan.status}
                           isManager={false}
                           logs={planLogs}
+                        />
+                      )}
+                      {/* Review for past plan */}
+                      {(plan.status === "review_pending" || plan.status === "approved") && !planReviews.find((r) => r.plan_id === plan.id) && (
+                        <WeeklyReviewForm
+                          planId={plan.id}
+                          weekRange={formatWeekRange(plan.week_start)}
+                          executionRate={plan.execution_rate}
+                        />
+                      )}
+                      {planReviews.find((r) => r.plan_id === plan.id) && (
+                        <ReviewCard
+                          review={planReviews.find((r) => r.plan_id === plan.id)!}
+                          isManager={isManager}
+                          planId={plan.id}
                         />
                       )}
                     </div>

@@ -9,7 +9,8 @@ export type XPAction =
   | "knowledge"
   | "goal_achieved"
   | "peer_bonus_send"
-  | "peer_bonus_receive";
+  | "peer_bonus_receive"
+  | "weekly_review";
 
 export const XP_VALUES: Record<XPAction, number> = {
   daily_report: 10,
@@ -20,6 +21,7 @@ export const XP_VALUES: Record<XPAction, number> = {
   goal_achieved: 50,
   peer_bonus_send: 3,
   peer_bonus_receive: 5,
+  weekly_review: 10,
 };
 
 /**

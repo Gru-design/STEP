@@ -275,6 +275,24 @@ export default async function DashboardPage() {
     }
   }
 
+  // ── Pending Review Check ──
+  const { data: pendingReviewPlan } = await supabase
+    .from("weekly_plans")
+    .select("id, week_start, execution_rate")
+    .eq("user_id", user.id)
+    .eq("status", "review_pending")
+    .order("week_start", { ascending: false })
+    .limit(1)
+    .single();
+
+  const pendingReview = pendingReviewPlan
+    ? {
+        planId: pendingReviewPlan.id,
+        weekStart: pendingReviewPlan.week_start,
+        executionRate: pendingReviewPlan.execution_rate as number | null,
+      }
+    : null;
+
   const memberStats = {
     submittedToday,
     streak,
@@ -283,6 +301,7 @@ export default async function DashboardPage() {
     xpForNextLevel: getNextLevelXP(level),
     goalsProgress,
     recentBadges,
+    pendingReview,
     peerBonus: {
       totalReceived: totalReceivedResult.count ?? 0,
       sentToday: !!sentTodayResult.data,
