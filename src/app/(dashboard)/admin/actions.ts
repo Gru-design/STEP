@@ -160,7 +160,7 @@ export async function createTenant(data: CreateTenantData) {
       details: { name: data.name },
     });
 
-    return { success: true, data: tenant };
+    return { success: true, data: { ...tenant, tempPassword } };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[Admin] createTenant error:", message, error);

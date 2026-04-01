@@ -47,6 +47,11 @@ export function AdminDashboard({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    email: string;
+    password: string;
+    tenantName: string;
+  } | null>(null);
 
   // Create tenant form state
   const [newTenant, setNewTenant] = useState({
@@ -74,9 +79,13 @@ export function AdminDashboard({
     startTransition(async () => {
       setError(null);
       const result = await createTenant(newTenant);
-      if (result.success) {
-        setSuccess("テナントを作成しました。");
+      if (result.success && result.data) {
         setShowCreateDialog(false);
+        setCreatedCredentials({
+          email: newTenant.adminEmail,
+          password: result.data.tempPassword,
+          tenantName: newTenant.name,
+        });
         setNewTenant({ name: "", plan: "free", adminEmail: "", adminName: "" });
         // Refresh list
         const refreshed = await listAllTenants({ page: 1, perPage: 50 });
@@ -297,6 +306,56 @@ export function AdminDashboard({
                 className="px-4 py-2 rounded-lg bg-navy text-white text-sm hover:bg-navy/90 transition-colors disabled:opacity-50"
               >
                 {isPending ? "作成中..." : "作成"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Created credentials dialog */}
+      {createdCredentials && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg border border-border w-full max-w-md p-6">
+            <h3 className="text-lg font-bold text-navy mb-2">
+              テナントを作成しました
+            </h3>
+            <p className="text-sm text-gray mb-4">
+              以下のログイン情報を管理者に共有してください。このダイアログを閉じるとパスワードは再表示できません。
+            </p>
+            <div className="space-y-3 bg-light-bg rounded-lg p-4 border border-border">
+              <div>
+                <p className="text-xs text-gray">テナント</p>
+                <p className="font-medium text-dark">{createdCredentials.tenantName}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray">メールアドレス</p>
+                <p className="font-mono text-dark">{createdCredentials.email}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray">初期パスワード</p>
+                <p className="font-mono text-dark select-all">{createdCredentials.password}</p>
+              </div>
+            </div>
+            <p className="text-xs text-red-500 mt-3">
+              ※ 初回ログイン後、パスワードの変更を推奨します。
+            </p>
+            <div className="flex gap-3 mt-4 justify-end">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    `テナント: ${createdCredentials.tenantName}\nメール: ${createdCredentials.email}\nパスワード: ${createdCredentials.password}`
+                  );
+                  setSuccess("クリップボードにコピーしました。");
+                }}
+                className="px-4 py-2 rounded-lg border border-border text-sm text-dark hover:bg-mid-bg transition-colors"
+              >
+                コピー
+              </button>
+              <button
+                onClick={() => setCreatedCredentials(null)}
+                className="px-4 py-2 rounded-lg bg-navy text-white text-sm hover:bg-navy/90 transition-colors"
+              >
+                閉じる
               </button>
             </div>
           </div>
