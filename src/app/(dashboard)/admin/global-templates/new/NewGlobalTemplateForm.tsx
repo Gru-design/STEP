@@ -128,7 +128,7 @@ export function NewGlobalTemplateForm() {
 
           <div className="space-y-2">
             <Label>対象ロール</Label>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               {roleOptions.map((opt) => (
                 <label
                   key={opt.value}
@@ -193,7 +193,7 @@ export function NewGlobalTemplateForm() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-end gap-3">
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3">
         <Button
           variant="outline"
           onClick={() => router.push("/admin/global-templates")}
