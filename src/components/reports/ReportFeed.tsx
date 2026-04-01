@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { SelectItem } from "@/components/ui/select";
+import { OptionalSelect } from "@/components/shared/OptionalSelect";
 import { FileText } from "lucide-react";
 
 export interface ReportFeedEntry {
@@ -80,18 +82,18 @@ export function ReportFeed({ entries, members, defaultTeamMemberIds }: ReportFee
           <label className="text-sm text-muted-foreground whitespace-nowrap">
             メンバー
           </label>
-          <select
-            value={memberFilter}
-            onChange={(e) => setMemberFilter(e.target.value)}
-            className="flex h-10 rounded-lg border border-border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+          <OptionalSelect
+            value={memberFilter || null}
+            onValueChange={(v) => setMemberFilter(v ?? "")}
+            placeholder="メンバー選択"
+            noneLabel="全員"
           >
-            <option value="">全員</option>
             {members.map((m) => (
-              <option key={m.id} value={m.id}>
+              <SelectItem key={m.id} value={m.id}>
                 {m.name}
-              </option>
+              </SelectItem>
             ))}
-          </select>
+          </OptionalSelect>
         </div>
         {defaultTeamMemberIds && (
           <button
