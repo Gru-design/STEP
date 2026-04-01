@@ -53,7 +53,9 @@ export function ApprovalQueueClient({
     pendingPlans.length === 1 ? pendingPlans[0].id : null
   );
   const [rejectingPlanId, setRejectingPlanId] = useState<string | null>(null);
+  const [approvingPlanId, setApprovingPlanId] = useState<string | null>(null);
   const [rejectComment, setRejectComment] = useState("");
+  const [approveComment, setApproveComment] = useState("");
   const [processing, setProcessing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -72,10 +74,12 @@ export function ApprovalQueueClient({
     setError(null);
     setSuccessMsg(null);
 
-    const result = await approvePlan(planId);
+    const result = await approvePlan(planId, approveComment.trim() || undefined);
     setProcessing(null);
 
     if (result.success) {
+      setApprovingPlanId(null);
+      setApproveComment("");
       setSuccessMsg("承認しました");
       setTimeout(() => setSuccessMsg(null), 3000);
     } else {
@@ -139,6 +143,7 @@ export function ApprovalQueueClient({
       {pendingPlans.map((plan) => {
         const isExpanded = expandedPlanId === plan.id;
         const isRejecting = rejectingPlanId === plan.id;
+        const isApproving = approvingPlanId === plan.id;
         const isProcessing = processing === plan.id;
         const planTemplate = templates.find((t) => t.id === plan.template_id);
         const planLogs = logsByPlan[plan.id] ?? [];
@@ -250,20 +255,25 @@ export function ApprovalQueueClient({
                     承認アクション
                   </p>
 
-                  {!isRejecting ? (
+                  {!isRejecting && !isApproving ? (
                     <div className="flex items-center gap-3">
                       <Button
-                        onClick={() => handleApprove(plan.id)}
+                        onClick={() => {
+                          setApprovingPlanId(plan.id);
+                          setRejectingPlanId(null);
+                          setError(null);
+                        }}
                         disabled={isProcessing}
                         className="bg-success hover:bg-success/90 text-white"
                       >
                         <CheckCircle2 className="mr-1 h-4 w-4" />
-                        {isProcessing ? "処理中..." : "承認"}
+                        承認
                       </Button>
                       <Button
                         variant="outline"
                         onClick={() => {
                           setRejectingPlanId(plan.id);
+                          setApprovingPlanId(null);
                           setError(null);
                         }}
                         disabled={isProcessing}
@@ -272,6 +282,38 @@ export function ApprovalQueueClient({
                         <XCircle className="mr-1 h-4 w-4" />
                         差し戻し
                       </Button>
+                    </div>
+                  ) : isApproving ? (
+                    <div className="space-y-3">
+                      <Textarea
+                        value={approveComment}
+                        onChange={(e) => setApproveComment(e.target.value)}
+                        placeholder="承認コメント（任意）"
+                        rows={2}
+                        className="border-border"
+                      />
+                      <div className="flex items-center gap-3">
+                        <Button
+                          onClick={() => handleApprove(plan.id)}
+                          disabled={isProcessing}
+                          className="bg-success hover:bg-success/90 text-white"
+                        >
+                          <CheckCircle2 className="mr-1 h-4 w-4" />
+                          {isProcessing ? "処理中..." : "承認する"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setApprovingPlanId(null);
+                            setApproveComment("");
+                            setError(null);
+                          }}
+                          disabled={isProcessing}
+                          className="border-border"
+                        >
+                          キャンセル
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-3">

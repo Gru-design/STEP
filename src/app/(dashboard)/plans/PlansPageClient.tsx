@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { DynamicForm } from "@/components/reports/DynamicForm";
 import { ApprovalFlow } from "@/components/shared/ApprovalFlow";
-import { FileEdit, ChevronRight, Calendar } from "lucide-react";
+import { FileEdit, ChevronRight, Calendar, CheckCircle2 } from "lucide-react";
 import type {
   WeeklyPlan,
   ReportTemplate,
@@ -85,8 +85,9 @@ export function PlansPageClient({
     [currentPlan, approvalLogs]
   );
 
-  // Find rejection comment
+  // Find rejection/approval comment
   const rejectionLog = currentPlanLogs.find((l) => l.action === "rejected");
+  const approvalLog = currentPlanLogs.find((l) => l.action === "approved");
 
   const handleSaveDraft = async () => {
     if (!selectedTemplate) return;
@@ -204,6 +205,26 @@ export function PlansPageClient({
                 {rejectionLog.actor_name} -{" "}
                 {formatDateJP(rejectionLog.created_at)}
               </p>
+            </div>
+          )}
+
+          {/* Approval info */}
+          {currentPlan?.status === "approved" && approvalLog && (
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-success" />
+                <p className="text-sm font-medium text-success">
+                  {approvalLog.actor_name}が承認しました
+                </p>
+                <span className="text-xs text-muted-foreground">
+                  {formatDateJP(approvalLog.created_at)}
+                </span>
+              </div>
+              {approvalLog.comment && (
+                <p className="mt-2 text-sm text-foreground">
+                  {approvalLog.comment}
+                </p>
+              )}
             </div>
           )}
 

@@ -147,7 +147,7 @@ export async function submitPlan(planId: string): Promise<ActionResult> {
   }
 }
 
-export async function approvePlan(planId: string): Promise<ActionResult> {
+export async function approvePlan(planId: string, comment?: string): Promise<ActionResult> {
   try {
     const supabase = await createClient();
 
@@ -205,6 +205,7 @@ export async function approvePlan(planId: string): Promise<ActionResult> {
       target_id: planId,
       action: "approved",
       actor_id: user.id,
+      comment: comment?.trim() || null,
     });
 
     await writeAuditLog({
@@ -213,11 +214,13 @@ export async function approvePlan(planId: string): Promise<ActionResult> {
       action: "approve",
       resource: "weekly_plan",
       resourceId: planId,
+      details: comment?.trim() ? { comment: comment.trim() } : undefined,
     });
 
     await dispatchWebhook(dbUser.tenant_id, "plan.approved", {
       plan_id: planId,
       approved_by: user.id,
+      comment: comment?.trim() || null,
     });
 
     revalidatePath("/plans");
