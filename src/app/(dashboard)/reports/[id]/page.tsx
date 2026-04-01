@@ -134,6 +134,21 @@ export default async function ReportDetailPage({
   // Validate reactions is an array
   const safeReactions: Reaction[] = Array.isArray(reactions) ? (reactions as Reaction[]) : [];
 
+  // Fetch user names for reactions
+  const reactionUserIds = [...new Set(safeReactions.map((r) => r.user_id))];
+  let reactionUsersMap: Record<string, string> = {};
+  if (reactionUserIds.length > 0) {
+    const { data: reactionUsers } = await adminClient
+      .from("users")
+      .select("id, name")
+      .in("id", reactionUserIds);
+    if (reactionUsers) {
+      reactionUsersMap = Object.fromEntries(
+        reactionUsers.map((u: { id: string; name: string }) => [u.id, u.name])
+      );
+    }
+  }
+
   const statusLabels: Record<string, { label: string; color: string }> = {
     draft: {
       label: "下書き",
@@ -202,6 +217,7 @@ export default async function ReportDetailPage({
             entryId={id}
             reactions={safeReactions}
             currentUserId={authUser.id}
+            userNames={reactionUsersMap}
           />
         </CardContent>
       </Card>
