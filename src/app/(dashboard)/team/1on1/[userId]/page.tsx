@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import type { User } from "@/types/database";
+import type { User, PlanReview } from "@/types/database";
 import { OneOnOneClient } from "./OneOnOneClient";
 
 interface KpiSummaryItem {
@@ -314,6 +314,40 @@ export default async function OneOnOnePage({
     .eq("user_id", targetUser.id)
     .single();
 
+  // Fetch latest plan reviews for the target user (recent 3)
+  const { data: recentPlansForReview } = await supabase
+    .from("weekly_plans")
+    .select("id, week_start, execution_rate, status")
+    .eq("user_id", targetUser.id)
+    .eq("tenant_id", currentUser.tenant_id)
+    .in("status", ["review_pending", "reviewed"])
+    .order("week_start", { ascending: false })
+    .limit(3);
+
+  const reviewPlanIds = (recentPlansForReview ?? []).map((p) => p.id);
+  let planReviews: PlanReview[] = [];
+
+  if (reviewPlanIds.length > 0) {
+    const { data: reviewsData } = await supabase
+      .from("plan_reviews")
+      .select("*")
+      .in("plan_id", reviewPlanIds);
+
+    planReviews = (reviewsData ?? []) as PlanReview[];
+  }
+
+  // Build review data for the client
+  const weeklyReviews = (recentPlansForReview ?? []).map((plan) => {
+    const review = planReviews.find((r) => r.plan_id === plan.id);
+    return {
+      planId: plan.id,
+      weekStart: plan.week_start,
+      executionRate: plan.execution_rate as number | null,
+      status: plan.status as string,
+      review: review ?? null,
+    };
+  });
+
   return (
     <OneOnOneClient
       targetUser={targetUser}
@@ -326,6 +360,7 @@ export default async function OneOnOnePage({
       approvalHistory={approvalHistory}
       level={userLevel?.level ?? 1}
       xp={userLevel?.xp ?? 0}
+      weeklyReviews={weeklyReviews}
     />
   );
 }
