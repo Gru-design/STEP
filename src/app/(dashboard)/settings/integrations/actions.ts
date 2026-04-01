@@ -3,8 +3,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { sendSlackNotification } from "@/lib/integrations/slack";
+import { sendChatworkMessage } from "@/lib/integrations/chatwork";
 
-type IntegrationProvider = "google_calendar" | "gmail" | "slack" | "teams" | "cti";
+type IntegrationProvider = "google_calendar" | "gmail" | "slack" | "chatwork" | "teams" | "cti";
 
 interface SaveIntegrationInput {
   provider: IntegrationProvider;
@@ -37,6 +38,7 @@ export async function saveIntegration(data: SaveIntegrationInput) {
     "google_calendar",
     "gmail",
     "slack",
+    "chatwork",
     "teams",
     "cti",
   ];
@@ -172,6 +174,20 @@ export async function testSlackWebhook(webhookUrl: string) {
       },
     ],
   });
+
+  return result;
+}
+
+export async function testChatworkConnection(apiToken: string, roomId: string) {
+  if (!apiToken || !roomId) {
+    return { success: false, error: "APIトークンとルームIDを入力してください" };
+  }
+
+  const result = await sendChatworkMessage(
+    apiToken,
+    roomId,
+    "[info][title]STEP 連携テスト[/title]Chatwork連携が正常に設定されました。日報提出やリマインダーの通知がこのルームに届きます。[/info]"
+  );
 
   return result;
 }
