@@ -34,6 +34,19 @@ DECLARE
   ];
   v_tid uuid := 'a0000000-0000-0000-0000-000000000001';
 BEGIN
+  -- テーブルが存在する場合のみ削除 (未マイグレーション対応)
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'peer_bonuses') THEN
+    EXECUTE 'DELETE FROM peer_bonuses WHERE from_user_id = ANY($1) OR to_user_id = ANY($1)' USING v_ids;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'report_comments') THEN
+    EXECUTE 'DELETE FROM report_comments WHERE user_id = ANY($1)' USING v_ids;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'plan_reviews') THEN
+    EXECUTE 'DELETE FROM plan_reviews WHERE user_id = ANY($1)' USING v_ids;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'feature_requests') THEN
+    EXECUTE 'DELETE FROM feature_requests WHERE tenant_id = $1' USING v_tid;
+  END IF;
   -- ユーザー依存テーブル
   DELETE FROM user_levels     WHERE user_id = ANY(v_ids);
   DELETE FROM user_badges     WHERE user_id = ANY(v_ids);
@@ -50,19 +63,6 @@ BEGIN
   DELETE FROM users           WHERE id = ANY(v_ids);
   DELETE FROM auth.identities WHERE user_id = ANY(v_ids);
   DELETE FROM auth.users      WHERE id = ANY(v_ids);
-  -- テーブルが存在する場合のみ削除 (未マイグレーション対応)
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'peer_bonuses') THEN
-    EXECUTE 'DELETE FROM peer_bonuses WHERE from_user_id = ANY($1) OR to_user_id = ANY($1)' USING v_ids;
-  END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'report_comments') THEN
-    EXECUTE 'DELETE FROM report_comments WHERE user_id = ANY($1)' USING v_ids;
-  END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'plan_reviews') THEN
-    EXECUTE 'DELETE FROM plan_reviews WHERE user_id = ANY($1)' USING v_ids;
-  END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'feature_requests') THEN
-    EXECUTE 'DELETE FROM feature_requests WHERE tenant_id = $1' USING v_tid;
-  END IF;
   -- テナント関連
   DELETE FROM pipeline_stages  WHERE tenant_id = v_tid;
   DELETE FROM report_templates WHERE tenant_id = v_tid;
