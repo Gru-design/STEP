@@ -138,6 +138,8 @@ export default async function ReportsPage() {
         entries={feedEntries}
         members={teamMembers}
         defaultTeamMemberIds={teamMemberIds.length > 0 ? teamMemberIds : undefined}
+        currentUserId={dbUser.id}
+        currentUserRole={dbUser.role}
       />
     </div>
   );

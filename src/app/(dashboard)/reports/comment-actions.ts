@@ -72,6 +72,7 @@ export async function addComment(formData: FormData) {
     }
 
     revalidatePath(`/reports/${entryId}`);
+    revalidatePath("/reports");
     return { success: true, commentId: comment?.id };
   } catch (err) {
     console.error("[Comment] unexpected error:", err);
@@ -113,6 +114,7 @@ export async function deleteComment(commentId: string) {
     }
 
     revalidatePath(`/reports/${comment.entry_id}`);
+    revalidatePath("/reports");
     return { success: true };
   } catch (err) {
     console.error("[Comment] unexpected error:", err);
