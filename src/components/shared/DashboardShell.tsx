@@ -26,6 +26,8 @@ import {
   Flame,
   Zap,
   MessageSquarePlus,
+  Heart,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -104,6 +106,23 @@ const navGroups: NavGroup[] = [
         icon: Briefcase,
         roles: ["super_admin", "admin", "manager", "member"],
         feature: "deals",
+      },
+    ],
+  },
+  {
+    label: "コミュニケーション",
+    items: [
+      {
+        label: "ピアボーナス",
+        href: "/peer-bonus",
+        icon: Heart,
+        roles: ["super_admin", "admin", "manager", "member"],
+      },
+      {
+        label: "チェックイン",
+        href: "/checkins",
+        icon: Sparkles,
+        roles: ["super_admin", "admin", "manager", "member"],
       },
     ],
   },
