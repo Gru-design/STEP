@@ -203,6 +203,7 @@ export async function addReaction(
     });
 
     revalidatePath(`/reports/${entryId}`);
+    revalidatePath("/reports");
     return { success: true };
   } catch {
     return { success: false, error: "予期しないエラーが発生しました" };
@@ -417,6 +418,55 @@ export async function deleteReportEntry(
     revalidatePath("/reports");
     revalidatePath("/reports/my");
     return { success: true };
+  } catch {
+    return { success: false, error: "予期しないエラーが発生しました" };
+  }
+}
+
+export async function getReactions(
+  entryId: string
+): Promise<ActionResult<{ reactions: { id: string; entry_id: string; user_id: string; type: string; comment: string | null; created_at: string }[]; userNames: Record<string, string> }>> {
+  if (!entryId || typeof entryId !== "string") {
+    return { success: false, error: "無効なIDです" };
+  }
+
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "認証が必要です" };
+    }
+
+    const { data: reactions, error } = await supabase
+      .from("reactions")
+      .select("*")
+      .eq("entry_id", entryId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      return { success: false, error: "リアクションの取得に失敗しました" };
+    }
+
+    const safeReactions = reactions ?? [];
+    const userIds = [...new Set(safeReactions.map((r: Record<string, unknown>) => r.user_id as string))];
+    let userNames: Record<string, string> = {};
+    if (userIds.length > 0) {
+      const { data: users } = await supabase
+        .from("users")
+        .select("id, name")
+        .in("id", userIds);
+      if (users) {
+        userNames = Object.fromEntries(
+          users.map((u: Record<string, unknown>) => [u.id as string, u.name as string])
+        );
+      }
+    }
+
+    return { success: true, data: { reactions: safeReactions as { id: string; entry_id: string; user_id: string; type: string; comment: string | null; created_at: string }[], userNames } };
   } catch {
     return { success: false, error: "予期しないエラーが発生しました" };
   }

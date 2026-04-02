@@ -9,14 +9,23 @@ import { Badge } from "@/components/ui/badge";
 import { SelectItem } from "@/components/ui/select";
 import { OptionalSelect } from "@/components/shared/OptionalSelect";
 import { DynamicForm } from "@/components/reports/DynamicForm";
+import { ReactionBar } from "@/components/reports/ReactionBar";
+import { CommentThread } from "@/components/reports/CommentThread";
+import {
+  getReactions,
+} from "@/app/(dashboard)/reports/actions";
+import {
+  getComments,
+} from "@/app/(dashboard)/reports/comment-actions";
 import {
   FileText,
   ChevronRight,
   Eye,
   Clock,
   ExternalLink,
+  Loader2,
 } from "lucide-react";
-import type { TemplateSchema } from "@/types/database";
+import type { TemplateSchema, Reaction } from "@/types/database";
 
 export interface ReportFeedEntry {
   id: string;
@@ -40,6 +49,8 @@ interface ReportFeedProps {
   entries: ReportFeedEntry[];
   members: TeamMember[];
   defaultTeamMemberIds?: string[];
+  currentUserId: string;
+  currentUserRole: string;
 }
 
 // localStorage key for read state
@@ -61,7 +72,6 @@ function markAsRead(id: string) {
   try {
     const current = getReadReports();
     current.add(id);
-    // Keep only last 500 entries to prevent unlimited growth
     const arr = [...current];
     if (arr.length > 500) arr.splice(0, arr.length - 500);
     localStorage.setItem(READ_REPORTS_KEY, JSON.stringify(arr));
@@ -95,6 +105,8 @@ export function ReportFeed({
   entries,
   members,
   defaultTeamMemberIds,
+  currentUserId,
+  currentUserRole,
 }: ReportFeedProps) {
   const router = useRouter();
   const [dateFilter, setDateFilter] = useState("");
@@ -105,7 +117,6 @@ export function ReportFeed({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [readReports, setReadReports] = useState<Set<string>>(new Set());
 
-  // Load read state from localStorage
   useEffect(() => {
     setReadReports(getReadReports());
   }, []);
@@ -124,7 +135,6 @@ export function ReportFeed({
     return result;
   }, [entries, dateFilter, memberFilter, showMyTeamOnly, defaultTeamMemberIds]);
 
-  // Group entries by date
   const groupedByDate = useMemo(() => {
     const groups: { date: string; label: string; entries: ReportFeedEntry[] }[] =
       [];
@@ -161,10 +171,8 @@ export function ReportFeed({
     []
   );
 
-  // Auto-select first entry on desktop if nothing selected
   useEffect(() => {
     if (!selectedId && filtered.length > 0) {
-      // Don't auto-mark as read
       setSelectedId(filtered[0].id);
     }
   }, [filtered, selectedId]);
@@ -391,7 +399,10 @@ export function ReportFeed({
             <div className="overflow-y-auto rounded-xl border border-border bg-white">
               {selectedEntry ? (
                 <ReportDetailInline
+                  key={selectedEntry.id}
                   entry={selectedEntry}
+                  currentUserId={currentUserId}
+                  currentUserRole={currentUserRole}
                   onNavigate={() =>
                     router.push(`/reports/${selectedEntry.id}`)
                   }
@@ -410,15 +421,75 @@ export function ReportFeed({
   );
 }
 
-/** Inline report detail for the right panel */
+/** Inline report detail for the right panel with reactions + comments */
 function ReportDetailInline({
   entry,
+  currentUserId,
+  currentUserRole,
   onNavigate,
 }: {
   entry: ReportFeedEntry;
+  currentUserId: string;
+  currentUserRole: string;
   onNavigate: () => void;
 }) {
   const schema = entry.template_schema;
+  const [reactions, setReactions] = useState<Reaction[]>([]);
+  const [reactionUserNames, setReactionUserNames] = useState<Record<string, string>>({});
+  const [comments, setComments] = useState<{
+    id: string;
+    entry_id: string;
+    user_id: string;
+    parent_id: string | null;
+    body: string;
+    created_at: string;
+    users: { name: string; avatar_url: string | null } | null;
+  }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch reactions + comments when entry changes
+  const fetchInteractions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [reactionsResult, commentsResult] = await Promise.all([
+        getReactions(entry.id),
+        getComments(entry.id),
+      ]);
+
+      if (reactionsResult.success && reactionsResult.data) {
+        setReactions(reactionsResult.data.reactions as Reaction[]);
+        setReactionUserNames(reactionsResult.data.userNames);
+      }
+      if (commentsResult.success && commentsResult.data) {
+        setComments(
+          commentsResult.data as {
+            id: string;
+            entry_id: string;
+            user_id: string;
+            parent_id: string | null;
+            body: string;
+            created_at: string;
+            users: { name: string; avatar_url: string | null } | null;
+          }[]
+        );
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setLoading(false);
+    }
+  }, [entry.id]);
+
+  useEffect(() => {
+    fetchInteractions();
+  }, [fetchInteractions]);
+
+  // Re-fetch after server action completes (reactions/comments change)
+  // We poll briefly after actions to pick up revalidated data
+  const handleInteractionChange = useCallback(() => {
+    // Small delay to let server action complete revalidation
+    setTimeout(() => fetchInteractions(), 300);
+  }, [fetchInteractions]);
 
   return (
     <div className="h-full flex flex-col">
@@ -469,15 +540,121 @@ function ReportDetailInline({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-5 py-4">
-        {schema &&
-        typeof schema === "object" &&
-        Array.isArray(schema.sections) ? (
-          <DynamicForm schema={schema} values={entry.data} readOnly />
-        ) : (
-          <ReportDataFallback data={entry.data} />
-        )}
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-5 py-4">
+          {schema &&
+          typeof schema === "object" &&
+          Array.isArray(schema.sections) ? (
+            <DynamicForm schema={schema} values={entry.data} readOnly />
+          ) : (
+            <ReportDataFallback data={entry.data} />
+          )}
+        </div>
+
+        {/* Reactions */}
+        <div className="px-5 py-3 border-t border-border">
+          {loading ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              読み込み中...
+            </div>
+          ) : (
+            <InlineReactionBar
+              entryId={entry.id}
+              reactions={reactions}
+              currentUserId={currentUserId}
+              userNames={reactionUserNames}
+              onChanged={handleInteractionChange}
+            />
+          )}
+        </div>
+
+        {/* Comments */}
+        <div className="px-5 py-3 border-t border-border">
+          {loading ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              読み込み中...
+            </div>
+          ) : (
+            <InlineCommentThread
+              entryId={entry.id}
+              comments={comments}
+              currentUserId={currentUserId}
+              currentUserRole={currentUserRole}
+              onChanged={handleInteractionChange}
+            />
+          )}
+        </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Wrapper around ReactionBar that triggers a refresh callback after actions.
+ * We intercept the server action calls to also trigger re-fetch.
+ */
+function InlineReactionBar({
+  entryId,
+  reactions,
+  currentUserId,
+  userNames,
+  onChanged,
+}: {
+  entryId: string;
+  reactions: Reaction[];
+  currentUserId: string;
+  userNames: Record<string, string>;
+  onChanged: () => void;
+}) {
+  // We use the existing ReactionBar but wrap it to detect changes
+  // The ReactionBar calls addReaction/removeReaction which revalidate paths
+  // We use MutationObserver-like approach: re-fetch after any interaction
+  return (
+    <div onClick={() => setTimeout(onChanged, 500)}>
+      <ReactionBar
+        entryId={entryId}
+        reactions={reactions}
+        currentUserId={currentUserId}
+        userNames={userNames}
+      />
+    </div>
+  );
+}
+
+/**
+ * Wrapper around CommentThread that triggers a refresh callback after actions.
+ */
+function InlineCommentThread({
+  entryId,
+  comments,
+  currentUserId,
+  currentUserRole,
+  onChanged,
+}: {
+  entryId: string;
+  comments: {
+    id: string;
+    entry_id: string;
+    user_id: string;
+    parent_id: string | null;
+    body: string;
+    created_at: string;
+    users: { name: string; avatar_url: string | null } | null;
+  }[];
+  currentUserId: string;
+  currentUserRole: string;
+  onChanged: () => void;
+}) {
+  return (
+    <div onClick={() => setTimeout(onChanged, 500)}>
+      <CommentThread
+        entryId={entryId}
+        comments={comments}
+        currentUserId={currentUserId}
+        currentUserRole={currentUserRole}
+      />
     </div>
   );
 }
