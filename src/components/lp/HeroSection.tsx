@@ -46,9 +46,6 @@ export function HeroSection() {
             </a>
           </div>
 
-          <p className="mt-6 text-[13px] text-muted-foreground">
-            5名まで無料でご利用いただけます
-          </p>
         </div>
       </div>
 
