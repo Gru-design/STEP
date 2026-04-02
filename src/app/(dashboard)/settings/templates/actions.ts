@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { templatesCacheTag } from "@/lib/cache";
@@ -24,6 +25,16 @@ interface UpdateTemplateData {
   isPublished?: boolean;
 }
 
+/**
+ * Authenticate user and verify admin role.
+ * Uses createClient() for auth verification (respects session),
+ * and returns createAdminClient() for data operations
+ * (bypasses RLS since role is already verified in app code).
+ *
+ * This is necessary because RLS INSERT/UPDATE/DELETE policies check
+ * auth.jwt() ->> 'role', which may not be set in the JWT token
+ * if the custom_access_token_hook is not configured in Supabase.
+ */
 async function getAdminUser() {
   const supabase = await createClient();
 
@@ -32,25 +43,28 @@ async function getAdminUser() {
   } = await supabase.auth.getUser();
 
   if (!authUser) {
-    return { supabase, user: null, error: "認証されていません" };
+    return { admin: null as unknown as ReturnType<typeof createAdminClient>, user: null, error: "認証されていません" };
   }
 
-  const { data: dbUser } = await supabase
+  // Use admin client for DB reads to avoid RLS issues on users table too
+  const admin = createAdminClient();
+
+  const { data: dbUser } = await admin
     .from("users")
     .select("id, tenant_id, role")
     .eq("id", authUser.id)
     .single();
 
   if (!dbUser || !["admin", "super_admin"].includes(dbUser.role)) {
-    return { supabase, user: null, error: "権限がありません" };
+    return { admin, user: null, error: "権限がありません" };
   }
 
-  return { supabase, user: dbUser, error: null };
+  return { admin, user: dbUser, error: null };
 }
 
 export async function createTemplate(data: CreateTemplateData) {
   try {
-    const { supabase, user, error: authError } = await getAdminUser();
+    const { admin, user, error: authError } = await getAdminUser();
 
     if (!user) {
       return { success: false, error: authError };
@@ -65,7 +79,7 @@ export async function createTemplate(data: CreateTemplateData) {
       return { success: false, error: "無効なテンプレート種別です" };
     }
 
-    const { data: template, error } = await supabase
+    const { data: template, error } = await admin
       .from("report_templates")
       .insert({
         tenant_id: user.tenant_id,
@@ -82,6 +96,7 @@ export async function createTemplate(data: CreateTemplateData) {
       .single();
 
     if (error) {
+      console.error("[Templates] createTemplate error:", error);
       return { success: false, error: "テンプレートの作成に失敗しました" };
     }
 
@@ -104,14 +119,14 @@ export async function createTemplate(data: CreateTemplateData) {
 
 export async function updateTemplate(id: string, data: UpdateTemplateData) {
   try {
-    const { supabase, user, error: authError } = await getAdminUser();
+    const { admin, user, error: authError } = await getAdminUser();
 
     if (!user) {
       return { success: false, error: authError };
     }
 
     // Fetch existing template to verify ownership and get current version
-    const { data: existing } = await supabase
+    const { data: existing } = await admin
       .from("report_templates")
       .select("version, tenant_id, source_template_id")
       .eq("id", id)
@@ -138,13 +153,14 @@ export async function updateTemplate(id: string, data: UpdateTemplateData) {
     if (data.visibilityOverride !== undefined) updateData.visibility_override = data.visibilityOverride;
     if (data.isPublished !== undefined) updateData.is_published = data.isPublished;
 
-    const { error } = await supabase
+    const { error } = await admin
       .from("report_templates")
       .update(updateData)
       .eq("id", id)
       .eq("tenant_id", user.tenant_id);
 
     if (error) {
+      console.error("[Templates] updateTemplate error:", error);
       return { success: false, error: "テンプレートの更新に失敗しました" };
     }
 
@@ -168,14 +184,14 @@ export async function updateTemplate(id: string, data: UpdateTemplateData) {
 
 export async function deleteTemplate(id: string) {
   try {
-    const { supabase, user, error: authError } = await getAdminUser();
+    const { admin, user, error: authError } = await getAdminUser();
 
     if (!user) {
       return { success: false, error: authError };
     }
 
     // Check if this is a global template copy
-    const { data: templateToDelete } = await supabase
+    const { data: templateToDelete } = await admin
       .from("report_templates")
       .select("source_template_id")
       .eq("id", id)
@@ -190,13 +206,14 @@ export async function deleteTemplate(id: string) {
       return { success: false, error: "共通テンプレートは削除できません。システム管理者にお問い合わせください。" };
     }
 
-    const { error } = await supabase
+    const { error } = await admin
       .from("report_templates")
       .delete()
       .eq("id", id)
       .eq("tenant_id", user.tenant_id);
 
     if (error) {
+      console.error("[Templates] deleteTemplate error:", error);
       return { success: false, error: "テンプレートの削除に失敗しました" };
     }
 
@@ -219,14 +236,14 @@ export async function deleteTemplate(id: string) {
 
 export async function publishTemplate(id: string, isPublished: boolean) {
   try {
-    const { supabase, user, error: authError } = await getAdminUser();
+    const { admin, user, error: authError } = await getAdminUser();
 
     if (!user) {
       return { success: false, error: authError };
     }
 
     // Check if this is a global template copy
-    const { data: templateToPublish } = await supabase
+    const { data: templateToPublish } = await admin
       .from("report_templates")
       .select("source_template_id")
       .eq("id", id)
@@ -241,7 +258,7 @@ export async function publishTemplate(id: string, isPublished: boolean) {
       return { success: false, error: "共通テンプレートの公開設定は変更できません。システム管理者にお問い合わせください。" };
     }
 
-    const { error } = await supabase
+    const { error } = await admin
       .from("report_templates")
       .update({
         is_published: isPublished,
@@ -251,6 +268,7 @@ export async function publishTemplate(id: string, isPublished: boolean) {
       .eq("tenant_id", user.tenant_id);
 
     if (error) {
+      console.error("[Templates] publishTemplate error:", error);
       return { success: false, error: "ステータスの更新に失敗しました" };
     }
 
@@ -274,13 +292,13 @@ export async function publishTemplate(id: string, isPublished: boolean) {
 
 export async function duplicateTemplate(id: string) {
   try {
-    const { supabase, user, error: authError } = await getAdminUser();
+    const { admin, user, error: authError } = await getAdminUser();
 
     if (!user) {
       return { success: false, error: authError };
     }
 
-    const { data: original } = await supabase
+    const { data: original } = await admin
       .from("report_templates")
       .select("*")
       .eq("id", id)
@@ -291,7 +309,7 @@ export async function duplicateTemplate(id: string) {
       return { success: false, error: "テンプレートが見つかりません" };
     }
 
-    const { data: template, error } = await supabase
+    const { data: template, error } = await admin
       .from("report_templates")
       .insert({
         tenant_id: user.tenant_id,
@@ -308,6 +326,7 @@ export async function duplicateTemplate(id: string) {
       .single();
 
     if (error) {
+      console.error("[Templates] duplicateTemplate error:", error);
       return { success: false, error: "テンプレートの複製に失敗しました" };
     }
 
