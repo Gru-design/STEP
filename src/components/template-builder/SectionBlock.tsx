@@ -14,7 +14,6 @@ import {
   Check,
   Plus,
   ChevronDown,
-  ChevronUp,
   X,
   Type,
   AlignLeft,
@@ -33,7 +32,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { FieldRenderer } from "./FieldRenderer";
 import { InlineFieldProperties } from "./FieldProperties";
 import type { LucideIcon } from "lucide-react";
 
