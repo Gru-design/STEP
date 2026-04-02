@@ -1,22 +1,21 @@
-const STATS = [
-  { value: "90%", label: "日報作成時間を削減", sub: "20分 → 30秒" },
-  { value: "95%+", label: "日報提出率を達成", sub: "ナッジ&ゲーミフィケーション" },
-  { value: "5分", label: "マネージャーの確認時間", sub: "60分 → 5分" },
-  { value: "30分", label: "で運用開始", sub: "オンボーディングウィザード" },
-];
-
 export function StatsSection() {
   return (
-    <section className="py-16 bg-white border-b border-border">
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {STATS.map((stat) => (
-            <div key={stat.label} className="text-center">
-              <p className="text-3xl md:text-4xl font-bold font-mono bg-gradient-to-r from-primary to-primary-hover bg-clip-text text-transparent mb-1">
+    <section className="py-20 bg-muted/40 border-y border-border">
+      <div className="max-w-[1200px] mx-auto px-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-16">
+          {[
+            { value: "90%", label: "日報作成時間を削減" },
+            { value: "95%+", label: "提出率を実現" },
+            { value: "1/12", label: "マネージャー確認時間" },
+            { value: "30 min", label: "で運用開始可能" },
+          ].map((stat) => (
+            <div key={stat.label} className="text-center md:text-left">
+              <p className="font-serif text-[32px] md:text-[40px] font-semibold text-foreground leading-none tracking-tight">
                 {stat.value}
               </p>
-              <p className="text-sm font-medium text-foreground mb-0.5">{stat.label}</p>
-              <p className="text-xs text-muted-foreground">{stat.sub}</p>
+              <p className="text-[13px] text-muted-foreground mt-2">
+                {stat.label}
+              </p>
             </div>
           ))}
         </div>

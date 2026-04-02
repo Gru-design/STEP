@@ -47,6 +47,7 @@
 
   /* ── Typography (loaded via preconnect + Google Fonts CDN with display=swap) ── */
   --font-sans: "Inter", "BIZ UDPGothic", system-ui, sans-serif;
+  --font-serif: "Noto Serif JP", "Georgia", serif;
   --font-mono: "JetBrains Mono", monospace;
 
   /* ── Radius (やや大きめで軽やかに) ── */
