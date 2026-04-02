@@ -49,6 +49,8 @@ import { BottomNav } from "./BottomNav";
 import { CommandPalette } from "./CommandPalette";
 import { NotificationBell } from "./NotificationBell";
 import { FeatureRequestDialog } from "./FeatureRequestDialog";
+import { SidebarActivityFeed } from "./SidebarActivityFeed";
+import type { ActivityFeedItem } from "./SidebarActivityFeed";
 import type { User as UserType, Role, Plan } from "@/types/database";
 import { canAccessFeature } from "@/lib/plan-limits";
 
@@ -240,6 +242,7 @@ interface DashboardShellProps {
   appName?: string;
   logoUrl?: string | null;
   gamification?: GamificationData;
+  activityFeed?: ActivityFeedItem[];
 }
 
 export function DashboardShell({
@@ -249,6 +252,7 @@ export function DashboardShell({
   appName = "STEP",
   logoUrl,
   gamification,
+  activityFeed = [],
 }: DashboardShellProps) {
   const pathname = usePathname();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -325,6 +329,12 @@ export function DashboardShell({
         <nav className="flex-1 overflow-y-auto p-3">
           {renderNavGroups()}
         </nav>
+        {/* Activity feed */}
+        {activityFeed.length > 0 && (
+          <div className="border-t border-border pt-2">
+            <SidebarActivityFeed items={activityFeed} />
+          </div>
+        )}
         {/* Feature request + Profile at bottom */}
         <div className="border-t border-border p-3 space-y-1">
           <FeatureRequestDialog variant="sidebar" />
@@ -371,6 +381,11 @@ export function DashboardShell({
                 <nav className="overflow-y-auto p-3">
                   {renderNavGroups(() => setSheetOpen(false))}
                 </nav>
+                {activityFeed.length > 0 && (
+                  <div className="border-t border-border pt-2">
+                    <SidebarActivityFeed items={activityFeed} />
+                  </div>
+                )}
                 <div className="border-t border-border p-3">
                   <FeatureRequestDialog variant="sidebar" />
                 </div>

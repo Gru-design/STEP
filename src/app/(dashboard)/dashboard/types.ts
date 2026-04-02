@@ -34,6 +34,7 @@ export interface MemberStats {
   recentBadges: { name: string; icon: string; earnedAt: string }[];
   pendingReview?: PendingReview | null;
   peerBonus?: PeerBonusStats;
+  todayReceivedBonuses?: { fromName: string; message: string }[];
 }
 
 export interface TeamMemberStatus {
