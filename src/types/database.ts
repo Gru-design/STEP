@@ -44,6 +44,7 @@ export interface TeamMember {
   id: string;
   team_id: string;
   user_id: string;
+  tenant_id: string;
   role: string;
   created_at: string;
 }
