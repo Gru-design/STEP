@@ -85,8 +85,17 @@ export async function signupAction(input: unknown): Promise<SignupResult> {
 
         if (userError) {
           console.error("User record creation error:", userError);
-          await supabase.auth.admin.deleteUser(authData.user.id);
-          await supabase.from("tenants").delete().eq("id", tenant.id);
+          // Rollback: delete auth user and tenant, log errors but don't throw
+          try {
+            await supabase.auth.admin.deleteUser(authData.user.id);
+          } catch (rollbackErr) {
+            console.error("Rollback: failed to delete auth user:", rollbackErr);
+          }
+          try {
+            await supabase.from("tenants").delete().eq("id", tenant.id);
+          } catch (rollbackErr) {
+            console.error("Rollback: failed to delete tenant:", rollbackErr);
+          }
           return {
             success: false,
             error: "ユーザー登録に失敗しました。もう一度お試しください。",

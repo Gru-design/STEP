@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LayoutGrid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DealsKanban } from "./DealsKanban";
@@ -13,9 +13,14 @@ interface DealsViewToggleProps {
 }
 
 export function DealsViewToggle({ stages, deals }: DealsViewToggleProps) {
-  const [view, setView] = useState<"kanban" | "list">(
-    typeof window !== "undefined" && window.innerWidth < 768 ? "list" : "kanban"
-  );
+  // Default to list on mobile (SSR-safe: start with list, switch to kanban on desktop after mount)
+  const [view, setView] = useState<"kanban" | "list">("list");
+
+  useEffect(() => {
+    if (window.innerWidth >= 768) {
+      setView("kanban");
+    }
+  }, []);
 
   return (
     <div className="space-y-4">

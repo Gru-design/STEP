@@ -22,12 +22,13 @@ interface WebhookPayload {
   timestamp: string;
 }
 
+const MAX_RETRIES = 2;
+const RETRY_DELAYS = [1000, 3000]; // 1s, 3s
+
 /**
  * Dispatch a webhook event to all active webhook endpoints for the tenant.
  * Signs the payload with HMAC-SHA256 for verification.
- *
- * Webhook endpoints are stored in integrations table with provider='webhook'.
- * credentials: { url: string, secret: string }
+ * Retries up to 2 times with exponential backoff on failure.
  */
 export async function dispatchWebhook(
   tenantId: string,
@@ -69,26 +70,41 @@ export async function dispatchWebhook(
           .digest("hex")
       : "";
 
-    try {
-      const response = await fetch(creds.url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Step-Event": event,
-          "X-Step-Signature": signature,
-          "X-Step-Timestamp": payload.timestamp,
-        },
-        body,
-        signal: AbortSignal.timeout(10000),
-      });
+    let lastError: string | null = null;
 
-      if (!response.ok) {
-        console.error(
-          `[Webhook] ${event} to ${creds.url} failed: ${response.status}`
-        );
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        if (attempt > 0) {
+          await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt - 1]));
+        }
+
+        const response = await fetch(creds.url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Step-Event": event,
+            "X-Step-Signature": signature,
+            "X-Step-Timestamp": payload.timestamp,
+          },
+          body,
+          signal: AbortSignal.timeout(10000),
+        });
+
+        if (response.ok) {
+          lastError = null;
+          break;
+        }
+
+        lastError = `HTTP ${response.status}`;
+      } catch {
+        lastError = "timeout or network error";
       }
-    } catch {
-      console.error(`[Webhook] ${event} to ${creds.url} failed: timeout or network error`);
+    }
+
+    if (lastError) {
+      console.error(
+        `[Webhook] ${event} to ${creds.url} failed after ${MAX_RETRIES + 1} attempts: ${lastError}`
+      );
     }
   }
 }

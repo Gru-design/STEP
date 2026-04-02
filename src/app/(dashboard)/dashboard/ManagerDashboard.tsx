@@ -43,7 +43,7 @@ export function ManagerDashboard({
       <MemberStatsCards stats={memberStats} />
       <GoalsProgressCard goals={memberStats.goalsProgress} />
 
-      {memberStats.peerBonus && memberStats.peerBonus.recentReceived.length > 0 && (
+      {memberStats.peerBonus && (
         <PeerBonusCard bonus={memberStats.peerBonus} />
       )}
 
