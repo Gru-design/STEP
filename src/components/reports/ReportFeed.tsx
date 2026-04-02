@@ -115,11 +115,10 @@ export function ReportFeed({
     !!defaultTeamMemberIds
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [readReports, setReadReports] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    setReadReports(getReadReports());
-  }, []);
+  const [readReports, setReadReports] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    return getReadReports();
+  });
 
   const filtered = useMemo(() => {
     let result = entries;
@@ -153,9 +152,17 @@ export function ReportFeed({
     return groups;
   }, [filtered]);
 
+  // Derive effective selection: fall back to first entry if nothing selected
+  const effectiveSelectedId = useMemo(() => {
+    if (selectedId && filtered.some((e) => e.id === selectedId)) {
+      return selectedId;
+    }
+    return filtered[0]?.id ?? null;
+  }, [selectedId, filtered]);
+
   const selectedEntry = useMemo(
-    () => filtered.find((e) => e.id === selectedId) ?? null,
-    [filtered, selectedId]
+    () => filtered.find((e) => e.id === effectiveSelectedId) ?? null,
+    [filtered, effectiveSelectedId]
   );
 
   const handleSelect = useCallback(
@@ -170,12 +177,6 @@ export function ReportFeed({
     },
     []
   );
-
-  useEffect(() => {
-    if (!selectedId && filtered.length > 0) {
-      setSelectedId(filtered[0].id);
-    }
-  }, [filtered, selectedId]);
 
   return (
     <div className="space-y-4">
@@ -332,7 +333,7 @@ export function ReportFeed({
                     </div>
                     {group.entries.map((entry) => {
                       const isRead = readReports.has(entry.id);
-                      const isSelected = selectedId === entry.id;
+                      const isSelected = effectiveSelectedId === entry.id;
                       return (
                         <button
                           key={entry.id}
