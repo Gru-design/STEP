@@ -5,7 +5,6 @@ import type { TemplateField } from "@/types/database";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 interface InlineFieldPropertiesProps {
   field: TemplateField;

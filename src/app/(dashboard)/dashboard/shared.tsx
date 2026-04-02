@@ -4,8 +4,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LazyFunnelChart, LazySubmissionTrendChart } from "@/components/shared/LazyCharts";
-import { exportToCSV } from "@/lib/csv-export";
+import { LazySubmissionTrendChart } from "@/components/shared/LazyCharts";
 import {
   FileEdit,
   CheckCircle2,
