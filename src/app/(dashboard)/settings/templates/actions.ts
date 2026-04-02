@@ -113,13 +113,17 @@ export async function updateTemplate(id: string, data: UpdateTemplateData) {
     // Fetch existing template to verify ownership and get current version
     const { data: existing } = await supabase
       .from("report_templates")
-      .select("version, tenant_id")
+      .select("version, tenant_id, source_template_id")
       .eq("id", id)
       .eq("tenant_id", user.tenant_id)
       .single();
 
     if (!existing) {
       return { success: false, error: "テンプレートが見つかりません" };
+    }
+
+    if (existing.source_template_id) {
+      return { success: false, error: "共通テンプレートは編集できません。システム管理者にお問い合わせください。" };
     }
 
     const updateData: Record<string, unknown> = {
@@ -170,6 +174,22 @@ export async function deleteTemplate(id: string) {
       return { success: false, error: authError };
     }
 
+    // Check if this is a global template copy
+    const { data: templateToDelete } = await supabase
+      .from("report_templates")
+      .select("source_template_id")
+      .eq("id", id)
+      .eq("tenant_id", user.tenant_id)
+      .single();
+
+    if (!templateToDelete) {
+      return { success: false, error: "テンプレートが見つかりません" };
+    }
+
+    if (templateToDelete.source_template_id) {
+      return { success: false, error: "共通テンプレートは削除できません。システム管理者にお問い合わせください。" };
+    }
+
     const { error } = await supabase
       .from("report_templates")
       .delete()
@@ -203,6 +223,22 @@ export async function publishTemplate(id: string, isPublished: boolean) {
 
     if (!user) {
       return { success: false, error: authError };
+    }
+
+    // Check if this is a global template copy
+    const { data: templateToPublish } = await supabase
+      .from("report_templates")
+      .select("source_template_id")
+      .eq("id", id)
+      .eq("tenant_id", user.tenant_id)
+      .single();
+
+    if (!templateToPublish) {
+      return { success: false, error: "テンプレートが見つかりません" };
+    }
+
+    if (templateToPublish.source_template_id) {
+      return { success: false, error: "共通テンプレートの公開設定は変更できません。システム管理者にお問い合わせください。" };
     }
 
     const { error } = await supabase

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -192,8 +192,8 @@ export function TemplateBuilder({
     );
   }, []);
 
-  // Auto-save schema on changes
-  const handleSave = useCallback(() => {
+  // Sync sections to parent on every change (auto-save)
+  useEffect(() => {
     onSave({ sections });
   }, [sections, onSave]);
 
@@ -294,25 +294,15 @@ export function TemplateBuilder({
               )}
 
               {sections.length > 0 && (
-                <div className="flex items-center gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleAddSection}
-                    className="flex-1 border-dashed"
-                  >
-                    <Plus className="mr-1.5 h-4 w-4" />
-                    セクション追加
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={handleSave}
-                    className="bg-primary text-white hover:bg-primary-hover"
-                  >
-                    構成を確定
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleAddSection}
+                  className="w-full border-dashed"
+                >
+                  <Plus className="mr-1.5 h-4 w-4" />
+                  セクション追加
+                </Button>
               )}
             </div>
           </DndContext>

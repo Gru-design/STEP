@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useCallback, useEffect } from "react";
+import { useState, useTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,7 +60,6 @@ export function NewTemplateForm() {
   const [targetRoles, setTargetRoles] = useState<string[]>(["member"]);
   const [visibilityOverride, setVisibilityOverride] = useState("inherit");
   const [schema, setSchema] = useState<TemplateSchema>(emptySchema);
-  const [schemaReady, setSchemaReady] = useState(false);
 
   const toggleRole = (role: string) => {
     setTargetRoles((prev) =>
@@ -70,12 +69,6 @@ export function NewTemplateForm() {
 
   const handleSchemaSave = useCallback((s: TemplateSchema) => {
     setSchema(s);
-    setSchemaReady(true);
-  }, []);
-
-  // Reset schemaReady when schema changes via builder
-  useEffect(() => {
-    setSchemaReady(false);
   }, []);
 
   const handleSubmit = (publish: boolean) => {
