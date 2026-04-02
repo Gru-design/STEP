@@ -93,14 +93,16 @@ export async function saveIntegration(data: SaveIntegrationInput) {
         return { success: false, error: "連携設定の保存に失敗しました" };
       }
 
-      await writeAuditLog({
-        tenantId: dbUser.tenant_id,
-        userId: authUser.id,
-        action: "create",
-        resource: "integration",
-        resourceId: inserted?.id,
-        details: { provider: data.provider },
-      });
+      if (inserted) {
+        await writeAuditLog({
+          tenantId: dbUser.tenant_id,
+          userId: authUser.id,
+          action: "create",
+          resource: "integration",
+          resourceId: inserted.id,
+          details: { provider: data.provider },
+        });
+      }
     }
 
     revalidatePath("/settings/integrations");

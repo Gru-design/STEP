@@ -244,7 +244,32 @@ export function StatCard({
 // -- Goals Progress --
 
 export function GoalsProgressCard({ goals }: { goals: GoalProgress[] }) {
-  if (goals.length === 0) return null;
+  if (goals.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <div className="text-center">
+            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+              <Target className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <p className="mb-1 text-sm font-medium text-foreground">
+              目標がまだ設定されていません
+            </p>
+            <p className="mb-3 text-xs text-muted-foreground">
+              目標を設定すると、ダッシュボードで進捗を確認できます
+            </p>
+            <Link
+              href="/goals"
+              className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90 motion-safe:transition-colors"
+            >
+              目標を設定する
+              <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -343,7 +368,32 @@ export function RecentBadges({
 }: {
   badges: { name: string; icon: string; earnedAt: string }[];
 }) {
-  if (badges.length === 0) return null;
+  if (badges.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <div className="text-center">
+            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+              <Trophy className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <p className="mb-1 text-sm font-medium text-foreground">
+              バッジを獲得しよう
+            </p>
+            <p className="mb-3 text-xs text-muted-foreground">
+              日報の提出やナレッジ投稿でバッジを獲得できます
+            </p>
+            <Link
+              href="/badges"
+              className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted motion-safe:transition-colors"
+            >
+              バッジ一覧を見る
+              <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -384,6 +434,29 @@ export function RecentBadges({
 // -- Peer Bonus Card --
 
 export function PeerBonusCard({ bonus }: { bonus: PeerBonusStats }) {
+  if (bonus.recentReceived.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Heart className="h-4 w-4 text-accent-color" />
+            ピアボーナス
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4">
+            <p className="text-sm text-muted-foreground">
+              まだピアボーナスを受け取っていません
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              日報提出時に仲間にピアボーナスを送ってみましょう
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader className="pb-3">
