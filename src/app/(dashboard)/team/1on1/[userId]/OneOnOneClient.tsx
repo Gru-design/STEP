@@ -15,7 +15,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
-import { ConditionChart } from "@/components/shared/ConditionChart";
+import { LazyConditionChart } from "@/components/shared/LazyCharts";
 import { ReviewCard } from "@/components/plans/ReviewCard";
 import type { User, Role, PlanReview } from "@/types/database";
 
@@ -322,7 +322,7 @@ export function OneOnOneClient({
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <ConditionChart data={motivationData} />
+          <LazyConditionChart data={motivationData} />
         </CardContent>
       </Card>
 

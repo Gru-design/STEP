@@ -1,20 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FunnelChart } from "@/components/deals/FunnelChart";
-import { chartColors } from "@/lib/chart-theme";
+import { LazyFunnelChart, LazySubmissionTrendChart } from "@/components/shared/LazyCharts";
 import { exportToCSV } from "@/lib/csv-export";
 import {
   FileEdit,
@@ -598,39 +588,7 @@ function WeeklyTrendChart({ trends }: { trends: WeeklyTrend[] }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={200}>
-          <LineChart data={trends}>
-            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.border} />
-            <XAxis
-              dataKey="week"
-              tick={{ fontSize: 12, fill: chartColors.mutedForeground }}
-              axisLine={{ stroke: chartColors.border }}
-            />
-            <YAxis
-              domain={[0, 100]}
-              tick={{ fontSize: 12, fill: chartColors.mutedForeground }}
-              axisLine={{ stroke: chartColors.border }}
-              tickFormatter={(v: number) => `${v}%`}
-            />
-            <Tooltip
-              formatter={(value) => [`${value}%`, "提出率"]}
-              contentStyle={{
-                border: `1px solid ${chartColors.border}`,
-                borderRadius: "0.75rem",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                fontSize: "0.875rem",
-              }}
-            />
-            <Line
-              type="monotone"
-              dataKey="rate"
-              stroke={chartColors.primary}
-              strokeWidth={2.5}
-              dot={{ r: 5, fill: chartColors.primary, strokeWidth: 2, stroke: "#fff" }}
-              activeDot={{ r: 7, fill: chartColors.primary }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        <LazySubmissionTrendChart data={trends} />
       </CardContent>
     </Card>
   );
@@ -1017,7 +975,7 @@ export function DashboardClient({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <FunnelChart stages={adminStats.funnelStages} />
+                <LazyFunnelChart stages={adminStats.funnelStages} />
               </CardContent>
             </Card>
           )}

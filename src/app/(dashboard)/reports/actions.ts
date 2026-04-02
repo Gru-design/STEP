@@ -35,15 +35,19 @@ export async function createReportEntry(data: {
       return { success: false, error: "認証が必要です" };
     }
 
-    const { data: dbUser } = await supabase
-      .from("users")
-      .select("tenant_id")
-      .eq("id", user.id)
-      .single();
-
-    if (!dbUser) {
-      return { success: false, error: "ユーザーが見つかりません" };
+    // Use JWT claims for tenant_id to avoid extra DB query
+    const tenantId = user.app_metadata?.tenant_id ?? user.user_metadata?.tenant_id;
+    if (!tenantId) {
+      const { data: dbUser } = await supabase
+        .from("users")
+        .select("tenant_id")
+        .eq("id", user.id)
+        .single();
+      if (!dbUser) {
+        return { success: false, error: "ユーザーが見つかりません" };
+      }
     }
+    const resolvedTenantId = tenantId as string;
 
     const submittedAt =
       data.status === "submitted" ? new Date().toISOString() : null;
@@ -52,7 +56,7 @@ export async function createReportEntry(data: {
       .from("report_entries")
       .upsert(
         {
-          tenant_id: dbUser.tenant_id,
+          tenant_id: resolvedTenantId,
           user_id: user.id,
           template_id: data.templateId,
           report_date: data.reportDate,
@@ -73,13 +77,13 @@ export async function createReportEntry(data: {
 
     if (data.status === "submitted") {
       await writeAuditLog({
-        tenantId: dbUser.tenant_id,
+        tenantId: resolvedTenantId,
         userId: user.id,
         action: "submit",
         resource: "report_entry",
         resourceId: entry.id,
       });
-      await dispatchWebhook(dbUser.tenant_id, "report.submitted", {
+      await dispatchWebhook(resolvedTenantId, "report.submitted", {
         entry_id: entry.id,
         user_id: user.id,
         report_date: data.reportDate,
@@ -145,22 +149,32 @@ export async function addReaction(
       return { success: false, error: "認証が必要です" };
     }
 
-    // リアクション対象のエントリが同一テナントに属するか検証
-    const { data: dbUser } = await supabase
+    // Parallel: fetch user tenant_id + validate entry belongs to same tenant
+    const tenantId = user.app_metadata?.tenant_id ?? user.user_metadata?.tenant_id;
+
+    if (!tenantId) {
+      const { data: dbUser } = await supabase
+        .from("users")
+        .select("tenant_id")
+        .eq("id", user.id)
+        .single();
+      if (!dbUser) {
+        return { success: false, error: "ユーザーが見つかりません" };
+      }
+    }
+
+    const resolvedTenantId = tenantId ?? (await supabase
       .from("users")
       .select("tenant_id")
       .eq("id", user.id)
-      .single();
+      .single()).data?.tenant_id;
 
-    if (!dbUser) {
-      return { success: false, error: "ユーザーが見つかりません" };
-    }
-
+    // Validate entry belongs to same tenant (RLS also enforces this)
     const { data: entry } = await supabase
       .from("report_entries")
       .select("id")
       .eq("id", entryId)
-      .eq("tenant_id", dbUser.tenant_id)
+      .eq("tenant_id", resolvedTenantId)
       .single();
 
     if (!entry) {
@@ -179,7 +193,7 @@ export async function addReaction(
     }
 
     await writeAuditLog({
-      tenantId: dbUser.tenant_id,
+      tenantId: resolvedTenantId!,
       userId: user.id,
       action: "create",
       resource: "reaction",
@@ -215,35 +229,40 @@ export async function sendPeerBonus(data: {
       return { success: false, error: "自分自身にはピアボーナスを送れません" };
     }
 
-    const { data: dbUser } = await supabase
-      .from("users")
-      .select("tenant_id")
-      .eq("id", user.id)
-      .single();
+    // Get tenant_id from JWT claims first, fallback to DB
+    const tenantId = user.app_metadata?.tenant_id ?? user.user_metadata?.tenant_id;
+    let resolvedTenantId = tenantId as string | undefined;
 
-    if (!dbUser) {
+    const today = new Date().toISOString().split("T")[0];
+
+    // Parallel: get tenant_id (if needed) + check daily limit + verify recipient
+    const [dbUserResult, existingResult] = await Promise.all([
+      !resolvedTenantId
+        ? supabase.from("users").select("tenant_id").eq("id", user.id).single()
+        : Promise.resolve({ data: { tenant_id: resolvedTenantId } }),
+      supabase
+        .from("peer_bonuses")
+        .select("id")
+        .eq("from_user_id", user.id)
+        .eq("bonus_date", today)
+        .single(),
+    ]);
+
+    if (!dbUserResult.data) {
       return { success: false, error: "ユーザーが見つかりません" };
     }
+    resolvedTenantId = dbUserResult.data.tenant_id;
 
-    // Check if already sent today
-    const today = new Date().toISOString().split("T")[0];
-    const { data: existing } = await supabase
-      .from("peer_bonuses")
-      .select("id")
-      .eq("from_user_id", user.id)
-      .eq("bonus_date", today)
-      .single();
-
-    if (existing) {
+    if (existingResult.data) {
       return { success: false, error: "本日のピアボーナスは既に送信済みです" };
     }
 
-    // Verify recipient is in same tenant
+    // Verify recipient is in same tenant (RLS also enforces tenant isolation)
     const { data: toUser } = await supabase
       .from("users")
       .select("id")
       .eq("id", data.toUserId)
-      .eq("tenant_id", dbUser.tenant_id)
+      .eq("tenant_id", resolvedTenantId)
       .single();
 
     if (!toUser) {
@@ -251,7 +270,7 @@ export async function sendPeerBonus(data: {
     }
 
     const { error } = await supabase.from("peer_bonuses").insert({
-      tenant_id: dbUser.tenant_id,
+      tenant_id: resolvedTenantId,
       from_user_id: user.id,
       to_user_id: data.toUserId,
       report_entry_id: data.reportEntryId ?? null,
@@ -274,7 +293,7 @@ export async function sendPeerBonus(data: {
     ]);
 
     await writeAuditLog({
-      tenantId: dbUser.tenant_id,
+      tenantId: resolvedTenantId!,
       userId: user.id,
       action: "create",
       resource: "peer_bonus",
