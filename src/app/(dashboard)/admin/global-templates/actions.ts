@@ -2,9 +2,10 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import type { TemplateSchema, TemplateType, ReportVisibility } from "@/types/database";
 import { writeAuditLog } from "@/lib/audit";
+import { templatesCacheTag } from "@/lib/cache";
 
 // --------------------------------------------------------------------------
 // Auth guard: super_admin only
@@ -24,6 +25,22 @@ async function requireSuperAdmin() {
   }
 
   return { user };
+}
+
+/**
+ * Invalidate template caches for all active tenants.
+ * Called when global templates are modified (create/update/delete/sync).
+ */
+async function invalidateAllTenantTemplateCaches() {
+  const adminClient = createAdminClient();
+  const { data: tenants } = await adminClient
+    .from("tenants")
+    .select("id")
+    .or("is_active.is.null,is_active.eq.true");
+
+  for (const tenant of tenants ?? []) {
+    revalidateTag(templatesCacheTag(tenant.id), "default");
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -105,6 +122,7 @@ export async function createGlobalTemplate(data: CreateGlobalTemplateData) {
     });
 
     revalidatePath("/admin/global-templates");
+    await invalidateAllTenantTemplateCaches();
     return { success: true, data: template };
   } catch (error: unknown) {
     const supaErr = error as { code?: string; message?: string; details?: string; hint?: string };
@@ -181,6 +199,7 @@ export async function updateGlobalTemplate(id: string, data: UpdateGlobalTemplat
     });
 
     revalidatePath("/admin/global-templates");
+    await invalidateAllTenantTemplateCaches();
     return { success: true };
   } catch (error: unknown) {
     const supaErr = error as { code?: string; message?: string; details?: string; hint?: string };
@@ -223,6 +242,7 @@ export async function deleteGlobalTemplate(id: string) {
     });
 
     revalidatePath("/admin/global-templates");
+    await invalidateAllTenantTemplateCaches();
     return { success: true };
   } catch (error) {
     console.error("[Admin] deleteGlobalTemplate error:", error);
@@ -325,6 +345,7 @@ export async function applyGlobalTemplatesToAllTenants() {
     });
 
     revalidatePath("/admin/global-templates");
+    await invalidateAllTenantTemplateCaches();
     return { success: true, data: { distributed, skipped } };
   } catch (error) {
     console.error("[Admin] applyGlobalTemplatesToAllTenants error:", error);
@@ -380,6 +401,7 @@ export async function applyGlobalTemplatesToTenant(tenantId: string) {
       }
     }
 
+    revalidateTag(templatesCacheTag(tenantId), "default");
     return { success: true, data: { copied } };
   } catch (error) {
     console.error("[Admin] applyGlobalTemplatesToTenant error:", error);
@@ -490,6 +512,7 @@ export async function syncGlobalTemplateToTenants(globalTemplateId: string) {
     });
 
     revalidatePath("/admin/global-templates");
+    await invalidateAllTenantTemplateCaches();
     return { success: true, data: { updated, created } };
   } catch (error) {
     console.error("[Admin] syncGlobalTemplateToTenants error:", error);
@@ -559,6 +582,7 @@ export async function promoteToGlobalTemplate(tenantTemplateId: string) {
     });
 
     revalidatePath("/admin/global-templates");
+    await invalidateAllTenantTemplateCaches();
     return {
       success: true,
       data: {

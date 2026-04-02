@@ -1,11 +1,10 @@
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-/**
- * React cache() for per-request deduplication of tenant data.
- * Safe for multi-tenant: tenant_id is always a required parameter.
- * These caches are automatically scoped to a single server request.
- */
+// =============================================================================
+// React cache() — per-request deduplication (existing behavior)
+// =============================================================================
 
 export const getCachedTenantInfo = cache(async (tenantId: string) => {
   const adminClient = createAdminClient();
@@ -37,3 +36,142 @@ export const getCachedUserInfo = cache(async (userId: string) => {
     .single();
   return data;
 });
+
+// =============================================================================
+// unstable_cache — cross-request data cache for low-frequency data
+//
+// Security: cache keys always include tenant_id (and role where relevant)
+// to prevent cross-tenant data leakage.
+// =============================================================================
+
+const DEFAULT_REVALIDATE = 300; // 5 minutes
+
+// ---------------------------------------------------------------------------
+// Cache tag helpers
+// ---------------------------------------------------------------------------
+export function templatesCacheTag(tenantId: string) {
+  return `tenant-${tenantId}-templates`;
+}
+
+export function tenantSettingsCacheTag(tenantId: string) {
+  return `tenant-${tenantId}-settings`;
+}
+
+export function pipelineStagesCacheTag(tenantId: string) {
+  return `tenant-${tenantId}-pipeline-stages`;
+}
+
+export const BADGES_CACHE_TAG = "badges-definitions";
+
+// ---------------------------------------------------------------------------
+// report_templates — tenant-scoped, role-aware
+// ---------------------------------------------------------------------------
+export function getCachedTemplateList(tenantId: string, role: string) {
+  return unstable_cache(
+    async () => {
+      const adminClient = createAdminClient();
+      const { data } = await adminClient
+        .from("report_templates")
+        .select(
+          "id, name, type, schema, is_published, is_system, target_roles, visibility_override, version, created_at, updated_at"
+        )
+        .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
+        .eq("is_published", true)
+        .order("created_at", { ascending: false });
+
+      if (!data) return [];
+
+      // Filter templates by role visibility
+      if (role === "admin" || role === "super_admin") {
+        return data;
+      }
+      return data.filter(
+        (t: { target_roles: string[] | null }) =>
+          !t.target_roles || t.target_roles.length === 0 || t.target_roles.includes(role)
+      );
+    },
+    [`templates`, tenantId, role],
+    {
+      revalidate: DEFAULT_REVALIDATE,
+      tags: [templatesCacheTag(tenantId)],
+    }
+  )();
+}
+
+// ---------------------------------------------------------------------------
+// tenants.settings — tenant-scoped, role-aware
+// ---------------------------------------------------------------------------
+export function getCachedTenantSettings(tenantId: string, role: string) {
+  return unstable_cache(
+    async () => {
+      const adminClient = createAdminClient();
+      const { data } = await adminClient
+        .from("tenants")
+        .select("id, name, plan, settings, report_visibility, domain, created_at, updated_at")
+        .eq("id", tenantId)
+        .single();
+
+      if (!data) return null;
+
+      // Members see limited settings
+      if (role !== "admin" && role !== "super_admin" && role !== "manager") {
+        return {
+          id: data.id,
+          name: data.name,
+          plan: data.plan,
+          report_visibility: data.report_visibility,
+        };
+      }
+
+      return data;
+    },
+    [`tenant-settings`, tenantId, role],
+    {
+      revalidate: DEFAULT_REVALIDATE,
+      tags: [tenantSettingsCacheTag(tenantId)],
+    }
+  )();
+}
+
+// ---------------------------------------------------------------------------
+// pipeline_stages — tenant-scoped (no role differentiation needed)
+// ---------------------------------------------------------------------------
+export function getCachedPipelineStages(tenantId: string) {
+  return unstable_cache(
+    async () => {
+      const adminClient = createAdminClient();
+      const { data } = await adminClient
+        .from("pipeline_stages")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .order("sort_order", { ascending: true });
+      return data ?? [];
+    },
+    [`pipeline-stages`, tenantId],
+    {
+      revalidate: DEFAULT_REVALIDATE,
+      tags: [pipelineStagesCacheTag(tenantId)],
+    }
+  )();
+}
+
+// ---------------------------------------------------------------------------
+// badges — global (no tenant scope, seed data, rarely changes)
+// ---------------------------------------------------------------------------
+export function getCachedBadgeDefinitions() {
+  return unstable_cache(
+    async () => {
+      const adminClient = createAdminClient();
+      const { data } = await adminClient
+        .from("badges")
+        .select("*")
+        .order("rarity", { ascending: true });
+      return data ?? [];
+    },
+    [`badge-definitions`],
+    {
+      revalidate: 3600, // 1 hour — badges are seed data, rarely change
+      tags: [BADGES_CACHE_TAG],
+    }
+  )();
+}

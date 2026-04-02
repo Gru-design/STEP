@@ -1,6 +1,7 @@
 import React from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedBadgeDefinitions } from "@/lib/cache";
 import { BadgeDisplay } from "@/components/gamification/BadgeDisplay";
 import type { Badge } from "@/types/database";
 
@@ -15,8 +16,8 @@ export default async function BadgeCatalogPage() {
     redirect("/login");
   }
 
-  const [{ data: badges }, { data: userBadges }] = await Promise.all([
-    supabase.from("badges").select("*").order("rarity", { ascending: true }),
+  const [badges, { data: userBadges }] = await Promise.all([
+    getCachedBadgeDefinitions(),
     supabase
       .from("user_badges")
       .select("badge_id")

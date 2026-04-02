@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCachedBadgeDefinitions } from "@/lib/cache";
 
 interface Badge {
   id: string;
@@ -30,12 +31,9 @@ interface EarnedBadge {
 export async function checkBadges(userId: string): Promise<EarnedBadge[]> {
   const supabase = createAdminClient();
 
-  // Fetch all badges
-  const { data: allBadges, error: badgesError } = await supabase
-    .from("badges")
-    .select("*");
-
-  if (badgesError || !allBadges) return [];
+  // Fetch all badges (cross-request cached)
+  const allBadges = await getCachedBadgeDefinitions();
+  if (!allBadges || allBadges.length === 0) return [];
 
   // Fetch already earned badges
   const { data: earnedBadgeRows } = await supabase

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import type { Deal, PipelineStage } from "@/types/database";
+import { getCachedPipelineStages } from "@/lib/cache";
 import { DealsViewToggle } from "./DealsViewToggle";
 
 export default async function DealsPage() {
@@ -24,14 +25,9 @@ export default async function DealsPage() {
     redirect("/login");
   }
 
-  // Fetch pipeline stages ordered by sort_order
-  const { data: stagesData } = await supabase
-    .from("pipeline_stages")
-    .select("*")
-    .eq("tenant_id", dbUser.tenant_id)
-    .order("sort_order", { ascending: true });
-
-  const stages = (stagesData ?? []) as PipelineStage[];
+  // Fetch pipeline stages (cross-request cached, tenant-scoped)
+  const stagesData = await getCachedPipelineStages(dbUser.tenant_id);
+  const stages = stagesData as PipelineStage[];
 
   // Fetch all active deals for this tenant
   const { data: dealsData } = await supabase

@@ -1,8 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
+import { tenantSettingsCacheTag } from "@/lib/cache";
 import { updateTenantSchema } from "@/lib/validations";
 
 export async function updateTenantSettings(formData: FormData) {
@@ -61,6 +62,7 @@ export async function updateTenantSettings(formData: FormData) {
     });
 
     revalidatePath("/settings");
+    revalidateTag(tenantSettingsCacheTag(dbUser.tenant_id), "default");
     return { success: true };
   } catch (err) {
     console.error("[Settings] updateTenantSettings unexpected error:", err);

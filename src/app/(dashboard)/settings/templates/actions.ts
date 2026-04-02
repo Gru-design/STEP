@@ -1,8 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
+import { templatesCacheTag } from "@/lib/cache";
 import type { TemplateSchema, TemplateType, ReportVisibility } from "@/types/database";
 
 interface CreateTemplateData {
@@ -93,6 +94,7 @@ export async function createTemplate(data: CreateTemplateData) {
     });
 
     revalidatePath("/settings/templates");
+    revalidateTag(templatesCacheTag(user.tenant_id), "default");
     return { success: true, data: template };
   } catch (err) {
     console.error("[Templates] createTemplate unexpected error:", err);
@@ -152,6 +154,7 @@ export async function updateTemplate(id: string, data: UpdateTemplateData) {
 
     revalidatePath("/settings/templates");
     revalidatePath(`/settings/templates/${id}`);
+    revalidateTag(templatesCacheTag(user.tenant_id), "default");
     return { success: true };
   } catch (err) {
     console.error("[Templates] updateTemplate unexpected error:", err);
@@ -186,6 +189,7 @@ export async function deleteTemplate(id: string) {
     });
 
     revalidatePath("/settings/templates");
+    revalidateTag(templatesCacheTag(user.tenant_id), "default");
     return { success: true };
   } catch (err) {
     console.error("[Templates] deleteTemplate unexpected error:", err);
@@ -224,6 +228,7 @@ export async function publishTemplate(id: string, isPublished: boolean) {
     });
 
     revalidatePath("/settings/templates");
+    revalidateTag(templatesCacheTag(user.tenant_id), "default");
     return { success: true };
   } catch (err) {
     console.error("[Templates] publishTemplate unexpected error:", err);
@@ -280,6 +285,7 @@ export async function duplicateTemplate(id: string) {
     });
 
     revalidatePath("/settings/templates");
+    revalidateTag(templatesCacheTag(user.tenant_id), "default");
     return { success: true, data: template };
   } catch (err) {
     console.error("[Templates] duplicateTemplate unexpected error:", err);
