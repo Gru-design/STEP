@@ -43,14 +43,26 @@ export function MyReportsView({ entries }: MyReportsViewProps) {
         <TabsContent value="calendar" className="mt-4">
           <CalendarView
             entries={entries}
-            onClickEntry={(id) => router.push(`/reports/${id}`)}
+            onClickEntry={(id, status) =>
+              router.push(
+                status === "draft"
+                  ? `/reports/${id}/edit`
+                  : `/reports/${id}`
+              )
+            }
           />
         </TabsContent>
 
         <TabsContent value="list" className="mt-4">
           <ListView
             entries={entries}
-            onClickEntry={(id) => router.push(`/reports/${id}`)}
+            onClickEntry={(id, status) =>
+              router.push(
+                status === "draft"
+                  ? `/reports/${id}/edit`
+                  : `/reports/${id}`
+              )
+            }
           />
         </TabsContent>
       </Tabs>
@@ -126,7 +138,7 @@ function CalendarView({
   onClickEntry,
 }: {
   entries: MyReportEntry[];
-  onClickEntry: (id: string) => void;
+  onClickEntry: (id: string, status: string) => void;
 }) {
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
@@ -220,7 +232,7 @@ function CalendarView({
                     (e) => e.status === "submitted"
                   );
                   const target = submitted ?? dayEntries[0];
-                  if (target) onClickEntry(target.id);
+                  if (target) onClickEntry(target.id, target.status);
                 }}
                 disabled={dayEntries.length === 0}
                 className={`relative flex h-10 items-center justify-center rounded-lg text-sm transition-colors ${
@@ -250,7 +262,7 @@ function ListView({
   onClickEntry,
 }: {
   entries: MyReportEntry[];
-  onClickEntry: (id: string) => void;
+  onClickEntry: (id: string, status: string) => void;
 }) {
   const statusConfig: Record<string, { label: string; variant: "outline" | "default"; className: string }> = {
     draft: {
@@ -281,7 +293,7 @@ function ListView({
           <Card
             key={entry.id}
             className="cursor-pointer border-border transition-colors hover:bg-muted"
-            onClick={() => onClickEntry(entry.id)}
+            onClick={() => onClickEntry(entry.id, entry.status)}
           >
             <CardContent className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">

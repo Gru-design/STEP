@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect, notFound } from "next/navigation";
+import Link from "next/link";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 // Disable ISR caching — this page depends on auth + real-time DB data
 export const dynamic = "force-dynamic";
@@ -11,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { DynamicForm } from "@/components/reports/DynamicForm";
 import { ReactionBar } from "@/components/reports/ReactionBar";
 import { CommentThread } from "@/components/reports/CommentThread";
+import { SubmitDraftButton } from "./SubmitDraftButton";
 import type { TemplateSchema, Reaction } from "@/types/database";
 
 interface ReportDetailPageProps {
@@ -160,6 +163,8 @@ export default async function ReportDetailPage({
   };
 
   const statusInfo = statusLabels[entry.status as string] ?? statusLabels.draft;
+  const isDraftOwner =
+    entry.user_id === authUser.id && entry.status === "draft";
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -185,6 +190,16 @@ export default async function ReportDetailPage({
             <span>{String(template.name ?? "")}</span>
           </div>
         </div>
+        {isDraftOwner && (
+          <div className="flex items-center gap-2 shrink-0">
+            <Link href={`/reports/${id}/edit`}>
+              <Button variant="outline" size="sm">
+                編集する
+              </Button>
+            </Link>
+            <SubmitDraftButton entryId={id} />
+          </div>
+        )}
       </div>
 
       <Separator />
