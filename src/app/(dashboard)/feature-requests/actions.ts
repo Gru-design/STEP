@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -21,7 +22,9 @@ export async function createFeatureRequest(formData: FormData) {
       return { success: false, error: "認証されていません" };
     }
 
-    const { data: dbUser } = await supabase
+    const adminClient = createAdminClient();
+
+    const { data: dbUser } = await adminClient
       .from("users")
       .select("tenant_id")
       .eq("id", authUser.id)
@@ -41,7 +44,7 @@ export async function createFeatureRequest(formData: FormData) {
       return { success: false, error: parsed.error.issues[0].message };
     }
 
-    const { error } = await supabase.from("feature_requests").insert({
+    const { error } = await adminClient.from("feature_requests").insert({
       tenant_id: dbUser.tenant_id,
       user_id: authUser.id,
       title: parsed.data.title.trim(),
@@ -77,10 +80,13 @@ export async function listFeatureRequests(options?: {
       return { success: false, error: "認証されていません", data: [] };
     }
 
+    // Use admin client to bypass RLS for cross-tenant reads
+    const adminClient = createAdminClient();
+
     const limit = options?.limit ?? 50;
     const offset = options?.offset ?? 0;
 
-    let query = supabase
+    let query = adminClient
       .from("feature_requests")
       .select("*, users(name, email), tenants(name)")
       .order("created_at", { ascending: false })
@@ -122,8 +128,10 @@ export async function updateFeatureRequest(formData: FormData) {
       return { success: false, error: "認証されていません" };
     }
 
-    // super_admin check
-    const { data: dbUser } = await supabase
+    const adminClient = createAdminClient();
+
+    // super_admin check via admin client
+    const { data: dbUser } = await adminClient
       .from("users")
       .select("role")
       .eq("id", authUser.id)
@@ -151,7 +159,7 @@ export async function updateFeatureRequest(formData: FormData) {
     if (parsed.data.admin_note !== undefined) updateData.admin_note = parsed.data.admin_note;
     if (parsed.data.priority !== undefined) updateData.priority = parsed.data.priority;
 
-    const { error } = await supabase
+    const { error } = await adminClient
       .from("feature_requests")
       .update(updateData)
       .eq("id", parsed.data.id);
