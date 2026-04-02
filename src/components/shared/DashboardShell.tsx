@@ -28,6 +28,7 @@ import {
   MessageSquarePlus,
   Heart,
   Sparkles,
+  Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -124,6 +125,12 @@ const navGroups: NavGroup[] = [
         icon: Sparkles,
         roles: ["super_admin", "admin", "manager", "member"],
       },
+      {
+        label: "通知",
+        href: "/notifications",
+        icon: Bell,
+        roles: ["super_admin", "admin", "manager", "member"],
+      },
     ],
   },
   {
@@ -144,7 +151,7 @@ const navGroups: NavGroup[] = [
       },
       {
         label: "承認",
-        href: "/plans?tab=approval",
+        href: "/approval",
         icon: CheckCircle2,
         roles: ["super_admin", "admin", "manager"],
         feature: "approval",

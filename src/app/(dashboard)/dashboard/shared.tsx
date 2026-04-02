@@ -35,9 +35,9 @@ import type {
   PeerBonusStats,
 } from "./types";
 
-// -- Level thresholds --
+// -- Level thresholds (from shared gamification module) --
 
-const LEVEL_THRESHOLDS = [0, 100, 500, 1500, 5000];
+import { LEVEL_THRESHOLDS } from "@/lib/gamification/level";
 
 function getXPProgress(xp: number, level: number): number {
   const current = LEVEL_THRESHOLDS[level - 1] ?? 0;

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { ApprovalLog } from "@/types/database";
 import { approvePlan, rejectPlan } from "@/app/(dashboard)/plans/actions";
+import { approveDeal, rejectDeal } from "@/app/(dashboard)/deals/actions";
 
 interface ApprovalFlowProps {
   targetType: "weekly_plan" | "deal";
@@ -54,12 +55,11 @@ export function ApprovalFlow({
     setProcessing(true);
     setError(null);
 
-    // Currently only weekly_plan approval is implemented via actions
-    if (targetType === "weekly_plan") {
-      const result = await approvePlan(targetId);
-      if (!result.success) {
-        setError(result.error ?? "承認に失敗しました");
-      }
+    const result = targetType === "weekly_plan"
+      ? await approvePlan(targetId)
+      : await approveDeal(targetId);
+    if (!result.success) {
+      setError(result.error ?? "承認に失敗しました");
     }
 
     setProcessing(false);
@@ -74,14 +74,14 @@ export function ApprovalFlow({
     setProcessing(true);
     setError(null);
 
-    if (targetType === "weekly_plan") {
-      const result = await rejectPlan(targetId, rejectComment.trim());
-      if (!result.success) {
-        setError(result.error ?? "差し戻しに失敗しました");
-      } else {
-        setRejectComment("");
-        setShowRejectForm(false);
-      }
+    const result = targetType === "weekly_plan"
+      ? await rejectPlan(targetId, rejectComment.trim())
+      : await rejectDeal(targetId, rejectComment.trim());
+    if (!result.success) {
+      setError(result.error ?? "差し戻しに失敗しました");
+    } else {
+      setRejectComment("");
+      setShowRejectForm(false);
     }
 
     setProcessing(false);

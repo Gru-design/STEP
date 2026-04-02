@@ -49,6 +49,11 @@ export async function createGoal(input: GoalInput): Promise<{
       return { success: false, error: "ユーザーが見つかりません" };
     }
 
+    // Validate date range
+    if (input.period_start && input.period_end && new Date(input.period_start) > new Date(input.period_end)) {
+      return { success: false, error: "開始日は終了日より前に設定してください" };
+    }
+
     const gate = await checkFeatureAccess(dbUser.tenant_id, "goals");
     if (!gate.allowed) {
       console.error("[Goals] Feature access denied:", {
