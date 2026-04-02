@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import type { User, ReportTemplate } from "@/types/database";
 import { TemplateListClient } from "./TemplateListClient";
@@ -14,7 +15,9 @@ export default async function TemplatesPage() {
     redirect("/login");
   }
 
-  const { data: dbUser } = await supabase
+  const admin = createAdminClient();
+
+  const { data: dbUser } = await admin
     .from("users")
     .select("*")
     .eq("id", authUser.id)
@@ -36,7 +39,7 @@ export default async function TemplatesPage() {
     );
   }
 
-  const { data: templates } = await supabase
+  const { data: templates } = await admin
     .from("report_templates")
     .select("*")
     .eq("tenant_id", user.tenant_id)
