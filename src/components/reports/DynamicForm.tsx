@@ -10,7 +10,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { OptionalSelect } from "@/components/shared/OptionalSelect";
-import { Plus, Trash2, Star, ChevronDown, Check, FileIcon } from "lucide-react";
+import { Plus, Trash2, Star, ChevronDown, Check } from "lucide-react";
 import type {
   TemplateSchema,
   TemplateSection,
@@ -248,14 +248,6 @@ function renderField(
           onChange={onChange}
           max={field.max ?? 5}
         />
-      );
-
-    case "file":
-      return (
-        <div className="flex items-center gap-2 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-          <FileIcon className="h-5 w-5" />
-          ファイル添付は現在準備中です
-        </div>
       );
 
     case "link":

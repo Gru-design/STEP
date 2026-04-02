@@ -1,6 +1,6 @@
 "use client";
 
-import { Star as StarIcon, Upload } from "lucide-react";
+import { Star as StarIcon } from "lucide-react";
 import type { TemplateField } from "@/types/database";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,7 +25,6 @@ const FIELD_TYPE_LABELS: Record<string, string> = {
   select_multi: "複数選択",
   date: "日付",
   rating: "評価",
-  file: "ファイル",
   link: "リンク",
   section: "セクション",
   repeater: "リピーター",
@@ -256,29 +255,6 @@ function renderInput(
         </div>
       );
     }
-
-    case "file":
-      return (
-        <div
-          className={cn(
-            "flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border p-6",
-            "text-muted-foreground transition-colors hover:border-accent-color hover:bg-muted"
-          )}
-        >
-          <Upload className="mb-2 h-8 w-8" />
-          <p className="text-sm">
-            ファイルをドラッグ&ドロップまたはクリックして選択
-          </p>
-          <input
-            type="file"
-            className="absolute inset-0 cursor-pointer opacity-0"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) onChange(file.name);
-            }}
-          />
-        </div>
-      );
 
     case "link":
       return (
