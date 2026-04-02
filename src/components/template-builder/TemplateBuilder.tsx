@@ -39,7 +39,6 @@ const DEFAULT_FIELD_LABELS: Record<FieldType, string> = {
   select_multi: "複数選択",
   date: "日付",
   rating: "評価",
-  file: "ファイル",
   link: "リンク",
   section: "セクション",
   repeater: "リピーター",

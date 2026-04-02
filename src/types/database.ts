@@ -51,7 +51,7 @@ export interface TeamMember {
 
 export type TemplateType = "daily" | "weekly" | "plan" | "checkin";
 
-export type FieldType = "text" | "textarea" | "number" | "select_single" | "select_multi" | "date" | "rating" | "file" | "link" | "section" | "repeater";
+export type FieldType = "text" | "textarea" | "number" | "select_single" | "select_multi" | "date" | "rating" | "link" | "section" | "repeater";
 
 export interface TemplateField {
   key: string;
