@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { dispatchWebhook } from "@/lib/webhook-outbound";
@@ -371,7 +372,9 @@ export async function deleteWeeklyPlan(
       return { success: false, error: "削除権限がありません" };
     }
 
-    const { error } = await supabase
+    // Use admin client to bypass RLS - permission already checked above
+    const adminClient = createAdminClient();
+    const { error } = await adminClient
       .from("weekly_plans")
       .delete()
       .eq("id", planId)
