@@ -113,7 +113,7 @@ export default async function ReportsPage() {
         <div className="flex items-center gap-2">
           <Link href="/reports/my">
             <Button variant="outline">
-              マイ日報
+              下書き
             </Button>
           </Link>
           <Link href="/reports/new">
