@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -11,7 +11,7 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { Plus, Save, Settings2 } from "lucide-react";
+import { Plus, Settings2 } from "lucide-react";
 import type {
   FieldType,
   TemplateField,
@@ -250,8 +250,8 @@ export function TemplateBuilder({
     );
   }, []);
 
-  // Handle save
-  const handleSave = useCallback(() => {
+  // Sync sections to parent on every change
+  useEffect(() => {
     onSave({ sections });
   }, [sections, onSave]);
 
@@ -284,10 +284,6 @@ export function TemplateBuilder({
           >
             <Settings2 className="mr-1 h-4 w-4" />
             設定
-          </Button>
-          <Button type="button" size="sm" onClick={handleSave}>
-            <Save className="mr-1 h-4 w-4" />
-            保存
           </Button>
         </div>
       </div>

@@ -39,7 +39,7 @@ async function invalidateAllTenantTemplateCaches() {
     .or("is_active.is.null,is_active.eq.true");
 
   for (const tenant of tenants ?? []) {
-    revalidateTag(templatesCacheTag(tenant.id), "default");
+    revalidateTag(templatesCacheTag(tenant.id));
   }
 }
 
@@ -401,7 +401,7 @@ export async function applyGlobalTemplatesToTenant(tenantId: string) {
       }
     }
 
-    revalidateTag(templatesCacheTag(tenantId), "default");
+    revalidateTag(templatesCacheTag(tenantId));
     return { success: true, data: { copied } };
   } catch (error) {
     console.error("[Admin] applyGlobalTemplatesToTenant error:", error);

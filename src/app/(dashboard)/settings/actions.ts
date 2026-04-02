@@ -62,7 +62,7 @@ export async function updateTenantSettings(formData: FormData) {
     });
 
     revalidatePath("/settings");
-    revalidateTag(tenantSettingsCacheTag(dbUser.tenant_id), "default");
+    revalidateTag(tenantSettingsCacheTag(dbUser.tenant_id));
     return { success: true };
   } catch (err) {
     console.error("[Settings] updateTenantSettings unexpected error:", err);
