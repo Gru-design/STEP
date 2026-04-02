@@ -140,8 +140,8 @@ export default async function DashboardLayout({
     );
   }
 
-  // Fetch gamification data in parallel (level + streak entries)
-  const [levelResult, streakResult] = await Promise.all([
+  // Fetch gamification data + activity feed in parallel
+  const [levelResult, streakResult, recentBonusesResult, recentCheckinsResult] = await Promise.all([
     supabase
       .from("user_levels")
       .select("level, xp")
@@ -154,6 +154,21 @@ export default async function DashboardLayout({
       .eq("status", "submitted")
       .order("report_date", { ascending: false })
       .limit(60),
+    // Recent peer bonuses in tenant (for sidebar feed)
+    adminClient
+      .from("peer_bonuses")
+      .select("id, from_user_id, to_user_id, message, created_at")
+      .eq("tenant_id", user.tenant_id)
+      .order("created_at", { ascending: false })
+      .limit(8),
+    // Recent checkins in tenant (for sidebar feed)
+    adminClient
+      .from("report_entries")
+      .select("id, user_id, created_at, template_id")
+      .eq("tenant_id", user.tenant_id)
+      .eq("status", "submitted")
+      .order("created_at", { ascending: false })
+      .limit(10),
   ]);
 
   const level = levelResult.data?.level ?? 1;
@@ -163,9 +178,76 @@ export default async function DashboardLayout({
 
   const gamification = { level, xp, xpForNextLevel, streak };
 
+  // ── Build activity feed ──
+  type ActivityFeedItem = { id: string; type: "peer_bonus" | "checkin"; userName: string; targetName?: string; message?: string; date: string };
+  const activityFeed: ActivityFeedItem[] = [];
+
+  const bonusRows = recentBonusesResult.data ?? [];
+  const checkinRows = recentCheckinsResult.data ?? [];
+
+  // Collect unique user IDs for name resolution
+  const feedUserIds = new Set<string>();
+  for (const b of bonusRows) {
+    feedUserIds.add(b.from_user_id);
+    feedUserIds.add(b.to_user_id);
+  }
+
+  // Filter checkins: only entries using checkin templates
+  let checkinTemplateIds: Set<string> = new Set();
+  if (checkinRows.length > 0) {
+    const templateIds = [...new Set(checkinRows.map((e) => e.template_id).filter(Boolean))];
+    if (templateIds.length > 0) {
+      const { data: templates } = await adminClient
+        .from("report_templates")
+        .select("id, type")
+        .in("id", templateIds)
+        .eq("type", "checkin");
+      checkinTemplateIds = new Set((templates ?? []).map((t) => t.id));
+    }
+  }
+
+  const checkinEntries = checkinRows.filter((e) => e.template_id && checkinTemplateIds.has(e.template_id));
+  for (const c of checkinEntries) {
+    feedUserIds.add(c.user_id);
+  }
+
+  // Resolve user names
+  let feedUserMap: Record<string, string> = {};
+  if (feedUserIds.size > 0) {
+    const { data: feedUsers } = await adminClient
+      .from("users")
+      .select("id, name")
+      .in("id", [...feedUserIds]);
+    feedUserMap = Object.fromEntries((feedUsers ?? []).map((u) => [u.id, u.name]));
+  }
+
+  // Build feed items
+  for (const b of bonusRows) {
+    activityFeed.push({
+      id: b.id,
+      type: "peer_bonus",
+      userName: feedUserMap[b.from_user_id] ?? "不明",
+      targetName: feedUserMap[b.to_user_id] ?? "不明",
+      message: b.message,
+      date: b.created_at,
+    });
+  }
+  for (const c of checkinEntries) {
+    activityFeed.push({
+      id: c.id,
+      type: "checkin",
+      userName: feedUserMap[c.user_id] ?? "不明",
+      date: c.created_at,
+    });
+  }
+
+  // Sort by date descending and limit
+  activityFeed.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const feedItems = activityFeed.slice(0, 8);
+
   return (
     <div style={themeStyle ?? undefined}>
-      <DashboardShell user={user} plan={tenantPlan} appName={theme.appName} logoUrl={theme.logoUrl} gamification={gamification}>
+      <DashboardShell user={user} plan={tenantPlan} appName={theme.appName} logoUrl={theme.logoUrl} gamification={gamification} activityFeed={feedItems}>
         {children}
         <CheckinModal userId={user.id} tenantId={user.tenant_id} />
         <NudgeTrigger />

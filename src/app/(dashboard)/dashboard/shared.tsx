@@ -104,6 +104,50 @@ export function GreetingHeader({
   );
 }
 
+// -- New Peer Bonus Notification Banner --
+
+export function NewPeerBonusBanner({
+  bonuses,
+}: {
+  bonuses: { fromName: string; message: string }[];
+}) {
+  if (bonuses.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border-2 border-accent-color/20 bg-gradient-to-r from-accent-color/8 to-accent-color/3 px-5 py-4 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-500">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-color/10">
+          <Gift className="h-5 w-5 text-accent-color" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-accent-color">
+            ピアボーナスが届いています！
+          </p>
+          <div className="mt-2 space-y-2">
+            {bonuses.map((b, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-2 rounded-lg bg-white/60 px-3 py-2"
+              >
+                <Heart className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-color" />
+                <div className="min-w-0">
+                  <span className="text-sm font-medium text-foreground">
+                    {b.fromName}
+                  </span>
+                  <span className="text-sm text-muted-foreground"> から</span>
+                  <p className="mt-0.5 text-sm text-muted-foreground leading-relaxed">
+                    {b.message}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // -- Report CTA Banner --
 
 export function ReportCTABanner({ submitted }: { submitted: boolean }) {

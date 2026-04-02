@@ -272,6 +272,7 @@ export default async function DashboardPage() {
     message: bonus.message,
     date: bonus.bonus_date,
   }));
+  const todayReceivedBonuses = receivedBonuses.filter((b) => b.date === today);
 
   const pendingReviewPlan = pendingReviewResult.data;
   const pendingReview = pendingReviewPlan
@@ -296,6 +297,7 @@ export default async function DashboardPage() {
       sentToday: !!sentTodayResult.data,
       recentReceived: receivedBonuses,
     },
+    todayReceivedBonuses,
   };
 
   // ── Member role: render MemberDashboard directly ──

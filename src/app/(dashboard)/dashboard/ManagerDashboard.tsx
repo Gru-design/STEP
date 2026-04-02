@@ -2,6 +2,7 @@
 
 import {
   GreetingHeader,
+  NewPeerBonusBanner,
   ReportCTABanner,
   PendingReviewBanner,
   ApprovalSection,
@@ -25,6 +26,7 @@ export function ManagerDashboard({
   return (
     <div className="space-y-5 pb-4">
       <GreetingHeader user={user} stats={memberStats} />
+      <NewPeerBonusBanner bonuses={memberStats.todayReceivedBonuses ?? []} />
       <ReportCTABanner submitted={memberStats.submittedToday} />
 
       {memberStats.pendingReview && (

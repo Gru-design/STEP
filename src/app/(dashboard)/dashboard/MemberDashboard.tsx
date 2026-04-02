@@ -2,6 +2,7 @@
 
 import {
   GreetingHeader,
+  NewPeerBonusBanner,
   ReportCTABanner,
   PendingReviewBanner,
   QuickActions,
@@ -16,6 +17,7 @@ export function MemberDashboard({ user, role, memberStats }: MemberDashboardProp
   return (
     <div className="space-y-5 pb-4">
       <GreetingHeader user={user} stats={memberStats} />
+      <NewPeerBonusBanner bonuses={memberStats.todayReceivedBonuses ?? []} />
       <ReportCTABanner submitted={memberStats.submittedToday} />
 
       {memberStats.pendingReview && (
