@@ -46,7 +46,7 @@ export function PeerBonusPageClient({
   bonuses,
   members,
   available,
-  currentUserId,
+  currentUserId: _currentUserId,
 }: PeerBonusPageClientProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -220,7 +220,7 @@ export function PeerBonusPageClient({
               </p>
               <div className="space-y-2">
                 {group.items.map((item) => {
-                  const isReceived = item.toName !== "不明" && bonuses.some(
+                  const _isReceived = item.toName !== "不明" && bonuses.some(
                     (b) => b.id === item.id
                   );
                   return (

@@ -45,7 +45,7 @@ interface NotificationsClientProps {
 
 export function NotificationsClient({
   initialNotifications,
-  userId,
+  userId: _userId,
 }: NotificationsClientProps) {
   const [notifications, setNotifications] = useState(initialNotifications);
   const [filter, setFilter] = useState<"all" | "unread">("all");

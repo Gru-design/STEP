@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, MessageCircle, Sparkles } from "lucide-react";
+import { Heart, Sparkles } from "lucide-react";
 
 export interface ActivityFeedItem {
   id: string;

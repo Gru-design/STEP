@@ -44,7 +44,6 @@ export async function uploadReportFile(
     }
 
     // Generate unique path: tenant_id/user_id/timestamp_filename
-    const ext = file.name.split(".").pop() ?? "bin";
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const path = `${tenantId}/${user.id}/${Date.now()}_${safeName}`;
 
