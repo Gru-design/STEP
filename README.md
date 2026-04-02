@@ -348,6 +348,7 @@ Migrations are in `supabase/migrations/` and should be executed in order:
 00020_report_comments.sql        → Report comment threads
 00021_performance_indexes.sql    → Compound indexes for query optimization
 00022_team_members_tenant_id.sql → team_members tenant_id denormalization for RLS
+00023_super_admin_cross_tenant_select.sql → super_admin cross-tenant SELECT on users/tenants
 ```
 
 ---
