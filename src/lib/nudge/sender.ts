@@ -117,7 +117,7 @@ export async function sendPendingNudges(
   // Batch update all sent nudges in one query
   const { error: updateError } = await supabase
     .from("nudges")
-    .update({ status: "sent", sent_at: now })
+    .update({ status: "sent", actioned_at: now })
     .in("id", sentNudgeIds);
 
   if (updateError) {

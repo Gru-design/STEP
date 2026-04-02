@@ -20,7 +20,7 @@ interface ActionResult<T = unknown> {
 
 const reactionSchema = z.object({
   entryId: z.string().uuid("無効なエントリIDです"),
-  type: z.enum(["like", "thumbsup", "heart", "clap", "fire", "star"]),
+  type: z.enum(["like", "fire", "clap", "heart", "eyes"]),
   comment: z.string().max(500).optional(),
 });
 

@@ -50,10 +50,12 @@ export function ReactionBar({
     });
   };
 
+  const [commentReactionType, setCommentReactionType] = useState<ReactionType>("like");
+
   const handleCommentSubmit = () => {
     if (!comment.trim()) return;
     startTransition(async () => {
-      await addReaction(entryId, "like", comment.trim());
+      await addReaction(entryId, commentReactionType, comment.trim());
       setComment("");
       setShowCommentInput(false);
     });
@@ -102,6 +104,18 @@ export function ReactionBar({
 
       {showCommentInput && (
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="shrink-0 text-lg"
+            onClick={() => {
+              const types = REACTION_EMOJIS.map((e) => e.type);
+              const idx = types.indexOf(commentReactionType);
+              setCommentReactionType(types[(idx + 1) % types.length]);
+            }}
+            title="リアクションタイプを変更"
+          >
+            {REACTION_EMOJIS.find((e) => e.type === commentReactionType)?.emoji ?? "👍"}
+          </button>
           <Input
             value={comment}
             onChange={(e) => setComment(e.target.value)}

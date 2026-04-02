@@ -19,7 +19,15 @@ async function requireSuperAdmin() {
     return { error: "認証が必要です。" };
   }
 
-  if (user.user_metadata?.role !== "super_admin") {
+  // Verify role from database (not user_metadata which can be tampered)
+  const adminClient = createAdminClient();
+  const { data: dbUser } = await adminClient
+    .from("users")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (dbUser?.role !== "super_admin") {
     return { error: "スーパーアドミン権限が必要です。" };
   }
 

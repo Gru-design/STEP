@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -64,6 +65,7 @@ export function KnowledgePageClient({
   const [newBody, setNewBody] = useState("");
   const [newTags, setNewTags] = useState("");
   const [clientError, setClientError] = useState<string | null>(null);
+  const router = useRouter();
 
   // Filter posts by selected tag (client-side)
   const filteredPosts = useMemo(() => {
@@ -120,7 +122,7 @@ export function KnowledgePageClient({
       setNewBody("");
       setNewTags("");
       setShowNewPostDialog(false);
-      window.location.reload();
+      router.refresh();
     },
   });
 

@@ -20,10 +20,10 @@ export const getCachedTenantTemplates = cache(async (tenantId: string) => {
   const adminClient = createAdminClient();
   const { data } = await adminClient
     .from("report_templates")
-    .select("id, name, type, schema, is_active, is_global, visibility_override, sort_order")
-    .or(`tenant_id.eq.${tenantId},is_global.eq.true`)
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true });
+    .select("id, name, type, schema, is_published, is_system, visibility_override, created_at")
+    .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
+    .eq("is_published", true)
+    .order("created_at", { ascending: false });
   return data ?? [];
 });
 
