@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -10,8 +10,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { OptionalSelect } from "@/components/shared/OptionalSelect";
-import { Plus, Trash2, Star, ChevronDown, Check, Upload, FileIcon, Loader2 } from "lucide-react";
-import { uploadReportFile } from "@/app/(dashboard)/reports/file-actions";
+import { Plus, Trash2, Star, ChevronDown, Check, FileIcon } from "lucide-react";
 import type {
   TemplateSchema,
   TemplateSection,
@@ -253,10 +252,10 @@ function renderField(
 
     case "file":
       return (
-        <FileUploadField
-          value={value as { url: string; fileName: string } | null}
-          onChange={onChange}
-        />
+        <div className="flex items-center gap-2 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+          <FileIcon className="h-5 w-5" />
+          ファイル添付は現在準備中です
+        </div>
       );
 
     case "link":
@@ -393,106 +392,9 @@ function ReadOnlyValue({
       );
     }
 
-    case "file": {
-      const fileVal = value as { url: string; fileName: string } | null;
-      if (!fileVal?.url) return <p className="text-sm text-muted-foreground">--</p>;
-      return (
-        <a
-          href={fileVal.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-sm text-accent-color underline"
-        >
-          <FileIcon className="h-4 w-4" />
-          {fileVal.fileName}
-        </a>
-      );
-    }
-
     default:
       return <p className="text-sm text-foreground">{String(value)}</p>;
   }
-}
-
-function FileUploadField({
-  value,
-  onChange,
-}: {
-  value: { url: string; fileName: string } | null;
-  onChange: (value: unknown) => void;
-}) {
-  const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setError(null);
-    startTransition(async () => {
-      const formData = new FormData();
-      formData.append("file", file);
-      const result = await uploadReportFile(formData);
-      if (result.success && result.url) {
-        onChange({ url: result.url, fileName: result.fileName ?? file.name });
-      } else {
-        setError(result.error ?? "アップロードに失敗しました");
-      }
-    });
-  };
-
-  if (value?.url) {
-    return (
-      <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3">
-        <FileIcon className="h-5 w-5 shrink-0 text-primary" />
-        <a
-          href={value.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-1 truncate text-sm text-accent-color underline"
-        >
-          {value.fileName}
-        </a>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => onChange(null)}
-          className="h-7 w-7 p-0 text-danger hover:text-danger hover:bg-red-50"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      <label className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed border-border p-6 hover:border-primary/40 hover:bg-muted/30 motion-safe:transition-colors">
-        {isPending ? (
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        ) : (
-          <Upload className="h-6 w-6 text-muted-foreground" />
-        )}
-        <span className="text-sm text-muted-foreground">
-          {isPending ? "アップロード中..." : "クリックしてファイルを選択"}
-        </span>
-        <span className="text-xs text-muted-foreground">
-          画像・PDF・Excel・Word・CSV（10MB以下）
-        </span>
-        <Input
-          type="file"
-          onChange={handleFileChange}
-          disabled={isPending}
-          className="hidden"
-          accept="image/*,.pdf,.xlsx,.docx,.csv"
-        />
-      </label>
-      {error && (
-        <p className="text-xs text-danger">{error}</p>
-      )}
-    </div>
-  );
 }
 
 function MultiCheckbox({
