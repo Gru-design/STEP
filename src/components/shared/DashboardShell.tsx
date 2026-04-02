@@ -84,6 +84,12 @@ const navGroups: NavGroup[] = [
         roles: ["super_admin", "admin", "manager", "member"],
       },
       {
+        label: "マイ日報",
+        href: "/reports/my",
+        icon: FileText,
+        roles: ["super_admin", "admin", "manager", "member"],
+      },
+      {
         label: "週次計画",
         href: "/plans",
         icon: ClipboardList,
@@ -257,10 +263,13 @@ export function DashboardShell({
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
     if (href === "/settings") return pathname === "/settings";
+    if (href === "/reports/my")
+      return pathname === "/reports/my";
     if (href === "/reports")
       return (
-        pathname === "/reports" ||
-        pathname.startsWith("/reports/")
+        (pathname === "/reports" ||
+        pathname.startsWith("/reports/")) &&
+        pathname !== "/reports/my"
       );
     if (href.includes("?")) {
       const base = href.split("?")[0];
