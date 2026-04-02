@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import type { Deal, PipelineStage } from "@/types/database";
 import { getCachedPipelineStages } from "@/lib/cache";
 import { DealsViewToggle } from "./DealsViewToggle";
@@ -17,7 +18,7 @@ export default async function DealsPage() {
 
   const { data: dbUser } = await supabase
     .from("users")
-    .select("tenant_id")
+    .select("tenant_id, role")
     .eq("id", authUser.id)
     .single();
 
@@ -48,10 +49,21 @@ export default async function DealsPage() {
       </div>
 
       {stages.length === 0 ? (
-        <div className="flex h-64 items-center justify-center rounded-lg border border-border bg-muted">
+        <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-lg border border-border bg-muted">
           <p className="text-sm text-muted-foreground">
-            パイプラインステージが設定されていません。管理者に設定を依頼してください。
+            パイプラインステージが設定されていません。
+            {["admin", "super_admin"].includes(dbUser.role)
+              ? ""
+              : "管理者に設定を依頼してください。"}
           </p>
+          {["admin", "super_admin"].includes(dbUser.role) && (
+            <Link
+              href="/settings/pipeline"
+              className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover"
+            >
+              パイプラインステージを設定する
+            </Link>
+          )}
         </div>
       ) : (
         <DealsViewToggle stages={stages} deals={deals} />
