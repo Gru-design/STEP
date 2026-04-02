@@ -336,7 +336,7 @@ async function ManagerSection({
   }
 
   // Admin: fetch additional stats
-  const nowMs = Date.now();
+  const nowMs = new Date().getTime();
   const [
     totalUsersRes, todaySubmittedRes, activeDealsRes,
     teamsRes, todayEntriesRes, allGoalsRes,
