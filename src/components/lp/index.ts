@@ -2,6 +2,7 @@ export { HeaderNav } from "./HeaderNav";
 export { HeroSection } from "./HeroSection";
 export { StatsSection } from "./StatsSection";
 export { FeaturesSection } from "./FeaturesSection";
+export { SolutionSection } from "./SolutionSection";
 export { PlatformSection } from "./PlatformSection";
 export { PricingSection } from "./PricingSection";
 export { TestimonialsSection } from "./TestimonialsSection";

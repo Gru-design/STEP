@@ -2,6 +2,7 @@ import { HeaderNav } from "@/components/lp/HeaderNav";
 import { HeroSection } from "@/components/lp/HeroSection";
 import { StatsSection } from "@/components/lp/StatsSection";
 import { FeaturesSection } from "@/components/lp/FeaturesSection";
+import { SolutionSection } from "@/components/lp/SolutionSection";
 import { PlatformSection } from "@/components/lp/PlatformSection";
 import { PricingSection } from "@/components/lp/PricingSection";
 import { TestimonialsSection } from "@/components/lp/TestimonialsSection";
@@ -16,9 +17,10 @@ export default function LandingPage() {
         <HeroSection />
         <StatsSection />
         <FeaturesSection />
+        <SolutionSection />
         <PlatformSection />
-        <PricingSection />
         <TestimonialsSection />
+        <PricingSection />
         <CTASection />
       </main>
       <FooterSection />
