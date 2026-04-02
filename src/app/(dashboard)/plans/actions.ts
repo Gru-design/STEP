@@ -318,6 +318,84 @@ export async function rejectPlan(
   }
 }
 
+// ── Delete Weekly Plan ──
+
+export async function deleteWeeklyPlan(
+  planId: string
+): Promise<ActionResult> {
+  if (!planId || typeof planId !== "string") {
+    return { success: false, error: "無効なIDです" };
+  }
+
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "認証が必要です" };
+    }
+
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("tenant_id, role")
+      .eq("id", user.id)
+      .single();
+
+    if (!dbUser) {
+      return { success: false, error: "ユーザーが見つかりません" };
+    }
+
+    // Fetch the plan to check ownership and tenant
+    const { data: plan } = await supabase
+      .from("weekly_plans")
+      .select("user_id, status, tenant_id")
+      .eq("id", planId)
+      .single();
+
+    if (!plan || plan.tenant_id !== dbUser.tenant_id) {
+      return { success: false, error: "計画が見つかりません" };
+    }
+
+    const isOwner = plan.user_id === user.id;
+    const isAdmin = ["admin", "super_admin"].includes(dbUser.role);
+
+    // Owner can only delete drafts; admin can delete any status
+    if (isOwner && plan.status !== "draft" && !isAdmin) {
+      return { success: false, error: "提出済みの計画は削除できません" };
+    }
+
+    if (!isOwner && !isAdmin) {
+      return { success: false, error: "削除権限がありません" };
+    }
+
+    const { error } = await supabase
+      .from("weekly_plans")
+      .delete()
+      .eq("id", planId)
+      .eq("tenant_id", dbUser.tenant_id);
+
+    if (error) {
+      return { success: false, error: "削除に失敗しました" };
+    }
+
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: user.id,
+      action: "delete",
+      resource: "weekly_plan",
+      resourceId: planId,
+    });
+
+    revalidatePath("/plans");
+    return { success: true };
+  } catch {
+    return { success: false, error: "予期しないエラーが発生しました" };
+  }
+}
+
 // ── Weekly Review ──
 
 export async function submitReview(data: {

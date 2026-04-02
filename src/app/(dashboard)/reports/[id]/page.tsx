@@ -14,6 +14,7 @@ import { DynamicForm } from "@/components/reports/DynamicForm";
 import { ReactionBar } from "@/components/reports/ReactionBar";
 import { CommentThread } from "@/components/reports/CommentThread";
 import { SubmitDraftButton } from "./SubmitDraftButton";
+import { DeleteReportButton } from "./DeleteReportButton";
 import type { TemplateSchema, Reaction } from "@/types/database";
 
 interface ReportDetailPageProps {
@@ -165,6 +166,9 @@ export default async function ReportDetailPage({
   const statusInfo = statusLabels[entry.status as string] ?? statusLabels.draft;
   const isDraftOwner =
     entry.user_id === authUser.id && entry.status === "draft";
+  const currentUserRole = currentDbUser?.role ?? "member";
+  const isAdmin = ["admin", "super_admin"].includes(currentUserRole);
+  const canDelete = isAdmin || isDraftOwner;
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -190,16 +194,19 @@ export default async function ReportDetailPage({
             <span>{String(template.name ?? "")}</span>
           </div>
         </div>
-        {isDraftOwner && (
-          <div className="flex items-center gap-2 shrink-0">
-            <Link href={`/reports/${id}/edit`}>
-              <Button variant="outline" size="sm">
-                編集する
-              </Button>
-            </Link>
-            <SubmitDraftButton entryId={id} />
-          </div>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {isDraftOwner && (
+            <>
+              <Link href={`/reports/${id}/edit`}>
+                <Button variant="outline" size="sm">
+                  編集する
+                </Button>
+              </Link>
+              <SubmitDraftButton entryId={id} />
+            </>
+          )}
+          {canDelete && <DeleteReportButton entryId={id} />}
+        </div>
       </div>
 
       <Separator />

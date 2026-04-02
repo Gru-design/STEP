@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { DynamicForm } from "@/components/reports/DynamicForm";
 import { ApprovalFlow } from "@/components/shared/ApprovalFlow";
-import { FileEdit, ChevronRight, Calendar, CheckCircle2 } from "lucide-react";
+import { FileEdit, ChevronRight, Calendar, CheckCircle2, Trash2 } from "lucide-react";
 import type {
   WeeklyPlan,
   ReportTemplate,
@@ -19,7 +19,7 @@ import type {
   PlanReview,
   TemplateSchema,
 } from "@/types/database";
-import { createOrUpdatePlan, submitPlan } from "./actions";
+import { createOrUpdatePlan, submitPlan, deleteWeeklyPlan } from "./actions";
 import { WeeklyReviewForm } from "@/components/plans/WeeklyReviewForm";
 import { ReviewCard } from "@/components/plans/ReviewCard";
 
@@ -30,6 +30,7 @@ interface PlansPageClientProps {
   planReviews?: PlanReview[];
   isManager: boolean;
   userId: string;
+  userRole?: string;
 }
 
 function getMonday(d: Date): Date {
@@ -71,6 +72,7 @@ export function PlansPageClient({
   approvalLogs,
   planReviews = [],
   isManager,
+  userRole = "member",
 }: PlansPageClientProps) {
   const currentMonday = getMonday(new Date()).toISOString().split("T")[0];
   const currentPlan = plans.find((p) => p.week_start === currentMonday);
@@ -84,9 +86,33 @@ export function PlansPageClient({
   );
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
+
+  const isAdmin = ["admin", "super_admin"].includes(userRole);
+
+  const handleDelete = async (planId: string) => {
+    if (confirmDeleteId !== planId) {
+      setConfirmDeleteId(planId);
+      return;
+    }
+
+    setDeleting(true);
+    setError(null);
+    const result = await deleteWeeklyPlan(planId);
+    setDeleting(false);
+    setConfirmDeleteId(null);
+
+    if (result.success) {
+      setSuccessMsg("計画を削除しました");
+      setTimeout(() => setSuccessMsg(null), 3000);
+    } else {
+      setError(result.error ?? "削除に失敗しました");
+    }
+  };
 
   const activeTemplate = templates.find((t) => t.id === selectedTemplate);
 
@@ -325,6 +351,35 @@ export function PlansPageClient({
                   </Button>
                 </div>
               )}
+
+              {/* Delete button for admin */}
+              {currentPlan && isAdmin && (
+                <div className="flex items-center gap-2 pt-2">
+                  {confirmDeleteId === currentPlan.id && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setConfirmDeleteId(null)}
+                      disabled={deleting}
+                    >
+                      キャンセル
+                    </Button>
+                  )}
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={deleting}
+                    onClick={() => handleDelete(currentPlan.id)}
+                  >
+                    <Trash2 className="mr-1 h-3.5 w-3.5" />
+                    {deleting && confirmDeleteId === currentPlan.id
+                      ? "削除中..."
+                      : confirmDeleteId === currentPlan.id
+                        ? "本当に削除"
+                        : "削除"}
+                  </Button>
+                </div>
+              )}
             </>
           )}
 
@@ -446,6 +501,35 @@ export function PlansPageClient({
                           isManager={isManager}
                           planId={plan.id}
                         />
+                      )}
+
+                      {/* Delete button for admin */}
+                      {isAdmin && (
+                        <div className="flex items-center gap-2 pt-2 border-t border-border">
+                          {confirmDeleteId === plan.id && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setConfirmDeleteId(null)}
+                              disabled={deleting}
+                            >
+                              キャンセル
+                            </Button>
+                          )}
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={deleting}
+                            onClick={() => handleDelete(plan.id)}
+                          >
+                            <Trash2 className="mr-1 h-3.5 w-3.5" />
+                            {deleting && confirmDeleteId === plan.id
+                              ? "削除中..."
+                              : confirmDeleteId === plan.id
+                                ? "本当に削除"
+                                : "削除"}
+                          </Button>
+                        </div>
                       )}
                     </div>
                   )}
