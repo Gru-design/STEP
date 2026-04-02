@@ -110,12 +110,19 @@ export default async function ReportsPage() {
             チームメンバーの日報を確認できます
           </p>
         </div>
-        <Link href="/reports/new">
-          <Button className="bg-primary hover:bg-primary/90 text-white">
-            <Plus className="mr-1 h-4 w-4" />
-            日報を書く
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/reports/my">
+            <Button variant="outline">
+              マイ日報
+            </Button>
+          </Link>
+          <Link href="/reports/new">
+            <Button className="bg-primary hover:bg-primary/90 text-white">
+              <Plus className="mr-1 h-4 w-4" />
+              日報を書く
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <ReportFeed
