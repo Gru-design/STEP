@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { LayoutGrid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DealsKanban } from "./DealsKanban";
@@ -12,15 +12,20 @@ interface DealsViewToggleProps {
   deals: Deal[];
 }
 
-export function DealsViewToggle({ stages, deals }: DealsViewToggleProps) {
-  // Default to list on mobile (SSR-safe: start with list, switch to kanban on desktop after mount)
-  const [view, setView] = useState<"kanban" | "list">("list");
+function getIsDesktop() {
+  return window.innerWidth >= 768;
+}
 
-  useEffect(() => {
-    if (window.innerWidth >= 768) {
-      setView("kanban");
-    }
-  }, []);
+function subscribe(callback: () => void) {
+  window.addEventListener("resize", callback);
+  return () => window.removeEventListener("resize", callback);
+}
+
+export function DealsViewToggle({ stages, deals }: DealsViewToggleProps) {
+  const isDesktop = useSyncExternalStore(subscribe, getIsDesktop, () => false);
+  const [userChoice, setUserChoice] = useState<"kanban" | "list" | null>(null);
+
+  const view = userChoice ?? (isDesktop ? "kanban" : "list");
 
   return (
     <div className="space-y-4">
@@ -28,7 +33,7 @@ export function DealsViewToggle({ stages, deals }: DealsViewToggleProps) {
         <Button
           variant={view === "kanban" ? "default" : "outline"}
           size="sm"
-          onClick={() => setView("kanban")}
+          onClick={() => setUserChoice("kanban")}
           className="gap-1.5"
         >
           <LayoutGrid className="h-4 w-4" />
@@ -37,7 +42,7 @@ export function DealsViewToggle({ stages, deals }: DealsViewToggleProps) {
         <Button
           variant={view === "list" ? "default" : "outline"}
           size="sm"
-          onClick={() => setView("list")}
+          onClick={() => setUserChoice("list")}
           className="gap-1.5"
         >
           <List className="h-4 w-4" />
