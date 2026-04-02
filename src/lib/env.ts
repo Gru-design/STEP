@@ -5,6 +5,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, "NEXT_PUBLIC_SUPABASE_ANON_KEY is required"),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, "SUPABASE_SERVICE_ROLE_KEY is required"),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  DATABASE_POOLED_URL: z.string().optional(),
   CRON_SECRET: z.string().optional(),
 });
 
