@@ -1,6 +1,6 @@
 "use client";
 
-import { GripVertical, Star as StarIcon, Upload } from "lucide-react";
+import { Star as StarIcon, Upload } from "lucide-react";
 import type { TemplateField } from "@/types/database";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,21 +53,18 @@ export function FieldRenderer({
 
 function BuilderView({ field }: { field: TemplateField }) {
   return (
-    <div className="flex items-center gap-2">
-      <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground" />
-      <div className="flex min-w-0 flex-1 items-center gap-2">
-        <span className="truncate text-sm font-medium text-foreground">
-          {field.label}
+    <div className="flex min-w-0 flex-1 items-center gap-2">
+      <span className="truncate text-sm font-medium text-foreground">
+        {field.label}
+      </span>
+      <Badge variant="secondary" className="shrink-0 text-[10px]">
+        {FIELD_TYPE_LABELS[field.type] ?? field.type}
+      </Badge>
+      {field.required && (
+        <span className="shrink-0 text-xs font-medium text-danger">
+          必須
         </span>
-        <Badge variant="secondary" className="shrink-0 text-[10px]">
-          {FIELD_TYPE_LABELS[field.type] ?? field.type}
-        </Badge>
-        {field.required && (
-          <span className="shrink-0 text-xs font-medium text-danger">
-            必須
-          </span>
-        )}
-      </div>
+      )}
     </div>
   );
 }

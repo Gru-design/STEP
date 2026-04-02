@@ -11,7 +11,7 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { Plus, Save, Settings2 } from "lucide-react";
+import { Plus, Eye, Wrench } from "lucide-react";
 import type {
   FieldType,
   TemplateField,
@@ -21,15 +21,6 @@ import type {
 } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
-import { FieldPalette } from "./FieldPalette";
-import { FieldProperties } from "./FieldProperties";
 import { FieldRenderer } from "./FieldRenderer";
 import { SectionBlock } from "./SectionBlock";
 
@@ -81,7 +72,6 @@ export function TemplateBuilder({
     initialSchema?.sections ?? []
   );
   const [selectedFieldKey, setSelectedFieldKey] = useState<string | null>(null);
-  const [propertiesOpen, setPropertiesOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -91,16 +81,6 @@ export function TemplateBuilder({
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-
-  // Find the selected field across all sections
-  const selectedField = useMemo(() => {
-    if (!selectedFieldKey) return null;
-    for (const section of sections) {
-      const found = section.fields.find((f) => f.key === selectedFieldKey);
-      if (found) return found;
-    }
-    return null;
-  }, [sections, selectedFieldKey]);
 
   // Add a new section
   const handleAddSection = useCallback(() => {
@@ -112,43 +92,6 @@ export function TemplateBuilder({
     setSections((prev) => [...prev, newSection]);
   }, [sections.length]);
 
-  // Add a field to the last section (or create one if none exists)
-  const handleAddField = useCallback(
-    (type: FieldType) => {
-      const newField: TemplateField = {
-        key: generateFieldKey(),
-        type,
-        label: DEFAULT_FIELD_LABELS[type],
-        required: false,
-        ...(type === "select_single" || type === "select_multi"
-          ? { options: [] }
-          : {}),
-        ...(type === "rating" ? { min: 1, max: 5 } : {}),
-        ...(type === "repeater" ? { fields: [] } : {}),
-      };
-
-      setSections((prev) => {
-        if (prev.length === 0) {
-          return [
-            {
-              id: generateSectionId(),
-              label: "セクション 1",
-              fields: [newField],
-            },
-          ];
-        }
-        return prev.map((section, idx) =>
-          idx === prev.length - 1
-            ? { ...section, fields: [...section.fields, newField] }
-            : section
-        );
-      });
-
-      setSelectedFieldKey(newField.key);
-    },
-    []
-  );
-
   // Add field to a specific section
   const handleAddFieldToSection = useCallback(
     (sectionId: string, type: FieldType) => {
@@ -158,7 +101,7 @@ export function TemplateBuilder({
         label: DEFAULT_FIELD_LABELS[type],
         required: false,
         ...(type === "select_single" || type === "select_multi"
-          ? { options: [] }
+          ? { options: [""] }
           : {}),
         ...(type === "rating" ? { min: 1, max: 5 } : {}),
         ...(type === "repeater" ? { fields: [] } : {}),
@@ -172,6 +115,7 @@ export function TemplateBuilder({
         )
       );
 
+      // Auto-select and expand the new field
       setSelectedFieldKey(newField.key);
     },
     []
@@ -192,18 +136,16 @@ export function TemplateBuilder({
     []
   );
 
-  // Delete the selected field
-  const handleDeleteField = useCallback(() => {
-    if (!selectedFieldKey) return;
+  // Delete a field
+  const handleDeleteField = useCallback((fieldKey: string) => {
     setSections((prev) =>
       prev.map((section) => ({
         ...section,
-        fields: section.fields.filter((f) => f.key !== selectedFieldKey),
+        fields: section.fields.filter((f) => f.key !== fieldKey),
       }))
     );
-    setSelectedFieldKey(null);
-    setPropertiesOpen(false);
-  }, [selectedFieldKey]);
+    setSelectedFieldKey((prev) => (prev === fieldKey ? null : prev));
+  }, []);
 
   // Update section label
   const handleUpdateSectionLabel = useCallback(
@@ -250,137 +192,137 @@ export function TemplateBuilder({
     );
   }, []);
 
-  // Handle save
+  // Auto-save schema on changes
   const handleSave = useCallback(() => {
     onSave({ sections });
   }, [sections, onSave]);
 
-  // Select field and open properties on mobile
+  // Toggle field selection (expand/collapse inline properties)
   const handleSelectField = useCallback((key: string) => {
-    setSelectedFieldKey(key);
-    setPropertiesOpen(true);
+    setSelectedFieldKey((prev) => (prev === key ? null : key));
   }, []);
 
+  // Count total fields
+  const totalFields = useMemo(
+    () => sections.reduce((acc, s) => acc + s.fields.length, 0),
+    [sections]
+  );
+
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold text-primary">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5">
+        <div className="flex items-center gap-3 min-w-0">
+          <h2 className="text-base font-bold text-foreground truncate sm:text-lg">
             {templateName}
           </h2>
-          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-primary">
+          <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
             {TEMPLATE_TYPE_LABELS[templateType]}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Mobile: properties toggle */}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setPropertiesOpen(true)}
-            className="lg:hidden"
-          >
-            <Settings2 className="mr-1 h-4 w-4" />
-            設定
-          </Button>
-          <Button type="button" size="sm" onClick={handleSave}>
-            <Save className="mr-1 h-4 w-4" />
-            保存
-          </Button>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="hidden sm:inline">
+            {sections.length}セクション / {totalFields}フィールド
+          </span>
         </div>
       </div>
 
       {/* Tabs: Builder / Preview */}
-      <Tabs defaultValue="builder" className="flex flex-1 flex-col overflow-hidden">
-        <div className="border-b border-border px-4 pt-2">
-          <TabsList>
-            <TabsTrigger value="builder">ビルダー</TabsTrigger>
-            <TabsTrigger value="preview">プレビュー</TabsTrigger>
+      <Tabs defaultValue="builder" className="flex flex-1 flex-col">
+        <div className="border-b border-border px-4 pt-2 sm:px-5">
+          <TabsList className="h-9">
+            <TabsTrigger value="builder" className="gap-1.5 text-sm">
+              <Wrench className="h-3.5 w-3.5" />
+              ビルダー
+            </TabsTrigger>
+            <TabsTrigger value="preview" className="gap-1.5 text-sm">
+              <Eye className="h-3.5 w-3.5" />
+              プレビュー
+            </TabsTrigger>
           </TabsList>
         </div>
 
         {/* Builder Tab */}
-        <TabsContent value="builder" className="flex-1 overflow-hidden m-0">
+        <TabsContent value="builder" className="flex-1 m-0">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
-            <div className="flex h-full">
-              {/* Left Panel - Field Palette */}
-              <div className="hidden w-56 shrink-0 overflow-y-auto border-r border-border p-3 md:block">
-                <FieldPalette onAddField={handleAddField} />
-              </div>
+            <div className="mx-auto max-w-2xl space-y-4 p-4 sm:p-6">
+              {sections.map((section) => (
+                <SectionBlock
+                  key={section.id}
+                  section={section}
+                  fields={section.fields}
+                  selectedFieldKey={selectedFieldKey}
+                  onSelectField={handleSelectField}
+                  onUpdateSectionLabel={(label) =>
+                    handleUpdateSectionLabel(section.id, label)
+                  }
+                  onDeleteSection={() =>
+                    handleDeleteSection(section.id)
+                  }
+                  onAddField={(type) =>
+                    handleAddFieldToSection(section.id, type)
+                  }
+                  onUpdateField={handleUpdateField}
+                  onDeleteField={handleDeleteField}
+                />
+              ))}
 
-              {/* Center - Builder Area */}
-              <div className="flex-1 overflow-y-auto p-4">
-                {/* Mobile: Field Palette inline */}
-                <div className="mb-4 md:hidden">
-                  <FieldPalette onAddField={handleAddField} />
+              {sections.length === 0 && (
+                <div className="rounded-xl border-2 border-dashed border-border px-6 py-16 text-center">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                    <Plus className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <p className="mb-1 text-sm font-medium text-foreground">
+                    テンプレートを作成しましょう
+                  </p>
+                  <p className="mb-4 text-xs text-muted-foreground">
+                    セクションを追加して、フィールドを配置してください
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={handleAddSection}
+                    className="bg-primary text-white hover:bg-primary-hover"
+                  >
+                    <Plus className="mr-1.5 h-4 w-4" />
+                    最初のセクションを追加
+                  </Button>
                 </div>
+              )}
 
-                <div className="mx-auto max-w-2xl space-y-4">
-                  {sections.map((section) => (
-                    <SectionBlock
-                      key={section.id}
-                      section={section}
-                      fields={section.fields}
-                      selectedFieldKey={selectedFieldKey}
-                      onSelectField={handleSelectField}
-                      onUpdateSectionLabel={(label) =>
-                        handleUpdateSectionLabel(section.id, label)
-                      }
-                      onDeleteSection={() =>
-                        handleDeleteSection(section.id)
-                      }
-                      onAddField={(type) =>
-                        handleAddFieldToSection(section.id, type)
-                      }
-                    />
-                  ))}
-
-                  {sections.length === 0 && (
-                    <div className="rounded-lg border-2 border-dashed border-border px-4 py-12 text-center">
-                      <p className="mb-2 text-sm text-muted-foreground">
-                        まだセクションがありません
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        下のボタンでセクションを追加するか、左パネルからフィールドを追加してください
-                      </p>
-                    </div>
-                  )}
-
+              {sections.length > 0 && (
+                <div className="flex items-center gap-3">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={handleAddSection}
-                    className="w-full"
+                    className="flex-1 border-dashed"
                   >
                     <Plus className="mr-1.5 h-4 w-4" />
                     セクション追加
                   </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleSave}
+                    className="bg-primary text-white hover:bg-primary-hover"
+                  >
+                    構成を確定
+                  </Button>
                 </div>
-              </div>
-
-              {/* Right Panel - Field Properties (desktop) */}
-              <div className="hidden w-72 shrink-0 overflow-y-auto border-l border-border p-3 lg:block">
-                <FieldProperties
-                  field={selectedField}
-                  onUpdate={handleUpdateField}
-                  onDelete={handleDeleteField}
-                />
-              </div>
+              )}
             </div>
           </DndContext>
         </TabsContent>
 
         {/* Preview Tab */}
-        <TabsContent value="preview" className="flex-1 overflow-y-auto m-0 p-4">
+        <TabsContent value="preview" className="flex-1 m-0 p-4 sm:p-6">
           <div className="mx-auto max-w-2xl space-y-6">
             {sections.length === 0 ? (
-              <div className="rounded-lg border-2 border-dashed border-border px-4 py-12 text-center">
+              <div className="rounded-xl border-2 border-dashed border-border px-6 py-16 text-center">
                 <p className="text-sm text-muted-foreground">
                   フィールドを追加するとプレビューが表示されます
                 </p>
@@ -388,10 +330,10 @@ export function TemplateBuilder({
             ) : (
               sections.map((section) => (
                 <div key={section.id} className="space-y-4">
-                  <h3 className="text-base font-semibold text-primary">
+                  <h3 className="text-base font-bold text-foreground">
                     {section.label}
                   </h3>
-                  <div className="space-y-4 rounded-lg border border-border bg-white p-4">
+                  <div className="space-y-5 rounded-xl border border-border bg-white p-5">
                     {section.fields.map((field) => (
                       <FieldRenderer
                         key={field.key}
@@ -400,7 +342,7 @@ export function TemplateBuilder({
                       />
                     ))}
                     {section.fields.length === 0 && (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="py-4 text-center text-sm text-muted-foreground">
                         フィールドがありません
                       </p>
                     )}
@@ -411,25 +353,6 @@ export function TemplateBuilder({
           </div>
         </TabsContent>
       </Tabs>
-
-      {/* Mobile: Field Properties as Sheet */}
-      <Sheet open={propertiesOpen} onOpenChange={setPropertiesOpen}>
-        <SheetContent side="right" className="w-80 overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>フィールド設定</SheetTitle>
-            <SheetDescription>
-              選択したフィールドのプロパティを編集します
-            </SheetDescription>
-          </SheetHeader>
-          <div className="mt-4">
-            <FieldProperties
-              field={selectedField}
-              onUpdate={handleUpdateField}
-              onDelete={handleDeleteField}
-            />
-          </div>
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }
