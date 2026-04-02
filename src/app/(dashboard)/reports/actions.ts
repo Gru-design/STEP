@@ -335,6 +335,90 @@ export async function checkPeerBonusAvailable(): Promise<ActionResult<{ availabl
   }
 }
 
+// ── Delete Report Entry ──
+
+export async function deleteReportEntry(
+  entryId: string
+): Promise<ActionResult> {
+  if (!entryId || typeof entryId !== "string") {
+    return { success: false, error: "無効なIDです" };
+  }
+
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "認証が必要です" };
+    }
+
+    const tenantId = await resolveTenantId(user, supabase);
+    if (!tenantId) {
+      return { success: false, error: "ユーザーが見つかりません" };
+    }
+
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (!dbUser) {
+      return { success: false, error: "ユーザーが見つかりません" };
+    }
+
+    // Fetch the entry to check ownership and tenant
+    const { data: entry } = await supabase
+      .from("report_entries")
+      .select("user_id, status, tenant_id")
+      .eq("id", entryId)
+      .single();
+
+    if (!entry || entry.tenant_id !== tenantId) {
+      return { success: false, error: "日報が見つかりません" };
+    }
+
+    const isOwner = entry.user_id === user.id;
+    const isAdmin = ["admin", "super_admin"].includes(dbUser.role);
+
+    // Owner can only delete drafts; admin can delete any status
+    if (isOwner && entry.status !== "draft" && !isAdmin) {
+      return { success: false, error: "提出済みの日報は削除できません" };
+    }
+
+    if (!isOwner && !isAdmin) {
+      return { success: false, error: "削除権限がありません" };
+    }
+
+    const { error } = await supabase
+      .from("report_entries")
+      .delete()
+      .eq("id", entryId)
+      .eq("tenant_id", tenantId);
+
+    if (error) {
+      return { success: false, error: "削除に失敗しました" };
+    }
+
+    await writeAuditLog({
+      tenantId,
+      userId: user.id,
+      action: "delete",
+      resource: "report_entry",
+      resourceId: entryId,
+    });
+
+    revalidatePath("/reports");
+    revalidatePath("/reports/my");
+    return { success: true };
+  } catch {
+    return { success: false, error: "予期しないエラーが発生しました" };
+  }
+}
+
 export async function removeReaction(
   reactionId: string
 ): Promise<ActionResult> {

@@ -267,6 +267,7 @@ export default async function PlansPage({
           planReviews={planReviews}
           isManager={isManager}
           userId={dbUser.id}
+          userRole={dbUser.role}
         />
       )}
     </div>
