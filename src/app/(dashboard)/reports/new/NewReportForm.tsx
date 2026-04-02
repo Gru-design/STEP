@@ -25,28 +25,40 @@ interface PeerBonusSelection {
   message: string;
 }
 
+interface InitialData {
+  entryId: string;
+  templateId: string;
+  reportDate: string;
+  formValues: Record<string, unknown>;
+}
+
 interface NewReportFormProps {
   templates: ReportTemplate[];
   teamMembers?: TeamMember[];
   peerBonusAvailable?: boolean;
+  initialData?: InitialData;
 }
 
 export function NewReportForm({
   templates,
   teamMembers = [],
   peerBonusAvailable = true,
+  initialData,
 }: NewReportFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
-  // Auto-select if only one template
+  const isEditing = !!initialData;
+  // Auto-select if only one template, or use initialData
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(
-    templates.length === 1 ? templates[0].id : ""
+    initialData?.templateId ?? (templates.length === 1 ? templates[0].id : "")
   );
   const [reportDate, setReportDate] = useState(
-    new Date().toISOString().split("T")[0]
+    initialData?.reportDate ?? new Date().toISOString().split("T")[0]
   );
-  const [formValues, setFormValues] = useState<Record<string, unknown>>({});
+  const [formValues, setFormValues] = useState<Record<string, unknown>>(
+    initialData?.formValues ?? {}
+  );
   const [showXPToast, setShowXPToast] = useState(false);
   const [xpAmount, setXpAmount] = useState(10);
   const [xpMessage, setXpMessage] = useState("日報提出ボーナス");
@@ -152,10 +164,11 @@ export function NewReportForm({
             type="date"
             value={reportDate}
             onChange={(e) => setReportDate(e.target.value)}
+            disabled={isEditing}
             className="w-auto border-border"
           />
         </div>
-        {selectedTemplate && templates.length > 1 && (
+        {selectedTemplate && templates.length > 1 && !isEditing && (
           <button
             onClick={() => {
               setSelectedTemplateId("");
