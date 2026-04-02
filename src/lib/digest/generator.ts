@@ -35,7 +35,8 @@ export async function generateWeeklyDigest(
     .eq("tenant_id", tenantId)
     .eq("status", "submitted")
     .gte("report_date", weekStartStr)
-    .lte("report_date", weekEndStr);
+    .lte("report_date", weekEndStr)
+    .limit(10000);
 
   const reportEntries = entries ?? [];
 
@@ -43,7 +44,8 @@ export async function generateWeeklyDigest(
   const { data: usersData } = await supabase
     .from("users")
     .select("id, name")
-    .eq("tenant_id", tenantId);
+    .eq("tenant_id", tenantId)
+    .limit(5000);
 
   const users = usersData ?? [];
   const userNameMap = new Map(users.map((u) => [u.id, u.name as string]));
@@ -74,7 +76,8 @@ export async function generateWeeklyDigest(
     const { data: reactions } = await supabase
       .from("reactions")
       .select("entry_id")
-      .in("entry_id", entryIds);
+      .in("entry_id", entryIds)
+      .limit(10000);
 
     if (reactions && reactions.length > 0) {
       // Map entry_id -> user_id

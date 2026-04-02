@@ -1,15 +1,14 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Check for users who have not submitted a daily report today.
  * Creates a 'reminder' nudge at hour=17 or 're_reminder' at hour=18.
  */
 export async function checkSubmissionReminder(
+  supabase: SupabaseClient,
   tenantId: string,
   hour: number
 ): Promise<number> {
-  const supabase = createAdminClient();
-
   // Get today's date in JST (YYYY-MM-DD)
   const today = new Date(
     new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" })
@@ -74,12 +73,14 @@ export async function checkSubmissionReminder(
 /**
  * Check for users whose motivation rating has been <= 3 for 3 consecutive days.
  * Creates a 'motivation_drop' nudge for their manager.
+ *
+ * Optimized: batch-fetches all team_members, teams, and user names
+ * instead of querying per low-motivation user.
  */
 export async function checkMotivationDrop(
+  supabase: SupabaseClient,
   tenantId: string
 ): Promise<number> {
-  const supabase = createAdminClient();
-
   // Get the last 3 days' dates in JST
   const now = new Date(
     new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" })
@@ -106,10 +107,8 @@ export async function checkMotivationDrop(
 
   for (const entry of entries) {
     const data = entry.data as Record<string, unknown>;
-    // Look for any field named "motivation" or rating-type fields
     let rating: number | null = null;
 
-    // Search through all values for a motivation/rating field
     for (const [key, value] of Object.entries(data)) {
       if (
         (key === "motivation" || key.includes("rating") || key.includes("motivation")) &&
@@ -132,57 +131,89 @@ export async function checkMotivationDrop(
 
   if (lowMotivationUserIds.length === 0) return 0;
 
-  // For each user, find their manager(s) via team_members
-  let nudgeCount = 0;
+  // Batch: fetch all team memberships for low-motivation users at once
+  const { data: allMemberships } = await supabase
+    .from("team_members")
+    .select("user_id, team_id")
+    .in("user_id", lowMotivationUserIds);
+
+  if (!allMemberships || allMemberships.length === 0) return 0;
+
+  // Batch: fetch all relevant teams with their managers
+  const allTeamIds = [...new Set(allMemberships.map((m: { team_id: string }) => m.team_id))];
+  const { data: allTeams } = await supabase
+    .from("teams")
+    .select("id, manager_id")
+    .in("id", allTeamIds)
+    .not("manager_id", "is", null);
+
+  if (!allTeams || allTeams.length === 0) return 0;
+
+  const teamManagerMap = new Map(
+    allTeams.map((t: { id: string; manager_id: string }) => [t.id, t.manager_id])
+  );
+
+  // Batch: fetch all user names for low-motivation users
+  const { data: usersData } = await supabase
+    .from("users")
+    .select("id, name")
+    .in("id", lowMotivationUserIds);
+
+  const userNameMap = new Map(
+    (usersData ?? []).map((u: { id: string; name: string }) => [u.id, u.name])
+  );
+
+  // Build user -> team_ids mapping
+  const userTeamsMap = new Map<string, string[]>();
+  for (const m of allMemberships) {
+    const teams = userTeamsMap.get(m.user_id) ?? [];
+    teams.push(m.team_id);
+    userTeamsMap.set(m.user_id, teams);
+  }
+
+  // Build all nudges in one batch
+  const allNudges: Array<{
+    tenant_id: string;
+    target_user_id: string;
+    trigger_type: string;
+    content: string;
+    status: string;
+  }> = [];
+
   for (const userId of lowMotivationUserIds) {
-    // Get the user's team(s)
-    const { data: memberships } = await supabase
-      .from("team_members")
-      .select("team_id")
-      .eq("user_id", userId);
+    const teamIds = userTeamsMap.get(userId);
+    if (!teamIds) continue;
 
-    if (!memberships || memberships.length === 0) continue;
+    const userName = userNameMap.get(userId) ?? "メンバー";
+    const managerIds = new Set<string>();
 
-    const teamIds = memberships.map((m: { team_id: string }) => m.team_id);
+    for (const teamId of teamIds) {
+      const managerId = teamManagerMap.get(teamId);
+      if (managerId) managerIds.add(managerId);
+    }
 
-    // Get managers for those teams
-    const { data: teamData } = await supabase
-      .from("teams")
-      .select("manager_id")
-      .in("id", teamIds)
-      .not("manager_id", "is", null);
-
-    if (!teamData || teamData.length === 0) continue;
-
-    // Get user name for the nudge content
-    const { data: userData } = await supabase
-      .from("users")
-      .select("name")
-      .eq("id", userId)
-      .single();
-
-    const userName = userData?.name ?? "メンバー";
-
-    const managerIds = [
-      ...new Set(teamData.map((t: { manager_id: string }) => t.manager_id)),
-    ];
-
-    const nudges = managerIds.map((managerId) => ({
-      tenant_id: tenantId,
-      target_user_id: managerId as string,
-      trigger_type: "motivation_drop",
-      content: `${userName}さんのモチベーションが3日連続で低下しています。フォローアップを検討してください。`,
-      status: "pending",
-    }));
-
-    const { error: insertError } = await supabase
-      .from("nudges")
-      .insert(nudges);
-
-    if (!insertError) {
-      nudgeCount += nudges.length;
+    for (const managerId of managerIds) {
+      allNudges.push({
+        tenant_id: tenantId,
+        target_user_id: managerId,
+        trigger_type: "motivation_drop",
+        content: `${userName}さんのモチベーションが3日連続で低下しています。フォローアップを検討してください。`,
+        status: "pending",
+      });
     }
   }
 
-  return nudgeCount;
+  if (allNudges.length === 0) return 0;
+
+  // Single batch insert for all nudges
+  const { error: insertError } = await supabase
+    .from("nudges")
+    .insert(allNudges);
+
+  if (insertError) {
+    console.error("Failed to insert motivation drop nudges:", insertError);
+    return 0;
+  }
+
+  return allNudges.length;
 }

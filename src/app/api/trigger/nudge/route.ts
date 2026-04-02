@@ -70,11 +70,12 @@ export async function POST() {
 
     // Run nudge checks
     const reminders = await checkSubmissionReminder(
+      admin,
       dbUser.tenant_id,
       jstHour
     );
-    const motivation = await checkMotivationDrop(dbUser.tenant_id);
-    const sent = await sendPendingNudges(dbUser.tenant_id);
+    const motivation = await checkMotivationDrop(admin, dbUser.tenant_id);
+    const sent = await sendPendingNudges(admin, dbUser.tenant_id);
 
     return NextResponse.json({
       success: true,

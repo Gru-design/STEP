@@ -9,7 +9,7 @@ import { sendPendingNudges } from "@/lib/nudge/sender";
 import { snapshotAllGoals } from "@/lib/goals/progress";
 import { generateDeviationAlerts } from "@/lib/goals/deviation";
 import { generateWeeklyDigest } from "@/lib/digest/generator";
-import { updateExecutionRate } from "@/lib/plans/execution-rate";
+import { batchUpdateExecutionRates } from "@/lib/plans/execution-rate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,7 +54,8 @@ export async function GET(request: Request) {
 
     const { data: tenants, error: tenantsError } = await supabase
       .from("tenants")
-      .select("id");
+      .select("id")
+      .limit(1000);
 
     if (tenantsError || !tenants) {
       return NextResponse.json(
@@ -73,14 +74,14 @@ export async function GET(request: Request) {
       // ── 1. ナッジ (平日のみ) ──
       if (isWeekday) {
         try {
-          const reminders = await checkSubmissionReminder(tenant.id, jstHour);
+          const reminders = await checkSubmissionReminder(supabase, tenant.id, jstHour);
           results.reminders = ((results.reminders as number) || 0) + reminders;
 
-          const motiv = await checkMotivationDrop(tenant.id);
+          const motiv = await checkMotivationDrop(supabase, tenant.id);
           results.motivationDrops =
             ((results.motivationDrops as number) || 0) + motiv;
 
-          const sent = await sendPendingNudges(tenant.id);
+          const sent = await sendPendingNudges(supabase, tenant.id);
           results.nudgesSent = ((results.nudgesSent as number) || 0) + sent;
         } catch (e) {
           console.error(`Nudge error tenant ${tenant.id}:`, e);
@@ -124,20 +125,9 @@ export async function GET(request: Request) {
           monday.setDate(monday.getDate() - (jstDay - 1));
           const weekStart = monday.toISOString().split("T")[0];
 
-          const { data: plans } = await supabase
-            .from("weekly_plans")
-            .select("id")
-            .eq("tenant_id", tenant.id)
-            .eq("week_start", weekStart)
-            .in("status", ["submitted", "approved"]);
-
-          if (plans) {
-            for (const plan of plans) {
-              await updateExecutionRate(supabase, plan.id);
-            }
-            results.plansUpdated =
-              ((results.plansUpdated as number) || 0) + plans.length;
-          }
+          const batchResult = await batchUpdateExecutionRates(supabase, tenant.id, weekStart);
+          results.plansUpdated =
+            ((results.plansUpdated as number) || 0) + batchResult.updated;
         } catch (e) {
           console.error(`Execution rate error tenant ${tenant.id}:`, e);
         }
