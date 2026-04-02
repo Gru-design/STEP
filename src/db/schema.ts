@@ -87,6 +87,9 @@ export const teamMembers = pgTable(
     userId: uuid("user_id")
       .references(() => users.id, { onDelete: "cascade" })
       .notNull(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" })
+      .notNull(),
     role: text("role").default("member"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

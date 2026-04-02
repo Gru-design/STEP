@@ -167,11 +167,12 @@ export async function removeTeamMember(memberId: string) {
     // Verify team member belongs to user's tenant
     const { data: member } = await supabase
       .from("team_members")
-      .select("team_id, teams!inner(tenant_id)")
+      .select("id")
       .eq("id", memberId)
+      .eq("tenant_id", dbUser.tenant_id)
       .single();
 
-    if (!member || (member.teams as unknown as { tenant_id: string }).tenant_id !== dbUser.tenant_id) {
+    if (!member) {
       return { success: false, error: "権限がありません" };
     }
 
