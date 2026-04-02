@@ -65,7 +65,6 @@ export default async function EditReportPage({ params }: EditReportPageProps) {
         .select("id, name, avatar_url")
         .eq("tenant_id", dbUser.tenant_id)
         .neq("id", dbUser.id)
-        .eq("is_active", true)
         .order("name"),
       supabase
         .from("peer_bonuses")
