@@ -30,7 +30,8 @@ export async function GET(request: Request) {
 
     const { data: tenants, error: tenantsError } = await supabase
       .from("tenants")
-      .select("id");
+      .select("id")
+      .limit(1000);
 
     if (tenantsError || !tenants) {
       return NextResponse.json(

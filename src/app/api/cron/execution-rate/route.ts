@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { updateExecutionRate } from "@/lib/plans/execution-rate";
+import { batchUpdateExecutionRates } from "@/lib/plans/execution-rate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,7 +30,8 @@ export async function GET(request: Request) {
 
     const { data: tenants, error: tenantsError } = await supabase
       .from("tenants")
-      .select("id");
+      .select("id")
+      .limit(1000);
 
     if (tenantsError || !tenants) {
       return NextResponse.json(
@@ -55,46 +56,9 @@ export async function GET(request: Request) {
     };
 
     for (const tenant of tenants) {
-      // Get all submitted or approved plans for this week
-      const { data: plans, error: plansError } = await supabase
-        .from("weekly_plans")
-        .select("id")
-        .eq("tenant_id", tenant.id)
-        .eq("week_start", weekStart)
-        .in("status", ["submitted", "approved"]);
-
-      if (plansError || !plans) {
-        console.error(
-          `Failed to fetch plans for tenant ${tenant.id}:`,
-          plansError
-        );
-        stats.errors++;
-        stats.tenantsProcessed++;
-        continue;
-      }
-
-      for (const plan of plans) {
-        try {
-          await updateExecutionRate(supabase, plan.id);
-
-          // Transition approved plans to review_pending
-          // so members are prompted to do their weekly review
-          await supabase
-            .from("weekly_plans")
-            .update({ status: "review_pending", updated_at: new Date().toISOString() })
-            .eq("id", plan.id)
-            .eq("status", "approved");
-
-          stats.plansUpdated++;
-        } catch (error) {
-          console.error(
-            `Execution rate error for plan ${plan.id}:`,
-            error
-          );
-          stats.errors++;
-        }
-      }
-
+      const result = await batchUpdateExecutionRates(supabase, tenant.id, weekStart);
+      stats.plansUpdated += result.updated;
+      stats.errors += result.errors;
       stats.tenantsProcessed++;
     }
 

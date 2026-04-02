@@ -39,7 +39,8 @@ export async function GET(request: Request) {
     // Get all active tenants
     const { data: tenants, error: tenantsError } = await supabase
       .from("tenants")
-      .select("id");
+      .select("id")
+      .limit(1000);
 
     if (tenantsError || !tenants) {
       return NextResponse.json(
@@ -60,6 +61,7 @@ export async function GET(request: Request) {
       // Submission reminders at 17:00 and 18:00 JST
       if (jstHour === 17 || jstHour === 18) {
         const reminderCount = await checkSubmissionReminder(
+          supabase,
           tenant.id,
           jstHour
         );
@@ -67,11 +69,11 @@ export async function GET(request: Request) {
       }
 
       // Motivation drop check runs at both hours
-      const motivationCount = await checkMotivationDrop(tenant.id);
+      const motivationCount = await checkMotivationDrop(supabase, tenant.id);
       stats.motivationDropsCreated += motivationCount;
 
       // Send all pending nudges for this tenant
-      const sentCount = await sendPendingNudges(tenant.id);
+      const sentCount = await sendPendingNudges(supabase, tenant.id);
       stats.nudgesSent += sentCount;
 
       stats.tenantsProcessed++;

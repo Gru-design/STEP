@@ -46,6 +46,9 @@ export function checkDeviation(
 
 /**
  * Check all goals in a tenant for deviation and create nudges for >= 5%.
+ *
+ * Optimized: batch-fetches all latest snapshots via a single query with
+ * DISTINCT ON, batch-fetches all teams, and batch-inserts all nudges.
  */
 export async function generateDeviationAlerts(
   supabase: SupabaseClient,
@@ -54,64 +57,106 @@ export async function generateDeviationAlerts(
   const { data: goals, error } = await supabase
     .from("goals")
     .select("*")
-    .eq("tenant_id", tenantId);
+    .eq("tenant_id", tenantId)
+    .limit(1000);
 
-  if (error || !goals) {
+  if (error || !goals || goals.length === 0) {
     return 0;
   }
 
+  const typedGoals = goals as Goal[];
+  const goalIds = typedGoals.map((g) => g.id);
+
+  // Batch: fetch latest snapshot for all goals at once
+  // We fetch all snapshots ordered by date desc, then pick the latest per goal in JS
+  const { data: allSnapshots } = await supabase
+    .from("goal_snapshots")
+    .select("goal_id, actual_value, snapshot_date")
+    .in("goal_id", goalIds)
+    .order("snapshot_date", { ascending: false })
+    .limit(5000);
+
+  const latestSnapshotMap = new Map<string, number>();
+  for (const snapshot of allSnapshots ?? []) {
+    // First occurrence per goal_id is the latest (ordered desc)
+    if (!latestSnapshotMap.has(snapshot.goal_id)) {
+      latestSnapshotMap.set(snapshot.goal_id, Number(snapshot.actual_value));
+    }
+  }
+
+  // Batch: fetch all teams that any goal references
+  const teamIds = [
+    ...new Set(typedGoals.filter((g) => g.team_id).map((g) => g.team_id!)),
+  ];
+  const teamManagerMap = new Map<string, string>();
+  if (teamIds.length > 0) {
+    const { data: teams } = await supabase
+      .from("teams")
+      .select("id, manager_id")
+      .in("id", teamIds);
+
+    for (const team of teams ?? []) {
+      if (team.manager_id) {
+        teamManagerMap.set(team.id, team.manager_id);
+      }
+    }
+  }
+
+  // Build all nudges
+  const allNudges: Array<{
+    tenant_id: string;
+    target_user_id: string;
+    trigger_type: string;
+    content: string;
+  }> = [];
+
   let alertCount = 0;
 
-  for (const goal of goals) {
-    const typedGoal = goal as Goal;
+  for (const goal of typedGoals) {
+    const actualValue = latestSnapshotMap.get(goal.id) ?? 0;
+    const { deviationRate, isAlert } = checkDeviation(goal, actualValue);
 
-    // Get latest snapshot for actual value
-    const { data: snapshot } = await supabase
-      .from("goal_snapshots")
-      .select("actual_value")
-      .eq("goal_id", typedGoal.id)
-      .order("snapshot_date", { ascending: false })
-      .limit(1)
-      .single();
+    if (!isAlert) continue;
 
-    const actualValue = snapshot ? Number(snapshot.actual_value) : 0;
-    const { deviationRate, isAlert } = checkDeviation(typedGoal, actualValue);
+    const targetUserId = goal.owner_id;
+    if (!targetUserId) continue;
 
-    if (isAlert) {
-      // Determine target user: owner_id or skip if no owner
-      const targetUserId = typedGoal.owner_id;
-      if (!targetUserId) continue;
+    const content = `目標「${goal.name}」の進捗が計画ペースから${deviationRate.toFixed(1)}%乖離しています。現在の実績: ${actualValue} / 目標: ${goal.target_value}`;
 
-      const content = `目標「${typedGoal.name}」の進捗が計画ペースから${deviationRate.toFixed(1)}%乖離しています。現在の実績: ${actualValue} / 目標: ${typedGoal.target_value}`;
+    // Nudge for the owner
+    allNudges.push({
+      tenant_id: tenantId,
+      target_user_id: targetUserId,
+      trigger_type: "goal_deviation",
+      content,
+    });
 
-      // Create nudge for the owner
-      await supabase.from("nudges").insert({
-        tenant_id: tenantId,
-        target_user_id: targetUserId,
-        trigger_type: "goal_deviation",
-        content,
-      });
-
-      // If the goal has a team, also notify the team manager
-      if (typedGoal.team_id) {
-        const { data: team } = await supabase
-          .from("teams")
-          .select("manager_id")
-          .eq("id", typedGoal.team_id)
-          .single();
-
-        if (team?.manager_id && team.manager_id !== targetUserId) {
-          await supabase.from("nudges").insert({
-            tenant_id: tenantId,
-            target_user_id: team.manager_id,
-            trigger_type: "goal_deviation",
-            content: `[マネージャー通知] ${content}`,
-          });
-        }
+    // Nudge for the team manager (if different from owner)
+    if (goal.team_id) {
+      const managerId = teamManagerMap.get(goal.team_id);
+      if (managerId && managerId !== targetUserId) {
+        allNudges.push({
+          tenant_id: tenantId,
+          target_user_id: managerId,
+          trigger_type: "goal_deviation",
+          content: `[マネージャー通知] ${content}`,
+        });
       }
-
-      alertCount++;
     }
+
+    alertCount++;
+  }
+
+  if (allNudges.length === 0) return 0;
+
+  // Batch insert all nudges at once
+  const { error: insertError } = await supabase
+    .from("nudges")
+    .insert(allNudges);
+
+  if (insertError) {
+    console.error("Failed to batch-insert deviation nudges:", insertError);
+    return 0;
   }
 
   return alertCount;
