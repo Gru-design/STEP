@@ -26,86 +26,15 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 import type { Role, User } from "@/types/database";
-
-// -- Types --
-
-interface PeerBonusStats {
-  totalReceived: number;
-  sentToday: boolean;
-  recentReceived: { fromName: string; message: string; date: string }[];
-}
-
-interface PendingReview {
-  planId: string;
-  weekStart: string;
-  executionRate: number | null;
-}
-
-interface GoalProgress {
-  id: string;
-  name: string;
-  level: string;
-  target: number;
-  actual: number;
-  rate: number;
-  expectedRate: number;
-  weeklyContribution: number | null;
-  isOnTrack: boolean;
-}
-
-interface MemberStats {
-  submittedToday: boolean;
-  streak: number;
-  level: number;
-  xp: number;
-  xpForNextLevel: number;
-  goalsProgress: GoalProgress[];
-  recentBadges: { name: string; icon: string; earnedAt: string }[];
-  pendingReview?: PendingReview | null;
-  peerBonus?: PeerBonusStats;
-}
-
-interface TeamMemberStatus {
-  id: string;
-  name: string;
-  submitted: boolean;
-}
-
-interface WeeklyTrend {
-  week: string;
-  rate: number;
-}
-
-interface ManagerStats {
-  todaySubmissionRate: number;
-  weekSubmissionRate: number;
-  teamMembers: TeamMemberStatus[];
-  weeklyTrends: WeeklyTrend[];
-  pendingNudges: number;
-}
-
-interface AdminStats {
-  totalUsers: number;
-  submissionRate: number;
-  activeDeals: number;
-  teamsOverview: { name: string; memberCount: number; submissionRate: number }[];
-  deviationAlerts: { goalName: string; deviation: number; ownerName: string }[];
-  funnelStages: { name: string; count: number }[];
-}
-
-interface ApprovalStats {
-  pendingPlans: number;
-  pendingDeals: number;
-}
-
-interface DashboardClientProps {
-  user: User;
-  role: Role;
-  memberStats?: MemberStats;
-  managerStats?: ManagerStats;
-  adminStats?: AdminStats;
-  approvalStats?: ApprovalStats;
-}
+import type {
+  MemberStats,
+  PendingReview,
+  ApprovalStats,
+  TeamMemberStatus,
+  WeeklyTrend,
+  GoalProgress,
+  PeerBonusStats,
+} from "./types";
 
 // -- Level thresholds --
 
@@ -127,7 +56,7 @@ function getGreeting(): string {
 
 // -- Greeting Header with Gamification --
 
-function GreetingHeader({
+export function GreetingHeader({
   user,
   stats,
 }: {
@@ -176,9 +105,9 @@ function GreetingHeader({
   );
 }
 
-// -- Report CTA Banner (redesigned) --
+// -- Report CTA Banner --
 
-function ReportCTABanner({ submitted }: { submitted: boolean }) {
+export function ReportCTABanner({ submitted }: { submitted: boolean }) {
   if (submitted) {
     return (
       <div className="flex items-center gap-3 rounded-xl border border-success/20 bg-success/5 px-5 py-4">
@@ -218,7 +147,7 @@ function ReportCTABanner({ submitted }: { submitted: boolean }) {
 
 // -- Pending Review Banner --
 
-function PendingReviewBanner({ review }: { review: PendingReview }) {
+export function PendingReviewBanner({ review }: { review: PendingReview }) {
   const weekEnd = new Date(review.weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
   const range = `${new Date(review.weekStart).toLocaleDateString("ja-JP", { month: "short", day: "numeric" })} - ${weekEnd.toLocaleDateString("ja-JP", { month: "short", day: "numeric" })}`;
@@ -253,7 +182,7 @@ function PendingReviewBanner({ review }: { review: PendingReview }) {
 
 // -- Stat Card --
 
-function StatCard({
+export function StatCard({
   label,
   value,
   unit,
@@ -312,92 +241,9 @@ function StatCard({
   return content;
 }
 
-// -- Team Submission Progress --
-
-function TeamSubmissionProgress({
-  members,
-  rate,
-}: {
-  members: TeamMemberStatus[];
-  rate: number;
-}) {
-  const submitted = members.filter((m) => m.submitted);
-  const notSubmitted = members.filter((m) => !m.submitted);
-
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Users className="h-4 w-4 text-primary" />
-            チーム提出状況
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xl font-bold text-primary">
-              {rate}%
-            </span>
-            <span className="text-xs text-muted-foreground">
-              ({submitted.length}/{members.length})
-            </span>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Progress bar */}
-        <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full motion-safe:transition-all duration-700"
-            style={{
-              width: `${rate}%`,
-              background:
-                rate >= 80
-                  ? "var(--color-success)"
-                  : rate >= 50
-                  ? "var(--color-warning)"
-                  : "var(--color-danger)",
-            }}
-          />
-        </div>
-
-        {/* Submission dots */}
-        <div className="flex flex-wrap gap-1.5">
-          {members.map((m) => (
-            <div
-              key={m.id}
-              title={`${m.name}: ${m.submitted ? "提出済み" : "未提出"}`}
-              className={`h-3 w-3 rounded-full motion-safe:transition-colors ${
-                m.submitted ? "bg-success" : "bg-danger/30"
-              }`}
-            />
-          ))}
-        </div>
-
-        {/* Not submitted list */}
-        {notSubmitted.length > 0 && (
-          <div className="rounded-lg border border-danger/10 bg-danger/3 p-3">
-            <p className="mb-2 text-xs font-medium text-danger">
-              未提出 ({notSubmitted.length}名)
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {notSubmitted.map((m) => (
-                <span
-                  key={m.id}
-                  className="inline-flex items-center rounded-md border border-danger/15 bg-white px-2 py-0.5 text-xs text-foreground"
-                >
-                  {m.name}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
 // -- Goals Progress --
 
-function GoalsProgressCard({ goals }: { goals: GoalProgress[] }) {
+export function GoalsProgressCard({ goals }: { goals: GoalProgress[] }) {
   if (goals.length === 0) return null;
 
   return (
@@ -453,7 +299,6 @@ function GoalsProgressCard({ goals }: { goals: GoalProgress[] }) {
                     style={{ width: `${Math.min(100, goal.rate)}%`, background: barColor }}
                   />
                 </div>
-                {/* Expected progress marker */}
                 {goal.expectedRate > 0 && goal.expectedRate < 100 && (
                   <div
                     className="absolute top-0 h-2.5 w-0.5 bg-foreground/30"
@@ -493,7 +338,7 @@ function GoalsProgressCard({ goals }: { goals: GoalProgress[] }) {
 
 // -- Recent Badges --
 
-function RecentBadges({
+export function RecentBadges({
   badges,
 }: {
   badges: { name: string; icon: string; earnedAt: string }[];
@@ -536,9 +381,157 @@ function RecentBadges({
   );
 }
 
-// -- Approval Section (redesigned) --
+// -- Peer Bonus Card --
 
-function ApprovalSection({ stats }: { stats: ApprovalStats }) {
+export function PeerBonusCard({ bonus }: { bonus: PeerBonusStats }) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Heart className="h-4 w-4 text-accent-color" />
+            もらったピアボーナス
+          </CardTitle>
+          <span className="flex items-center gap-1 rounded-full bg-accent-color/10 px-2.5 py-0.5 text-xs font-bold text-accent-color">
+            <Gift className="h-3 w-3" />
+            {bonus.totalReceived}P
+          </span>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {bonus.recentReceived.map((item, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-3 rounded-lg border border-border bg-muted/20 p-3"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-color/10 text-sm">
+                <Heart className="h-3.5 w-3.5 text-accent-color" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-foreground">
+                    {item.fromName}
+                  </span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {new Date(item.date).toLocaleDateString("ja-JP", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-sm text-muted-foreground leading-relaxed">
+                  {item.message}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// -- Quick Actions --
+
+export function QuickActions({ role }: { role: Role }) {
+  const actions = [
+    {
+      label: "日報を書く",
+      href: "/reports/new",
+      icon: FileEdit,
+      color: "bg-primary/8 text-primary",
+      roles: ["member", "manager", "admin", "super_admin"],
+    },
+    {
+      label: "日報フィード",
+      href: "/reports",
+      icon: Star,
+      color: "bg-accent-color/8 text-accent-color",
+      roles: ["member", "manager", "admin", "super_admin"],
+    },
+    {
+      label: "目標",
+      href: "/goals",
+      icon: Target,
+      color: "bg-success/8 text-success",
+      roles: ["manager", "admin", "super_admin"],
+    },
+    {
+      label: "案件",
+      href: "/deals",
+      icon: Briefcase,
+      color: "bg-warning/8 text-warning",
+      roles: ["member", "manager", "admin", "super_admin"],
+    },
+  ];
+
+  const filtered = actions.filter((a) => a.roles.includes(role));
+
+  return (
+    <div className="grid grid-cols-4 gap-2 sm:gap-3">
+      {filtered.map((action) => {
+        const Icon = action.icon;
+        return (
+          <Link
+            key={action.href}
+            href={action.href}
+            className="flex flex-col items-center gap-1.5 rounded-xl border border-border bg-white p-3 text-center motion-safe:transition-all hover:shadow-md active:scale-[0.97]"
+          >
+            <div className={`rounded-lg p-2 ${action.color}`}>
+              <Icon className="h-5 w-5" />
+            </div>
+            <span className="text-xs font-medium text-foreground">
+              {action.label}
+            </span>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+// -- Member Stats Cards --
+
+export function MemberStatsCards({ stats }: { stats: MemberStats }) {
+  return (
+    <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <StatCard
+        label="連続提出"
+        value={stats.streak}
+        unit="日"
+        icon={Flame}
+        color={stats.streak >= 7 ? "accent" : "primary"}
+      />
+      <StatCard
+        label="本日の日報"
+        value={stats.submittedToday ? "完了" : "未提出"}
+        icon={CheckCircle2}
+        color={stats.submittedToday ? "success" : "danger"}
+      />
+      <StatCard
+        label="レベル"
+        value={`Lv.${stats.level}`}
+        icon={Zap}
+        color="accent"
+      />
+      <StatCard
+        label="目標"
+        value={stats.goalsProgress.length > 0
+          ? `${stats.goalsProgress.filter((g) => g.isOnTrack).length}/${stats.goalsProgress.length}`
+          : "-"}
+        unit="順調"
+        icon={Target}
+        color={stats.goalsProgress.length > 0 && stats.goalsProgress.every((g) => g.isOnTrack) ? "success" : stats.goalsProgress.some((g) => !g.isOnTrack) ? "warning" : "primary"}
+        href="/goals"
+      />
+    </div>
+  );
+}
+
+// -- Approval Section --
+
+export function ApprovalSection({ stats }: { stats: ApprovalStats }) {
   const total = stats.pendingPlans + stats.pendingDeals;
   if (total === 0) return null;
 
@@ -574,9 +567,89 @@ function ApprovalSection({ stats }: { stats: ApprovalStats }) {
   );
 }
 
+// -- Team Submission Progress --
+
+export function TeamSubmissionProgress({
+  members,
+  rate,
+}: {
+  members: TeamMemberStatus[];
+  rate: number;
+}) {
+  const submitted = members.filter((m) => m.submitted);
+  const notSubmitted = members.filter((m) => !m.submitted);
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Users className="h-4 w-4 text-primary" />
+            チーム提出状況
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xl font-bold text-primary">
+              {rate}%
+            </span>
+            <span className="text-xs text-muted-foreground">
+              ({submitted.length}/{members.length})
+            </span>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full motion-safe:transition-all duration-700"
+            style={{
+              width: `${rate}%`,
+              background:
+                rate >= 80
+                  ? "var(--color-success)"
+                  : rate >= 50
+                  ? "var(--color-warning)"
+                  : "var(--color-danger)",
+            }}
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-1.5">
+          {members.map((m) => (
+            <div
+              key={m.id}
+              title={`${m.name}: ${m.submitted ? "提出済み" : "未提出"}`}
+              className={`h-3 w-3 rounded-full motion-safe:transition-colors ${
+                m.submitted ? "bg-success" : "bg-danger/30"
+              }`}
+            />
+          ))}
+        </div>
+
+        {notSubmitted.length > 0 && (
+          <div className="rounded-lg border border-danger/10 bg-danger/3 p-3">
+            <p className="mb-2 text-xs font-medium text-danger">
+              未提出 ({notSubmitted.length}名)
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {notSubmitted.map((m) => (
+                <span
+                  key={m.id}
+                  className="inline-flex items-center rounded-md border border-danger/15 bg-white px-2 py-0.5 text-xs text-foreground"
+                >
+                  {m.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // -- Weekly Trend Chart --
 
-function WeeklyTrendChart({ trends }: { trends: WeeklyTrend[] }) {
+export function WeeklyTrendChart({ trends }: { trends: WeeklyTrend[] }) {
   if (trends.length === 0) return null;
 
   return (
@@ -596,7 +669,7 @@ function WeeklyTrendChart({ trends }: { trends: WeeklyTrend[] }) {
 
 // -- Admin Teams Overview --
 
-function TeamsOverview({
+export function TeamsOverview({
   teams,
   onExport,
 }: {
@@ -665,7 +738,7 @@ function TeamsOverview({
 
 // -- Deviation Alerts --
 
-function DeviationAlerts({
+export function DeviationAlerts({
   alerts,
 }: {
   alerts: { goalName: string; deviation: number; ownerName: string }[];
@@ -703,284 +776,5 @@ function DeviationAlerts({
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-// -- Peer Bonus Card --
-
-function PeerBonusCard({ bonus }: { bonus: PeerBonusStats }) {
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Heart className="h-4 w-4 text-accent-color" />
-            もらったピアボーナス
-          </CardTitle>
-          <span className="flex items-center gap-1 rounded-full bg-accent-color/10 px-2.5 py-0.5 text-xs font-bold text-accent-color">
-            <Gift className="h-3 w-3" />
-            {bonus.totalReceived}P
-          </span>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {bonus.recentReceived.map((item, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-3 rounded-lg border border-border bg-muted/20 p-3"
-            >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-color/10 text-sm">
-                <Heart className="h-3.5 w-3.5 text-accent-color" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-foreground">
-                    {item.fromName}
-                  </span>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {new Date(item.date).toLocaleDateString("ja-JP", {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </span>
-                </div>
-                <p className="mt-0.5 text-sm text-muted-foreground leading-relaxed">
-                  {item.message}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// -- Quick Actions --
-
-function QuickActions({ role }: { role: Role }) {
-  const actions = [
-    {
-      label: "日報を書く",
-      href: "/reports/new",
-      icon: FileEdit,
-      color: "bg-primary/8 text-primary",
-      roles: ["member", "manager", "admin", "super_admin"],
-    },
-    {
-      label: "日報フィード",
-      href: "/reports",
-      icon: Star,
-      color: "bg-accent-color/8 text-accent-color",
-      roles: ["member", "manager", "admin", "super_admin"],
-    },
-    {
-      label: "目標",
-      href: "/goals",
-      icon: Target,
-      color: "bg-success/8 text-success",
-      roles: ["manager", "admin", "super_admin"],
-    },
-    {
-      label: "案件",
-      href: "/deals",
-      icon: Briefcase,
-      color: "bg-warning/8 text-warning",
-      roles: ["member", "manager", "admin", "super_admin"],
-    },
-  ];
-
-  const filtered = actions.filter((a) => a.roles.includes(role));
-
-  return (
-    <div className="grid grid-cols-4 gap-2 sm:gap-3">
-      {filtered.map((action) => {
-        const Icon = action.icon;
-        return (
-          <Link
-            key={action.href}
-            href={action.href}
-            className="flex flex-col items-center gap-1.5 rounded-xl border border-border bg-white p-3 text-center motion-safe:transition-all hover:shadow-md active:scale-[0.97]"
-          >
-            <div className={`rounded-lg p-2 ${action.color}`}>
-              <Icon className="h-5 w-5" />
-            </div>
-            <span className="text-xs font-medium text-foreground">
-              {action.label}
-            </span>
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
-// -- Main Component --
-
-export function DashboardClient({
-  user,
-  role,
-  memberStats,
-  managerStats,
-  adminStats,
-  approvalStats,
-}: DashboardClientProps) {
-  return (
-    <div className="space-y-5 pb-4">
-      {/* Greeting with gamification */}
-      {memberStats && <GreetingHeader user={user} stats={memberStats} />}
-
-      {/* CTA: Write today's report */}
-      {memberStats && <ReportCTABanner submitted={memberStats.submittedToday} />}
-
-      {/* Pending review prompt */}
-      {memberStats?.pendingReview && (
-        <PendingReviewBanner review={memberStats.pendingReview} />
-      )}
-
-      {/* Approval section for managers */}
-      {approvalStats &&
-        (role === "manager" || role === "admin" || role === "super_admin") && (
-          <ApprovalSection stats={approvalStats} />
-        )}
-
-      {/* Quick Actions */}
-      <QuickActions role={role} />
-
-      {/* Manager: Team submission progress (most important for managers) */}
-      {(role === "manager" || role === "admin" || role === "super_admin") &&
-        managerStats && (
-          <TeamSubmissionProgress
-            members={managerStats.teamMembers}
-            rate={managerStats.todaySubmissionRate}
-          />
-        )}
-
-      {/* Member stats cards */}
-      {memberStats && (
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            label="連続提出"
-            value={memberStats.streak}
-            unit="日"
-            icon={Flame}
-            color={memberStats.streak >= 7 ? "accent" : "primary"}
-          />
-          <StatCard
-            label="本日の日報"
-            value={memberStats.submittedToday ? "完了" : "未提出"}
-            icon={CheckCircle2}
-            color={memberStats.submittedToday ? "success" : "danger"}
-          />
-          <StatCard
-            label="レベル"
-            value={`Lv.${memberStats.level}`}
-            icon={Zap}
-            color="accent"
-          />
-          <StatCard
-            label="目標"
-            value={memberStats.goalsProgress.length > 0
-              ? `${memberStats.goalsProgress.filter((g) => g.isOnTrack).length}/${memberStats.goalsProgress.length}`
-              : "-"}
-            unit="順調"
-            icon={Target}
-            color={memberStats.goalsProgress.length > 0 && memberStats.goalsProgress.every((g) => g.isOnTrack) ? "success" : memberStats.goalsProgress.some((g) => !g.isOnTrack) ? "warning" : "primary"}
-            href="/goals"
-          />
-        </div>
-      )}
-
-      {/* Goals Progress */}
-      {memberStats && <GoalsProgressCard goals={memberStats.goalsProgress} />}
-
-      {/* Peer Bonus */}
-      {memberStats?.peerBonus && memberStats.peerBonus.recentReceived.length > 0 && (
-        <PeerBonusCard bonus={memberStats.peerBonus} />
-      )}
-
-      {/* Recent Badges */}
-      {memberStats && <RecentBadges badges={memberStats.recentBadges} />}
-
-      {/* Manager: Weekly trend */}
-      {(role === "manager" || role === "admin" || role === "super_admin") &&
-        managerStats && (
-          <WeeklyTrendChart trends={managerStats.weeklyTrends} />
-        )}
-
-      {/* Admin: Overview section */}
-      {(role === "admin" || role === "super_admin") && adminStats && (
-        <>
-          <div className="pt-2">
-            <h2 className="text-base font-bold text-foreground mb-3">
-              全体管理
-            </h2>
-            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-              <StatCard
-                label="総ユーザー"
-                value={adminStats.totalUsers}
-                unit="名"
-                icon={Users}
-                color="primary"
-              />
-              <StatCard
-                label="全体提出率"
-                value={adminStats.submissionRate}
-                unit="%"
-                icon={CheckCircle2}
-                color={adminStats.submissionRate >= 80 ? "success" : adminStats.submissionRate >= 50 ? "warning" : "danger"}
-              />
-              <StatCard
-                label="アクティブ案件"
-                value={adminStats.activeDeals}
-                unit="件"
-                icon={Briefcase}
-                color="accent"
-                href="/deals"
-              />
-              <StatCard
-                label="乖離アラート"
-                value={adminStats.deviationAlerts.length}
-                unit="件"
-                icon={AlertTriangle}
-                color={adminStats.deviationAlerts.length > 0 ? "warning" : "success"}
-              />
-            </div>
-          </div>
-
-          <TeamsOverview
-            teams={adminStats.teamsOverview}
-            onExport={() => {
-              exportToCSV(
-                adminStats.teamsOverview.map((t) => ({
-                  チーム名: t.name,
-                  メンバー数: t.memberCount,
-                  提出率: `${t.submissionRate}%`,
-                })),
-                "teams_overview.csv"
-              );
-            }}
-          />
-
-          <DeviationAlerts alerts={adminStats.deviationAlerts} />
-
-          {/* Funnel overview */}
-          {adminStats.funnelStages.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Target className="h-4 w-4 text-primary" />
-                  ファネル概要
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <LazyFunnelChart stages={adminStats.funnelStages} />
-              </CardContent>
-            </Card>
-          )}
-        </>
-      )}
-    </div>
   );
 }

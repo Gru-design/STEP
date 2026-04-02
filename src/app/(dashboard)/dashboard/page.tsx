@@ -1,8 +1,20 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
+import dynamic from "next/dynamic";
 import type { User } from "@/types/database";
-import { DashboardClient } from "./DashboardClient";
+import { MemberDashboard } from "./MemberDashboard";
+import type { MemberStats, ManagerStats, AdminStats, ApprovalStats } from "./types";
+
+const ManagerDashboard = dynamic(
+  () => import("./ManagerDashboard").then((m) => ({ default: m.ManagerDashboard })),
+  { ssr: true }
+);
+
+const AdminDashboard = dynamic(
+  () => import("./AdminDashboard").then((m) => ({ default: m.AdminDashboard })),
+  { ssr: true }
+);
 
 const LEVEL_THRESHOLDS = [0, 100, 500, 1500, 5000];
 
@@ -270,7 +282,7 @@ export default async function DashboardPage() {
       }
     : null;
 
-  const memberStats = {
+  const memberStats: MemberStats = {
     submittedToday,
     streak,
     level,
@@ -286,332 +298,363 @@ export default async function DashboardPage() {
     },
   };
 
+  // ── Member role: render MemberDashboard directly ──
+  if (role === "member") {
+    return (
+      <MemberDashboard
+        user={user}
+        role={role}
+        memberStats={memberStats}
+      />
+    );
+  }
+
   // ── Manager + Admin + Approval Stats (fetched in parallel) ──
-  const isManager = role === "manager" || role === "admin" || role === "super_admin";
   const isAdmin = role === "admin" || role === "super_admin";
 
-  let managerStats = undefined;
-  let adminStats = undefined;
-  let approvalStats = undefined;
+  // Manager base queries + admin queries in a single parallel batch
+  const [managedTeamsResult, nudgesResult] = await Promise.all([
+    supabase
+      .from("teams")
+      .select("id, name")
+      .eq("tenant_id", tenantId)
+      .eq("manager_id", user.id),
+    supabase
+      .from("nudges")
+      .select("*", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .eq("status", "pending"),
+  ]);
 
-  if (isManager) {
-    // Manager base queries + admin queries in a single parallel batch
-    const [managedTeamsResult, nudgesResult] = await Promise.all([
-      supabase
-        .from("teams")
-        .select("id, name")
-        .eq("tenant_id", tenantId)
-        .eq("manager_id", user.id),
-      supabase
-        .from("nudges")
-        .select("*", { count: "exact", head: true })
-        .eq("tenant_id", tenantId)
-        .eq("status", "pending"),
-    ]);
-
-    // Admin-specific queries in parallel (only executed for admin role)
-    const adminResults = isAdmin
-      ? await Promise.all([
-          supabase
-            .from("users")
-            .select("*", { count: "exact", head: true })
-            .eq("tenant_id", tenantId),
-          supabase
-            .from("report_entries")
-            .select("*", { count: "exact", head: true })
-            .eq("tenant_id", tenantId)
-            .eq("report_date", today)
-            .eq("status", "submitted"),
-          supabase
-            .from("deals")
-            .select("*", { count: "exact", head: true })
-            .eq("tenant_id", tenantId)
-            .eq("status", "active"),
-          supabase
-            .from("teams")
-            .select("id, name")
-            .eq("tenant_id", tenantId),
-          supabase
-            .from("report_entries")
-            .select("user_id")
-            .eq("tenant_id", tenantId)
-            .eq("report_date", today)
-            .eq("status", "submitted"),
-          supabase
-            .from("goals")
-            .select("id, name, target_value, period_start, period_end, owner_id")
-            .eq("tenant_id", tenantId),
-          supabase
-            .from("users")
-            .select("id, name")
-            .eq("tenant_id", tenantId),
-          supabase
-            .from("pipeline_stages")
-            .select("id, name, sort_order")
-            .eq("tenant_id", tenantId)
-            .order("sort_order", { ascending: true }),
-          supabase
-            .from("deals")
-            .select("stage_id")
-            .eq("tenant_id", tenantId)
-            .eq("status", "active"),
-        ])
-      : null;
-
-    // ── Build Manager Stats ──
-    const managedTeams = managedTeamsResult.data ?? [];
-    const teamIds = managedTeams.map((t) => t.id);
-
-    let teamMembers: { id: string; name: string; submitted: boolean }[] = [];
-
-    if (teamIds.length > 0) {
-      const { data: members } = await supabase
-        .from("team_members")
-        .select("user_id")
-        .in("team_id", teamIds);
-
-      const memberIds = [...new Set(members?.map((m) => m.user_id) ?? [])];
-
-      if (memberIds.length > 0) {
-        const [memberUsersResult, todaySubmissionsResult] = await Promise.all([
-          supabase.from("users").select("id, name").in("id", memberIds),
-          supabase
-            .from("report_entries")
-            .select("user_id")
-            .in("user_id", memberIds)
-            .eq("report_date", today)
-            .eq("status", "submitted"),
-        ]);
-
-        const submittedIds = new Set(
-          todaySubmissionsResult.data?.map((s) => s.user_id) ?? []
-        );
-
-        teamMembers = (memberUsersResult.data ?? []).map((u) => ({
-          id: u.id,
-          name: u.name,
-          submitted: submittedIds.has(u.id),
-        }));
-      }
-    }
-
-    // For admin, show all tenant members if no managed teams
-    if (isAdmin && teamMembers.length === 0) {
-      const { data: allUsers } = await supabase
-        .from("users")
-        .select("id, name")
-        .eq("tenant_id", tenantId)
-        .neq("id", user.id);
-
-      const allUserIds = allUsers?.map((u) => u.id) ?? [];
-
-      if (allUserIds.length > 0) {
-        const { data: todaySubmissions } = await supabase
+  // Admin-specific queries in parallel (only executed for admin role)
+  const adminResults = isAdmin
+    ? await Promise.all([
+        supabase
+          .from("users")
+          .select("*", { count: "exact", head: true })
+          .eq("tenant_id", tenantId),
+        supabase
+          .from("report_entries")
+          .select("*", { count: "exact", head: true })
+          .eq("tenant_id", tenantId)
+          .eq("report_date", today)
+          .eq("status", "submitted"),
+        supabase
+          .from("deals")
+          .select("*", { count: "exact", head: true })
+          .eq("tenant_id", tenantId)
+          .eq("status", "active"),
+        supabase
+          .from("teams")
+          .select("id, name")
+          .eq("tenant_id", tenantId),
+        supabase
           .from("report_entries")
           .select("user_id")
-          .in("user_id", allUserIds)
+          .eq("tenant_id", tenantId)
           .eq("report_date", today)
-          .eq("status", "submitted");
+          .eq("status", "submitted"),
+        supabase
+          .from("goals")
+          .select("id, name, target_value, period_start, period_end, owner_id")
+          .eq("tenant_id", tenantId),
+        supabase
+          .from("users")
+          .select("id, name")
+          .eq("tenant_id", tenantId),
+        supabase
+          .from("pipeline_stages")
+          .select("id, name, sort_order")
+          .eq("tenant_id", tenantId)
+          .order("sort_order", { ascending: true }),
+        supabase
+          .from("deals")
+          .select("stage_id")
+          .eq("tenant_id", tenantId)
+          .eq("status", "active"),
+      ])
+    : null;
 
-        const submittedIds = new Set(
-          todaySubmissions?.map((s) => s.user_id) ?? []
-        );
+  // ── Build Manager Stats ──
+  const managedTeams = managedTeamsResult.data ?? [];
+  const teamIds = managedTeams.map((t) => t.id);
 
-        teamMembers = (allUsers ?? []).map((u) => ({
-          id: u.id,
-          name: u.name,
-          submitted: submittedIds.has(u.id),
-        }));
-      }
-    }
+  let teamMembers: { id: string; name: string; submitted: boolean }[] = [];
 
-    const submittedCount = teamMembers.filter((m) => m.submitted).length;
-    const todayRate =
-      teamMembers.length > 0
-        ? Math.round((submittedCount / teamMembers.length) * 100)
-        : 0;
+  if (teamIds.length > 0) {
+    const { data: members } = await supabase
+      .from("team_members")
+      .select("user_id")
+      .in("team_id", teamIds);
 
-    // Weekly trends + approval stats in parallel
-    const weekRanges = [3, 2, 1, 0].map((w) => {
-      const wStart = new Date();
-      wStart.setDate(wStart.getDate() - wStart.getDay() + 1 - w * 7);
-      const wEnd = new Date(wStart);
-      wEnd.setDate(wEnd.getDate() + 4);
-      return {
-        label: `${wStart.getMonth() + 1}/${wStart.getDate()}`,
-        start: wStart.toISOString().split("T")[0],
-        end: wEnd.toISOString().split("T")[0],
-      };
-    });
+    const memberIds = [...new Set(members?.map((m) => m.user_id) ?? [])];
 
-    const [weekCountResults, pendingPlansResult, pendingDealsResult] = await Promise.all([
-      Promise.all(
-        weekRanges.map((wr) =>
-          supabase
-            .from("report_entries")
-            .select("*", { count: "exact", head: true })
-            .eq("tenant_id", tenantId)
-            .eq("status", "submitted")
-            .gte("report_date", wr.start)
-            .lte("report_date", wr.end)
-        )
-      ),
-      supabase
-        .from("weekly_plans")
-        .select("*", { count: "exact", head: true })
-        .eq("tenant_id", tenantId)
-        .eq("status", "submitted"),
-      supabase
-        .from("deals")
-        .select("*", { count: "exact", head: true })
-        .eq("tenant_id", tenantId)
-        .eq("status", "submitted" as string),
-    ]);
+    if (memberIds.length > 0) {
+      const [memberUsersResult, todaySubmissionsResult] = await Promise.all([
+        supabase.from("users").select("id, name").in("id", memberIds),
+        supabase
+          .from("report_entries")
+          .select("user_id")
+          .in("user_id", memberIds)
+          .eq("report_date", today)
+          .eq("status", "submitted"),
+      ]);
 
-    const expected = Math.max(1, teamMembers.length * 5);
-    const weeklyTrends = weekRanges.map((wr, i) => ({
-      week: wr.label,
-      rate: Math.min(
-        100,
-        Math.round(((weekCountResults[i].count ?? 0) / expected) * 100)
-      ),
-    }));
-
-    managerStats = {
-      todaySubmissionRate: todayRate,
-      weekSubmissionRate:
-        weeklyTrends.length > 0
-          ? weeklyTrends[weeklyTrends.length - 1].rate
-          : 0,
-      teamMembers,
-      weeklyTrends,
-      pendingNudges: nudgesResult.count ?? 0,
-    };
-
-    approvalStats = {
-      pendingPlans: pendingPlansResult.count ?? 0,
-      pendingDeals: pendingDealsResult.count ?? 0,
-    };
-
-    // ── Build Admin Stats ──
-    if (isAdmin && adminResults) {
-      const [
-        totalUsersRes, todaySubmittedRes, activeDealsRes,
-        teamsRes, todayEntriesRes, allGoalsRes,
-        ownerUsersRes, stagesRes, activeDealsStageRes,
-      ] = adminResults;
-
-      const totalUsers = totalUsersRes.count;
-      const todaySubmitted = todaySubmittedRes.count;
-      const activeDeals = activeDealsRes.count;
-      const submissionRate =
-        (totalUsers ?? 0) > 0
-          ? Math.round(((todaySubmitted ?? 0) / (totalUsers ?? 1)) * 100)
-          : 0;
-
-      const allTeams = teamsRes.data ?? [];
-      const teamIdsForAdmin = allTeams.map((t) => t.id);
-
-      const { data: allMembersData } = teamIdsForAdmin.length > 0
-        ? await supabase
-            .from("team_members")
-            .select("team_id, user_id")
-            .in("team_id", teamIdsForAdmin)
-        : { data: [] as { team_id: string; user_id: string }[] };
-
-      const allMembers = allMembersData ?? [];
-      const todayEntries = new Set(
-        (todayEntriesRes.data ?? []).map((e) => e.user_id)
+      const submittedIds = new Set(
+        todaySubmissionsResult.data?.map((s) => s.user_id) ?? []
       );
 
-      const teamsOverview = allTeams.map((team) => {
-        const members = allMembers.filter((m) => m.team_id === team.id);
-        const submitted = members.filter((m) => todayEntries.has(m.user_id)).length;
-        return {
-          name: team.name,
-          memberCount: members.length,
-          submissionRate:
-            members.length > 0 ? Math.round((submitted / members.length) * 100) : 0,
-        };
-      });
-
-      // Deviation alerts — snapshots for all goals
-      const goals = allGoalsRes.data ?? [];
-      const adminGoalIds = goals.map((g) => g.id);
-
-      const { data: adminSnapshotsData } = adminGoalIds.length > 0
-        ? await supabase
-            .from("goal_snapshots")
-            .select("goal_id, progress_rate, snapshot_date")
-            .in("goal_id", adminGoalIds)
-            .order("snapshot_date", { ascending: false })
-        : { data: [] as { goal_id: string; progress_rate: number; snapshot_date: string }[] };
-
-      const ownerMap = new Map(
-        (ownerUsersRes.data ?? []).map((u) => [u.id, u.name])
-      );
-
-      const latestSnapshotMap = new Map<string, number>();
-      for (const snap of adminSnapshotsData ?? []) {
-        if (!latestSnapshotMap.has(snap.goal_id)) {
-          latestSnapshotMap.set(snap.goal_id, Number(snap.progress_rate));
-        }
-      }
-
-      const deviationAlerts: {
-        goalName: string;
-        deviation: number;
-        ownerName: string;
-      }[] = [];
-
-      for (const goal of goals) {
-        const actualRate = latestSnapshotMap.get(goal.id);
-        if (actualRate === undefined) continue;
-        const start = new Date(goal.period_start).getTime();
-        const end = new Date(goal.period_end).getTime();
-        const elapsed = Math.max(0, Math.min(1, (nowMs - start) / (end - start)));
-        const expectedRate = Math.round(elapsed * 100);
-        const deviation = expectedRate - actualRate;
-        if (deviation >= 5) {
-          deviationAlerts.push({
-            goalName: goal.name,
-            deviation: Math.round(deviation),
-            ownerName: goal.owner_id
-              ? ownerMap.get(goal.owner_id) ?? "不明"
-              : "未割当",
-          });
-        }
-      }
-
-      const dealCountByStage = new Map<string, number>();
-      for (const d of activeDealsStageRes.data ?? []) {
-        dealCountByStage.set(d.stage_id, (dealCountByStage.get(d.stage_id) ?? 0) + 1);
-      }
-
-      const funnelStages = (stagesRes.data ?? []).map((ps) => ({
-        name: ps.name,
-        count: dealCountByStage.get(ps.id) ?? 0,
+      teamMembers = (memberUsersResult.data ?? []).map((u) => ({
+        id: u.id,
+        name: u.name,
+        submitted: submittedIds.has(u.id),
       }));
-
-      adminStats = {
-        totalUsers: totalUsers ?? 0,
-        submissionRate,
-        activeDeals: activeDeals ?? 0,
-        teamsOverview,
-        deviationAlerts,
-        funnelStages,
-      };
     }
   }
 
+  // For admin, show all tenant members if no managed teams
+  if (isAdmin && teamMembers.length === 0) {
+    const { data: allUsers } = await supabase
+      .from("users")
+      .select("id, name")
+      .eq("tenant_id", tenantId)
+      .neq("id", user.id);
+
+    const allUserIds = allUsers?.map((u) => u.id) ?? [];
+
+    if (allUserIds.length > 0) {
+      const { data: todaySubmissions } = await supabase
+        .from("report_entries")
+        .select("user_id")
+        .in("user_id", allUserIds)
+        .eq("report_date", today)
+        .eq("status", "submitted");
+
+      const submittedIds = new Set(
+        todaySubmissions?.map((s) => s.user_id) ?? []
+      );
+
+      teamMembers = (allUsers ?? []).map((u) => ({
+        id: u.id,
+        name: u.name,
+        submitted: submittedIds.has(u.id),
+      }));
+    }
+  }
+
+  const submittedCount = teamMembers.filter((m) => m.submitted).length;
+  const todayRate =
+    teamMembers.length > 0
+      ? Math.round((submittedCount / teamMembers.length) * 100)
+      : 0;
+
+  // Weekly trends + approval stats in parallel
+  const weekRanges = [3, 2, 1, 0].map((w) => {
+    const wStart = new Date();
+    wStart.setDate(wStart.getDate() - wStart.getDay() + 1 - w * 7);
+    const wEnd = new Date(wStart);
+    wEnd.setDate(wEnd.getDate() + 4);
+    return {
+      label: `${wStart.getMonth() + 1}/${wStart.getDate()}`,
+      start: wStart.toISOString().split("T")[0],
+      end: wEnd.toISOString().split("T")[0],
+    };
+  });
+
+  const [weekCountResults, pendingPlansResult, pendingDealsResult] = await Promise.all([
+    Promise.all(
+      weekRanges.map((wr) =>
+        supabase
+          .from("report_entries")
+          .select("*", { count: "exact", head: true })
+          .eq("tenant_id", tenantId)
+          .eq("status", "submitted")
+          .gte("report_date", wr.start)
+          .lte("report_date", wr.end)
+      )
+    ),
+    supabase
+      .from("weekly_plans")
+      .select("*", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .eq("status", "submitted"),
+    supabase
+      .from("deals")
+      .select("*", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .eq("status", "submitted" as string),
+  ]);
+
+  const expected = Math.max(1, teamMembers.length * 5);
+  const weeklyTrends = weekRanges.map((wr, i) => ({
+    week: wr.label,
+    rate: Math.min(
+      100,
+      Math.round(((weekCountResults[i].count ?? 0) / expected) * 100)
+    ),
+  }));
+
+  const managerStats: ManagerStats = {
+    todaySubmissionRate: todayRate,
+    weekSubmissionRate:
+      weeklyTrends.length > 0
+        ? weeklyTrends[weeklyTrends.length - 1].rate
+        : 0,
+    teamMembers,
+    weeklyTrends,
+    pendingNudges: nudgesResult.count ?? 0,
+  };
+
+  const approvalStats: ApprovalStats = {
+    pendingPlans: pendingPlansResult.count ?? 0,
+    pendingDeals: pendingDealsResult.count ?? 0,
+  };
+
+  // ── Manager role: render ManagerDashboard ──
+  if (role === "manager") {
+    return (
+      <ManagerDashboard
+        user={user}
+        role={role}
+        memberStats={memberStats}
+        managerStats={managerStats}
+        approvalStats={approvalStats}
+      />
+    );
+  }
+
+  // ── Admin / Super Admin: Build admin stats ──
+  let adminStats: AdminStats | undefined;
+
+  if (isAdmin && adminResults) {
+    const [
+      totalUsersRes, todaySubmittedRes, activeDealsRes,
+      teamsRes, todayEntriesRes, allGoalsRes,
+      ownerUsersRes, stagesRes, activeDealsStageRes,
+    ] = adminResults;
+
+    const totalUsers = totalUsersRes.count;
+    const todaySubmitted = todaySubmittedRes.count;
+    const activeDeals = activeDealsRes.count;
+    const submissionRate =
+      (totalUsers ?? 0) > 0
+        ? Math.round(((todaySubmitted ?? 0) / (totalUsers ?? 1)) * 100)
+        : 0;
+
+    const allTeams = teamsRes.data ?? [];
+    const teamIdsForAdmin = allTeams.map((t) => t.id);
+
+    const { data: allMembersData } = teamIdsForAdmin.length > 0
+      ? await supabase
+          .from("team_members")
+          .select("team_id, user_id")
+          .in("team_id", teamIdsForAdmin)
+      : { data: [] as { team_id: string; user_id: string }[] };
+
+    const allMembers = allMembersData ?? [];
+    const todayEntries = new Set(
+      (todayEntriesRes.data ?? []).map((e) => e.user_id)
+    );
+
+    const teamsOverview = allTeams.map((team) => {
+      const members = allMembers.filter((m) => m.team_id === team.id);
+      const submitted = members.filter((m) => todayEntries.has(m.user_id)).length;
+      return {
+        name: team.name,
+        memberCount: members.length,
+        submissionRate:
+          members.length > 0 ? Math.round((submitted / members.length) * 100) : 0,
+      };
+    });
+
+    // Deviation alerts — snapshots for all goals
+    const goals = allGoalsRes.data ?? [];
+    const adminGoalIds = goals.map((g) => g.id);
+
+    const { data: adminSnapshotsData } = adminGoalIds.length > 0
+      ? await supabase
+          .from("goal_snapshots")
+          .select("goal_id, progress_rate, snapshot_date")
+          .in("goal_id", adminGoalIds)
+          .order("snapshot_date", { ascending: false })
+      : { data: [] as { goal_id: string; progress_rate: number; snapshot_date: string }[] };
+
+    const ownerMap = new Map(
+      (ownerUsersRes.data ?? []).map((u) => [u.id, u.name])
+    );
+
+    const latestSnapshotMap = new Map<string, number>();
+    for (const snap of adminSnapshotsData ?? []) {
+      if (!latestSnapshotMap.has(snap.goal_id)) {
+        latestSnapshotMap.set(snap.goal_id, Number(snap.progress_rate));
+      }
+    }
+
+    const deviationAlerts: {
+      goalName: string;
+      deviation: number;
+      ownerName: string;
+    }[] = [];
+
+    for (const goal of goals) {
+      const actualRate = latestSnapshotMap.get(goal.id);
+      if (actualRate === undefined) continue;
+      const start = new Date(goal.period_start).getTime();
+      const end = new Date(goal.period_end).getTime();
+      const elapsed = Math.max(0, Math.min(1, (nowMs - start) / (end - start)));
+      const expectedRate = Math.round(elapsed * 100);
+      const deviation = expectedRate - actualRate;
+      if (deviation >= 5) {
+        deviationAlerts.push({
+          goalName: goal.name,
+          deviation: Math.round(deviation),
+          ownerName: goal.owner_id
+            ? ownerMap.get(goal.owner_id) ?? "不明"
+            : "未割当",
+        });
+      }
+    }
+
+    const dealCountByStage = new Map<string, number>();
+    for (const d of activeDealsStageRes.data ?? []) {
+      dealCountByStage.set(d.stage_id, (dealCountByStage.get(d.stage_id) ?? 0) + 1);
+    }
+
+    const funnelStages = (stagesRes.data ?? []).map((ps) => ({
+      name: ps.name,
+      count: dealCountByStage.get(ps.id) ?? 0,
+    }));
+
+    adminStats = {
+      totalUsers: totalUsers ?? 0,
+      submissionRate,
+      activeDeals: activeDeals ?? 0,
+      teamsOverview,
+      deviationAlerts,
+      funnelStages,
+    };
+  }
+
+  // ── Admin / Super Admin: render AdminDashboard ──
+  if (adminStats) {
+    return (
+      <AdminDashboard
+        user={user}
+        role={role}
+        memberStats={memberStats}
+        managerStats={managerStats}
+        adminStats={adminStats}
+        approvalStats={approvalStats}
+      />
+    );
+  }
+
+  // Fallback (shouldn't reach here, but safe default)
   return (
-    <DashboardClient
+    <MemberDashboard
       user={user}
       role={role}
       memberStats={memberStats}
-      managerStats={managerStats}
-      adminStats={adminStats}
-      approvalStats={approvalStats}
     />
   );
 }
