@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { listFeatureRequests } from "@/app/(dashboard)/feature-requests/actions";
 import { FeatureRequestsAdmin } from "./FeatureRequestsAdmin";
@@ -14,7 +15,9 @@ export default async function FeatureRequestsPage() {
     redirect("/login");
   }
 
-  const { data: dbUser } = await supabase
+  const adminClient = createAdminClient();
+
+  const { data: dbUser } = await adminClient
     .from("users")
     .select("role")
     .eq("id", user.id)
