@@ -88,7 +88,7 @@ const navGroups: NavGroup[] = [
         roles: ["super_admin", "admin", "manager", "member"],
       },
       {
-        label: "下書き",
+        label: "My日報",
         href: "/reports/my",
         icon: FileText,
         roles: ["super_admin", "admin", "manager", "member"],

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { SelectItem } from "@/components/ui/select";
 import { OptionalSelect } from "@/components/shared/OptionalSelect";
-import { FileText } from "lucide-react";
+import { DynamicForm } from "@/components/reports/DynamicForm";
+import {
+  FileText,
+  ChevronRight,
+  Eye,
+  Clock,
+  ExternalLink,
+} from "lucide-react";
+import type { TemplateSchema } from "@/types/database";
 
 export interface ReportFeedEntry {
   id: string;
@@ -20,6 +28,7 @@ export interface ReportFeedEntry {
   user_avatar_url: string | null;
   user_id: string;
   template_name: string;
+  template_schema?: TemplateSchema | null;
 }
 
 interface TeamMember {
@@ -30,15 +39,76 @@ interface TeamMember {
 interface ReportFeedProps {
   entries: ReportFeedEntry[];
   members: TeamMember[];
-  /** マネージャーの場合、自チームメンバーのIDリスト（デフォルト表示用） */
   defaultTeamMemberIds?: string[];
 }
 
-export function ReportFeed({ entries, members, defaultTeamMemberIds }: ReportFeedProps) {
+// localStorage key for read state
+const READ_REPORTS_KEY = "step_read_reports";
+
+function getReadReports(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const stored = localStorage.getItem(READ_REPORTS_KEY);
+    if (stored) return new Set(JSON.parse(stored));
+  } catch {
+    // ignore
+  }
+  return new Set();
+}
+
+function markAsRead(id: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const current = getReadReports();
+    current.add(id);
+    // Keep only last 500 entries to prevent unlimited growth
+    const arr = [...current];
+    if (arr.length > 500) arr.splice(0, arr.length - 500);
+    localStorage.setItem(READ_REPORTS_KEY, JSON.stringify(arr));
+  } catch {
+    // ignore
+  }
+}
+
+function formatRelativeDate(dateStr: string): string {
+  const today = new Date().toISOString().split("T")[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+  if (dateStr === today) return "今日";
+  if (dateStr === yesterday) return "昨日";
+  const d = new Date(dateStr + "T00:00:00");
+  const month = d.getMonth() + 1;
+  const day = d.getDate();
+  const weekDays = ["日", "月", "火", "水", "木", "金", "土"];
+  return `${month}/${day} (${weekDays[d.getDay()]})`;
+}
+
+function getPreviewText(data: Record<string, unknown>): string {
+  for (const val of Object.values(data)) {
+    if (typeof val === "string" && val.trim().length > 0) {
+      return val.length > 80 ? val.slice(0, 80) + "..." : val;
+    }
+  }
+  return "";
+}
+
+export function ReportFeed({
+  entries,
+  members,
+  defaultTeamMemberIds,
+}: ReportFeedProps) {
   const router = useRouter();
   const [dateFilter, setDateFilter] = useState("");
   const [memberFilter, setMemberFilter] = useState("");
-  const [showMyTeamOnly, setShowMyTeamOnly] = useState(!!defaultTeamMemberIds);
+  const [showMyTeamOnly, setShowMyTeamOnly] = useState(
+    !!defaultTeamMemberIds
+  );
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [readReports, setReadReports] = useState<Set<string>>(new Set());
+
+  // Load read state from localStorage
+  useEffect(() => {
+    setReadReports(getReadReports());
+  }, []);
 
   const filtered = useMemo(() => {
     let result = entries;
@@ -54,14 +124,50 @@ export function ReportFeed({ entries, members, defaultTeamMemberIds }: ReportFee
     return result;
   }, [entries, dateFilter, memberFilter, showMyTeamOnly, defaultTeamMemberIds]);
 
-  const getPreviewText = (data: Record<string, unknown>): string => {
-    for (const val of Object.values(data)) {
-      if (typeof val === "string" && val.trim().length > 0) {
-        return val.length > 100 ? val.slice(0, 100) + "..." : val;
+  // Group entries by date
+  const groupedByDate = useMemo(() => {
+    const groups: { date: string; label: string; entries: ReportFeedEntry[] }[] =
+      [];
+    const dateMap = new Map<string, ReportFeedEntry[]>();
+    for (const entry of filtered) {
+      const existing = dateMap.get(entry.report_date);
+      if (existing) {
+        existing.push(entry);
+      } else {
+        dateMap.set(entry.report_date, [entry]);
       }
     }
-    return "";
-  };
+    for (const [date, ents] of dateMap) {
+      groups.push({ date, label: formatRelativeDate(date), entries: ents });
+    }
+    return groups;
+  }, [filtered]);
+
+  const selectedEntry = useMemo(
+    () => filtered.find((e) => e.id === selectedId) ?? null,
+    [filtered, selectedId]
+  );
+
+  const handleSelect = useCallback(
+    (entry: ReportFeedEntry) => {
+      setSelectedId(entry.id);
+      markAsRead(entry.id);
+      setReadReports((prev) => {
+        const next = new Set(prev);
+        next.add(entry.id);
+        return next;
+      });
+    },
+    []
+  );
+
+  // Auto-select first entry on desktop if nothing selected
+  useEffect(() => {
+    if (!selectedId && filtered.length > 0) {
+      // Don't auto-mark as read
+      setSelectedId(filtered[0].id);
+    }
+  }, [filtered, selectedId]);
 
   return (
     <div className="space-y-4">
@@ -120,53 +226,288 @@ export function ReportFeed({ entries, members, defaultTeamMemberIds }: ReportFee
         )}
       </div>
 
-      {/* Entry list */}
+      {/* Empty state */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <FileText className="h-12 w-12 text-slate-200 mb-3" />
           <p className="text-sm text-muted-foreground">日報がまだありません</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((entry) => (
-            <Card
-              key={entry.id}
-              className="cursor-pointer border-border transition-colors hover:bg-muted"
-              onClick={() => router.push(`/reports/${entry.id}`)}
-            >
-              <CardContent className="flex items-start gap-3 p-4">
-                <Avatar className="h-10 w-10 shrink-0">
-                  <AvatarImage src={entry.user_avatar_url ?? undefined} />
-                  <AvatarFallback className="text-xs">
-                    {entry.user_name?.charAt(0) ?? "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium text-foreground">
-                      {entry.user_name}
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className="text-xs border-border"
-                    >
-                      {entry.template_name}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {entry.report_date}
-                    </span>
-                  </div>
-                  {getPreviewText(entry.data) && (
-                    <p className="mt-1 text-sm text-muted-foreground truncate">
-                      {getPreviewText(entry.data)}
-                    </p>
-                  )}
+        <>
+          {/* Mobile: simple list */}
+          <div className="lg:hidden space-y-3">
+            {groupedByDate.map((group) => (
+              <div key={group.date}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs font-semibold text-primary">
+                    {group.label}
+                  </span>
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-xs text-muted-foreground">
+                    {group.entries.length}件
+                  </span>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                <div className="space-y-2">
+                  {group.entries.map((entry) => {
+                    const isRead = readReports.has(entry.id);
+                    return (
+                      <Card
+                        key={entry.id}
+                        className={`cursor-pointer border-border transition-all hover:bg-muted ${
+                          isRead ? "opacity-60" : ""
+                        }`}
+                        onClick={() => {
+                          markAsRead(entry.id);
+                          setReadReports((prev) => {
+                            const next = new Set(prev);
+                            next.add(entry.id);
+                            return next;
+                          });
+                          router.push(`/reports/${entry.id}`);
+                        }}
+                      >
+                        <CardContent className="flex items-center gap-3 p-3">
+                          <Avatar className="h-9 w-9 shrink-0">
+                            <AvatarImage
+                              src={entry.user_avatar_url ?? undefined}
+                            />
+                            <AvatarFallback className="text-xs">
+                              {entry.user_name?.charAt(0) ?? "U"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-foreground truncate">
+                                {entry.user_name}
+                              </span>
+                              {!isRead && (
+                                <span className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                              )}
+                            </div>
+                            {getPreviewText(entry.data) && (
+                              <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                {getPreviewText(entry.data)}
+                              </p>
+                            )}
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: two-panel layout */}
+          <div className="hidden lg:grid lg:grid-cols-[340px_1fr] lg:gap-4 lg:h-[calc(100vh-220px)]">
+            {/* Left panel: report list */}
+            <div className="overflow-y-auto rounded-xl border border-border bg-white">
+              <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-foreground">
+                    日報一覧
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {filtered.length}件
+                  </span>
+                </div>
+              </div>
+              <div className="divide-y divide-border">
+                {groupedByDate.map((group) => (
+                  <div key={group.date}>
+                    <div className="sticky top-[49px] z-[5] bg-muted/80 backdrop-blur-sm px-4 py-1.5 border-b border-border">
+                      <span className="text-xs font-semibold text-primary">
+                        {group.label}
+                      </span>
+                    </div>
+                    {group.entries.map((entry) => {
+                      const isRead = readReports.has(entry.id);
+                      const isSelected = selectedId === entry.id;
+                      return (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          onClick={() => handleSelect(entry)}
+                          className={`w-full text-left px-4 py-3 transition-all hover:bg-muted/50 ${
+                            isSelected
+                              ? "bg-primary/5 border-l-2 border-l-primary"
+                              : "border-l-2 border-l-transparent"
+                          } ${isRead && !isSelected ? "opacity-50" : ""}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8 shrink-0">
+                              <AvatarImage
+                                src={entry.user_avatar_url ?? undefined}
+                              />
+                              <AvatarFallback className="text-[10px]">
+                                {entry.user_name?.charAt(0) ?? "U"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`text-sm truncate ${
+                                    isSelected
+                                      ? "font-semibold text-primary"
+                                      : isRead
+                                      ? "font-normal text-muted-foreground"
+                                      : "font-medium text-foreground"
+                                  }`}
+                                >
+                                  {entry.user_name}
+                                </span>
+                                {!isRead && (
+                                  <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                {getPreviewText(entry.data) ||
+                                  entry.template_name}
+                              </p>
+                            </div>
+                            {entry.submitted_at && (
+                              <span className="text-[10px] text-muted-foreground shrink-0">
+                                {new Date(entry.submitted_at).toLocaleTimeString(
+                                  "ja-JP",
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  }
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right panel: report detail */}
+            <div className="overflow-y-auto rounded-xl border border-border bg-white">
+              {selectedEntry ? (
+                <ReportDetailInline
+                  entry={selectedEntry}
+                  onNavigate={() =>
+                    router.push(`/reports/${selectedEntry.id}`)
+                  }
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                  <Eye className="h-10 w-10 mb-2 text-slate-200" />
+                  <p className="text-sm">日報を選択してください</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
       )}
+    </div>
+  );
+}
+
+/** Inline report detail for the right panel */
+function ReportDetailInline({
+  entry,
+  onNavigate,
+}: {
+  entry: ReportFeedEntry;
+  onNavigate: () => void;
+}) {
+  const schema = entry.template_schema;
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-white border-b border-border px-5 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={entry.user_avatar_url ?? undefined} />
+              <AvatarFallback className="text-xs">
+                {entry.user_name?.charAt(0) ?? "U"}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-semibold text-foreground">
+                  {entry.user_name}
+                </h2>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] border-border"
+                >
+                  {entry.template_name}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <Clock className="h-3 w-3 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">
+                  {formatRelativeDate(entry.report_date)}
+                  {entry.submitted_at &&
+                    ` ${new Date(entry.submitted_at).toLocaleTimeString(
+                      "ja-JP",
+                      { hour: "2-digit", minute: "2-digit" }
+                    )} 提出`}
+                </span>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={onNavigate}
+            className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/5 transition-colors"
+            title="詳細ページへ"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            詳細
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto px-5 py-4">
+        {schema &&
+        typeof schema === "object" &&
+        Array.isArray(schema.sections) ? (
+          <DynamicForm schema={schema} values={entry.data} readOnly />
+        ) : (
+          <ReportDataFallback data={entry.data} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Fallback renderer when template schema is not available */
+function ReportDataFallback({ data }: { data: Record<string, unknown> }) {
+  const displayEntries = Object.entries(data).filter(
+    ([, v]) => v !== null && v !== undefined && v !== ""
+  );
+
+  if (displayEntries.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">内容がありません</p>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {displayEntries.map(([key, value]) => (
+        <div key={key}>
+          <p className="text-xs font-medium text-muted-foreground mb-1">
+            {key}
+          </p>
+          <p className="text-sm text-foreground whitespace-pre-wrap">
+            {typeof value === "string"
+              ? value
+              : JSON.stringify(value, null, 2)}
+          </p>
+        </div>
+      ))}
     </div>
   );
 }
