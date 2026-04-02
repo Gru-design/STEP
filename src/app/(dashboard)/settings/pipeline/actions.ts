@@ -91,7 +91,7 @@ export async function addPipelineStage(name: string) {
 
     revalidatePath("/settings/pipeline");
     revalidatePath("/deals");
-    revalidateTag(pipelineStagesCacheTag(dbUser.tenant_id));
+    revalidateTag(pipelineStagesCacheTag(dbUser.tenant_id), "default");
     return { success: true };
   } catch {
     return { success: false, error: "ステージの追加に失敗しました" };
@@ -131,7 +131,7 @@ export async function updatePipelineStage(id: string, name: string) {
 
     revalidatePath("/settings/pipeline");
     revalidatePath("/deals");
-    revalidateTag(pipelineStagesCacheTag(dbUser.tenant_id));
+    revalidateTag(pipelineStagesCacheTag(dbUser.tenant_id), "default");
     return { success: true };
   } catch {
     return { success: false, error: "ステージの更新に失敗しました" };
@@ -180,7 +180,7 @@ export async function deletePipelineStage(id: string) {
 
     revalidatePath("/settings/pipeline");
     revalidatePath("/deals");
-    revalidateTag(pipelineStagesCacheTag(dbUser.tenant_id));
+    revalidateTag(pipelineStagesCacheTag(dbUser.tenant_id), "default");
     return { success: true };
   } catch {
     return { success: false, error: "ステージの削除に失敗しました" };
@@ -217,7 +217,7 @@ export async function reorderPipelineStages(orderedIds: string[]) {
 
     revalidatePath("/settings/pipeline");
     revalidatePath("/deals");
-    revalidateTag(pipelineStagesCacheTag(dbUser.tenant_id));
+    revalidateTag(pipelineStagesCacheTag(dbUser.tenant_id), "default");
     return { success: true };
   } catch {
     return { success: false, error: "並び替えに失敗しました" };
@@ -276,7 +276,7 @@ export async function initializePresetStages() {
 
     revalidatePath("/settings/pipeline");
     revalidatePath("/deals");
-    revalidateTag(pipelineStagesCacheTag(dbUser.tenant_id));
+    revalidateTag(pipelineStagesCacheTag(dbUser.tenant_id), "default");
     return { success: true };
   } catch {
     return { success: false, error: "プリセットの初期化に失敗しました" };
