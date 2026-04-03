@@ -18,23 +18,23 @@ const PERSONAS = [
 
 export function SolutionSection() {
   return (
-    <section id="solution" className="py-24 md:py-32 bg-muted/40">
+    <section id="solution" className="py-16 sm:py-24 md:py-32 bg-muted/40">
       <div className="max-w-[1200px] mx-auto px-6">
-        <div className="max-w-2xl mb-20">
+        <div className="max-w-2xl mb-12 sm:mb-20">
           <p className="text-[13px] font-medium text-primary tracking-wide mb-4">
             Solution
           </p>
-          <h2 className="font-serif text-[32px] md:text-[40px] font-semibold text-foreground leading-[1.2] tracking-tight mb-6">
+          <h2 className="font-serif text-[28px] sm:text-[32px] md:text-[40px] font-semibold text-foreground leading-[1.2] tracking-tight mb-6">
             すべてのロールに、
             <br />
             確かな変化を。
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {PERSONAS.map((persona) => (
-            <div key={persona.role} className="bg-white rounded-xl border border-border p-8">
-              <h3 className="text-[15px] font-semibold text-foreground mb-8">
+            <div key={persona.role} className="bg-white rounded-xl border border-border p-6 sm:p-8">
+              <h3 className="text-[15px] font-semibold text-foreground mb-6 sm:mb-8">
                 {persona.role}
               </h3>
 
@@ -44,7 +44,7 @@ export function SolutionSection() {
                     <div className="w-5 h-[1px] bg-muted-foreground/30" />
                     <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Before</span>
                   </div>
-                  <p className="text-[14px] text-muted-foreground leading-[1.7]">
+                  <p className="text-[13px] sm:text-[14px] text-muted-foreground leading-[1.7]">
                     {persona.before}
                   </p>
                 </div>
@@ -54,7 +54,7 @@ export function SolutionSection() {
                     <div className="w-5 h-[1px] bg-primary" />
                     <span className="text-[11px] font-medium text-primary uppercase tracking-wider">After</span>
                   </div>
-                  <p className="text-[14px] text-foreground leading-[1.7]">
+                  <p className="text-[13px] sm:text-[14px] text-foreground leading-[1.7]">
                     {persona.after}
                   </p>
                 </div>

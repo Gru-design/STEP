@@ -73,19 +73,19 @@ const FEATURES = [
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="py-24 md:py-32 bg-white">
+    <section id="features" className="py-16 sm:py-24 md:py-32 bg-white">
       <div className="max-w-[1200px] mx-auto px-6">
         {/* Section header */}
-        <div className="max-w-2xl mb-20">
+        <div className="max-w-2xl mb-12 sm:mb-20">
           <p className="text-[13px] font-medium text-primary tracking-wide mb-4">
             Features
           </p>
-          <h2 className="font-serif text-[32px] md:text-[40px] font-semibold text-foreground leading-[1.2] tracking-tight mb-6">
+          <h2 className="font-serif text-[28px] sm:text-[32px] md:text-[40px] font-semibold text-foreground leading-[1.2] tracking-tight mb-6">
             マネジメントに必要な
             <br />
             すべてを、ひとつに。
           </h2>
-          <p className="text-[16px] text-muted-foreground leading-[1.8]">
+          <p className="text-[15px] sm:text-[16px] text-muted-foreground leading-[1.8]">
             分散していたツールを統合し、日報からKPI追跡、承認、振り返りまでを
             一貫したワークフローで実現します。
           </p>
@@ -96,14 +96,14 @@ export function FeaturesSection() {
           {FEATURES.map((feature) => (
             <div
               key={feature.number}
-              className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 py-14 border-t border-border"
+              className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-16 py-10 sm:py-14 border-t border-border"
             >
               {/* Number + Title */}
               <div className="lg:col-span-4">
                 <span className="text-[12px] font-mono text-muted-foreground">
                   {feature.number}
                 </span>
-                <h3 className="font-serif text-[24px] md:text-[28px] font-semibold text-foreground mt-1 tracking-tight">
+                <h3 className="font-serif text-[22px] sm:text-[24px] md:text-[28px] font-semibold text-foreground mt-1 tracking-tight">
                   {feature.title}
                 </h3>
                 <p className="text-[13px] text-primary font-medium mt-1">
@@ -113,7 +113,7 @@ export function FeaturesSection() {
 
               {/* Description */}
               <div className="lg:col-span-4">
-                <p className="text-[15px] text-muted-foreground leading-[1.8]">
+                <p className="text-[14px] sm:text-[15px] text-muted-foreground leading-[1.8]">
                   {feature.description}
                 </p>
               </div>
@@ -124,7 +124,7 @@ export function FeaturesSection() {
                   {feature.capabilities.map((cap) => (
                     <li key={cap} className="flex items-center gap-3">
                       <div className="w-1 h-1 rounded-full bg-primary shrink-0" />
-                      <span className="text-[14px] text-foreground">{cap}</span>
+                      <span className="text-[13px] sm:text-[14px] text-foreground">{cap}</span>
                     </li>
                   ))}
                 </ul>

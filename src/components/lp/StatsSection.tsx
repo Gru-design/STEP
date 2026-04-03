@@ -1,8 +1,8 @@
 export function StatsSection() {
   return (
-    <section className="py-20 bg-muted/40 border-y border-border">
+    <section className="py-14 sm:py-20 bg-muted/40 border-y border-border">
       <div className="max-w-[1200px] mx-auto px-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-16">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-10 md:gap-16">
           {[
             { value: "90%", label: "日報作成時間を削減" },
             { value: "95%+", label: "提出率を実現" },
@@ -10,10 +10,10 @@ export function StatsSection() {
             { value: "30 min", label: "で運用開始可能" },
           ].map((stat) => (
             <div key={stat.label} className="text-center md:text-left">
-              <p className="font-serif text-[32px] md:text-[40px] font-semibold text-foreground leading-none tracking-tight">
+              <p className="font-serif text-[26px] sm:text-[32px] md:text-[40px] font-semibold text-foreground leading-none tracking-tight">
                 {stat.value}
               </p>
-              <p className="text-[13px] text-muted-foreground mt-2">
+              <p className="text-[12px] sm:text-[13px] text-muted-foreground mt-2">
                 {stat.label}
               </p>
             </div>
