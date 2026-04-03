@@ -2,10 +2,10 @@ import Link from "next/link";
 
 export function FooterSection() {
   return (
-    <footer className="bg-foreground border-t border-white/5 py-16">
+    <footer className="bg-foreground border-t border-white/5 py-12 sm:py-16">
       <div className="max-w-[1200px] mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-14">
-          <div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 sm:gap-12 mb-10 sm:mb-14">
+          <div className="sm:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">
               <div className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center">
                 <span className="text-white text-[12px] font-bold">S</span>

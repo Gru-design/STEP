@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function HeroSection() {
   return (
-    <section className="relative pt-36 pb-24 md:pt-44 md:pb-32 bg-white overflow-hidden">
+    <section className="relative pt-28 pb-16 sm:pt-32 sm:pb-20 md:pt-44 md:pb-32 bg-white overflow-hidden">
       {/* Subtle background texture */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(13,148,136,0.03),transparent_50%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(13,148,136,0.02),transparent_50%)]" />
@@ -10,19 +10,19 @@ export function HeroSection() {
       <div className="relative max-w-[1200px] mx-auto px-6">
         <div className="max-w-3xl">
           {/* Eyebrow */}
-          <p className="text-[13px] font-medium text-primary tracking-wide mb-6">
+          <p className="text-[13px] font-medium text-primary tracking-wide mb-4 sm:mb-6">
             Management Cycle Platform
           </p>
 
           {/* Headline - serif for sophistication */}
-          <h1 className="font-serif text-[40px] md:text-[56px] lg:text-[64px] font-semibold text-foreground leading-[1.15] tracking-tight mb-8">
+          <h1 className="font-serif text-[32px] sm:text-[40px] md:text-[56px] lg:text-[64px] font-semibold text-foreground leading-[1.15] tracking-tight mb-6 sm:mb-8">
             組織の実行力を、
             <br />
             仕組みで高める。
           </h1>
 
           {/* Subhead */}
-          <p className="text-[17px] md:text-[19px] text-muted-foreground leading-[1.8] max-w-xl mb-12">
+          <p className="text-[15px] sm:text-[17px] md:text-[19px] text-muted-foreground leading-[1.8] max-w-xl mb-8 sm:mb-12">
             日報・週次計画・目標管理・案件管理・ナレッジを
             <br className="hidden md:block" />
             一つのプラットフォームに統合。
@@ -31,7 +31,7 @@ export function HeroSection() {
           </p>
 
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <Link
               href="/signup"
               className="inline-flex items-center justify-center px-8 py-4 rounded-lg bg-foreground text-white text-[15px] font-medium hover:bg-foreground/85 transition-colors"
