@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { NewReportForm } from "./NewReportForm";
 import { SocialProofBanner } from "@/components/reports/SocialProofBanner";
-import type { ReportTemplate } from "@/types/database";
+import type { ReportTemplate, TenantSettings } from "@/types/database";
 
 export default async function NewReportPage() {
   const supabase = await createClient();
@@ -28,7 +28,7 @@ export default async function NewReportPage() {
   // Fetch published templates for this tenant
   const today = new Date().toISOString().split("T")[0];
 
-  const [templatesResult, totalMembersResult, submittedTodayResult, teamMembersResult, peerBonusSentResult] =
+  const [templatesResult, totalMembersResult, submittedTodayResult, teamMembersResult, peerBonusSentResult, tenantResult] =
     await Promise.all([
       supabase
         .from("report_templates")
@@ -61,6 +61,12 @@ export default async function NewReportPage() {
         .eq("from_user_id", dbUser.id)
         .eq("bonus_date", today)
         .single(),
+      // Fetch tenant settings for peer bonus toggle
+      supabase
+        .from("tenants")
+        .select("settings")
+        .eq("id", dbUser.tenant_id)
+        .single(),
     ]);
 
   const teamSubmissionRate =
@@ -74,7 +80,9 @@ export default async function NewReportPage() {
     avatar_url: m.avatar_url,
   }));
 
-  const peerBonusAvailable = !peerBonusSentResult.data;
+  const tenantSettings = (tenantResult.data?.settings ?? {}) as TenantSettings;
+  const peerBonusEnabled = tenantSettings.peer_bonus_enabled !== false;
+  const peerBonusAvailable = peerBonusEnabled && !peerBonusSentResult.data;
 
   return (
     <div className="space-y-5">
@@ -91,7 +99,7 @@ export default async function NewReportPage() {
 
       <NewReportForm
         templates={(templatesResult.data as ReportTemplate[]) ?? []}
-        teamMembers={teamMembers}
+        teamMembers={peerBonusEnabled ? teamMembers : []}
         peerBonusAvailable={peerBonusAvailable}
       />
     </div>

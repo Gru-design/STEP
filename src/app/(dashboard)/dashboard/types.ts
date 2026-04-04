@@ -74,6 +74,7 @@ export interface MemberDashboardProps {
   user: User;
   role: Role;
   memberStats: MemberStats;
+  peerBonusEnabled?: boolean;
 }
 
 export interface ManagerDashboardProps {
@@ -82,6 +83,7 @@ export interface ManagerDashboardProps {
   memberStats: MemberStats;
   managerStats: ManagerStats;
   approvalStats?: ApprovalStats;
+  peerBonusEnabled?: boolean;
 }
 
 export interface AdminDashboardProps {
@@ -91,4 +93,5 @@ export interface AdminDashboardProps {
   managerStats: ManagerStats;
   adminStats: AdminStats;
   approvalStats?: ApprovalStats;
+  peerBonusEnabled?: boolean;
 }

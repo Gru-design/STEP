@@ -22,11 +22,14 @@ export function ManagerDashboard({
   memberStats,
   managerStats,
   approvalStats,
+  peerBonusEnabled = true,
 }: ManagerDashboardProps) {
   return (
     <div className="space-y-5 pb-4">
       <GreetingHeader user={user} stats={memberStats} />
-      <NewPeerBonusBanner bonuses={memberStats.todayReceivedBonuses ?? []} />
+      {peerBonusEnabled && (
+        <NewPeerBonusBanner bonuses={memberStats.todayReceivedBonuses ?? []} />
+      )}
       <ReportCTABanner submitted={memberStats.submittedToday} />
 
       {memberStats.pendingReview && (
@@ -45,7 +48,7 @@ export function ManagerDashboard({
       <MemberStatsCards stats={memberStats} />
       <GoalsProgressCard goals={memberStats.goalsProgress} />
 
-      {memberStats.peerBonus && (
+      {peerBonusEnabled && memberStats.peerBonus && (
         <PeerBonusCard bonus={memberStats.peerBonus} />
       )}
 

@@ -28,22 +28,38 @@ export async function updateTenantSettings(formData: FormData) {
       return { success: false, error: "権限がありません" };
     }
 
+    const peerBonusRaw = formData.get("peer_bonus_enabled");
     const parsed = updateTenantSchema.safeParse({
       name: formData.get("name"),
       report_visibility: formData.get("report_visibility"),
+      peer_bonus_enabled: peerBonusRaw === null ? undefined : peerBonusRaw === "true",
     });
 
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0].message };
     }
 
-    const { name, report_visibility } = parsed.data;
+    const { name, report_visibility, peer_bonus_enabled } = parsed.data;
+
+    // Merge peer_bonus_enabled into settings JSONB
+    const { data: currentTenant } = await supabase
+      .from("tenants")
+      .select("settings")
+      .eq("id", dbUser.tenant_id)
+      .single();
+
+    const currentSettings = (currentTenant?.settings ?? {}) as Record<string, unknown>;
+    const newSettings = {
+      ...currentSettings,
+      ...(peer_bonus_enabled !== undefined ? { peer_bonus_enabled } : {}),
+    };
 
     const { error } = await supabase
       .from("tenants")
       .update({
         name: name.trim(),
         report_visibility,
+        settings: newSettings,
         updated_at: new Date().toISOString(),
       })
       .eq("id", dbUser.tenant_id);
@@ -58,7 +74,7 @@ export async function updateTenantSettings(formData: FormData) {
       action: "update",
       resource: "tenant_settings",
       resourceId: dbUser.tenant_id,
-      details: { name: name.trim(), report_visibility },
+      details: { name: name.trim(), report_visibility, peer_bonus_enabled },
     });
 
     revalidatePath("/settings");

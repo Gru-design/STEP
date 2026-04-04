@@ -2,12 +2,16 @@ export type Role = "super_admin" | "admin" | "manager" | "member";
 export type ReportVisibility = "manager_only" | "team" | "tenant_all";
 export type Plan = "free" | "starter" | "professional" | "enterprise";
 
+export interface TenantSettings {
+  peer_bonus_enabled?: boolean;  // デフォルト true
+}
+
 export interface Tenant {
   id: string;
   name: string;
   plan: Plan;
   domain: string | null;
-  settings: Record<string, unknown>;
+  settings: TenantSettings;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   report_visibility: ReportVisibility;

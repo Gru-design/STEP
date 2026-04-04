@@ -26,6 +26,18 @@ export default async function PeerBonusPage() {
     redirect("/login");
   }
 
+  // Check if peer bonus is enabled for this tenant
+  const { data: tenant } = await supabase
+    .from("tenants")
+    .select("settings")
+    .eq("id", dbUser.tenant_id)
+    .single();
+
+  const tenantSettings = (tenant?.settings ?? {}) as { peer_bonus_enabled?: boolean };
+  if (tenantSettings.peer_bonus_enabled === false) {
+    redirect("/");
+  }
+
   const adminClient = createAdminClient();
   const today = new Date().toISOString().split("T")[0];
 

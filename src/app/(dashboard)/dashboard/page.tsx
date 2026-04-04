@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import dynamic from "next/dynamic";
-import type { User } from "@/types/database";
+import type { User, TenantSettings } from "@/types/database";
 import { MemberDashboard } from "./MemberDashboard";
 import { calculateStreak, LEVEL_THRESHOLDS } from "@/lib/gamification/level";
 import type { MemberStats, ManagerStats, AdminStats, ApprovalStats } from "./types";
@@ -237,10 +237,12 @@ async function ManagerSection({
   user,
   memberStats,
   approvalStats,
+  peerBonusEnabled,
 }: {
   user: User;
   memberStats: MemberStats;
   approvalStats: ApprovalStats;
+  peerBonusEnabled: boolean;
 }) {
   const supabase = await createClient();
   const tenantId = user.tenant_id;
@@ -331,6 +333,7 @@ async function ManagerSection({
         memberStats={memberStats}
         managerStats={managerStats}
         approvalStats={approvalStats}
+        peerBonusEnabled={peerBonusEnabled}
       />
     );
   }
@@ -427,6 +430,7 @@ async function ManagerSection({
       managerStats={managerStats}
       adminStats={adminStats}
       approvalStats={approvalStats}
+      peerBonusEnabled={peerBonusEnabled}
     />
   );
 }
@@ -480,12 +484,18 @@ export default async function DashboardPage() {
   weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
   const weekStartStr = weekStart.toISOString().split("T")[0];
 
-  // Fetch member stats (needed for all roles)
-  const memberStats = await fetchMemberStats(supabase, user, today, weekStartStr, nowMs);
+  // Fetch member stats and tenant settings in parallel
+  const [memberStats, tenantSettingsResult] = await Promise.all([
+    fetchMemberStats(supabase, user, today, weekStartStr, nowMs),
+    supabase.from("tenants").select("settings").eq("id", user.tenant_id).single(),
+  ]);
+
+  const tenantSettings = (tenantSettingsResult.data?.settings ?? {}) as TenantSettings;
+  const peerBonusEnabled = tenantSettings.peer_bonus_enabled !== false;
 
   // Member: render directly (no additional data needed)
   if (user.role === "member") {
-    return <MemberDashboard user={user} role={user.role} memberStats={memberStats} />;
+    return <MemberDashboard user={user} role={user.role} memberStats={memberStats} peerBonusEnabled={peerBonusEnabled} />;
   }
 
   // Manager/Admin: fetch approval stats quickly, then render with Suspense for heavy sections
@@ -507,6 +517,7 @@ export default async function DashboardPage() {
         user={user}
         memberStats={memberStats}
         approvalStats={approvalStats}
+        peerBonusEnabled={peerBonusEnabled}
       />
     </Suspense>
   );

@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { updateTenantSettings } from "./actions";
-import type { Tenant, ReportVisibility } from "@/types/database";
+import type { Tenant, ReportVisibility, TenantSettings } from "@/types/database";
 
 const visibilityOptions: {
   value: ReportVisibility;
@@ -46,6 +46,10 @@ export function SettingsForm({ tenant }: SettingsFormProps) {
   const [visibility, setVisibility] = useState<ReportVisibility>(
     tenant.report_visibility
   );
+  const settings = tenant.settings as TenantSettings;
+  const [peerBonusEnabled, setPeerBonusEnabled] = useState(
+    settings.peer_bonus_enabled !== false
+  );
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -53,6 +57,7 @@ export function SettingsForm({ tenant }: SettingsFormProps) {
 
   const handleSubmit = (formData: FormData) => {
     formData.set("report_visibility", visibility);
+    formData.set("peer_bonus_enabled", String(peerBonusEnabled));
     setMessage(null);
     startTransition(async () => {
       const result = await updateTenantSettings(formData);
@@ -107,6 +112,33 @@ export function SettingsForm({ tenant }: SettingsFormProps) {
                   ?.description ?? ""}
               </p>
             </div>
+          </div>
+
+          <div className="space-y-3">
+            <Label>機能設定</Label>
+            <label className="flex items-center justify-between rounded-lg border border-border p-4 cursor-pointer hover:bg-muted motion-safe:transition-colors">
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium text-foreground">ピアボーナス</p>
+                <p className="text-xs text-muted-foreground">
+                  メンバーが日報提出時に感謝を送り合える機能です
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={peerBonusEnabled}
+                onClick={() => setPeerBonusEnabled(!peerBonusEnabled)}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent motion-safe:transition-colors ${
+                  peerBonusEnabled ? "bg-primary" : "bg-muted-foreground/30"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm motion-safe:transition-transform ${
+                    peerBonusEnabled ? "translate-x-5" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+            </label>
           </div>
 
           {message && (

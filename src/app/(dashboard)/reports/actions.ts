@@ -242,6 +242,18 @@ export async function sendPeerBonus(data: {
       return { success: false, error: "ユーザーが見つかりません" };
     }
 
+    // Check if peer bonus is enabled for this tenant
+    const { data: tenant } = await supabase
+      .from("tenants")
+      .select("settings")
+      .eq("id", tenantId)
+      .single();
+
+    const settings = (tenant?.settings ?? {}) as Record<string, unknown>;
+    if (settings.peer_bonus_enabled === false) {
+      return { success: false, error: "ピアボーナス機能は現在無効です" };
+    }
+
     const today = new Date().toISOString().split("T")[0];
 
     // Check daily limit + verify recipient in parallel
