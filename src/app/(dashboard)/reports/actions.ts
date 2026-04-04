@@ -486,13 +486,20 @@ export async function getReactions(
 
 // ── Cumulative totals for number fields ──
 
+const cumulativeTotalsSchema = z.object({
+  templateId: z.string().uuid("無効なテンプレートIDです"),
+  fieldKeys: z.array(z.string().min(1)).min(1),
+  reportDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "無効な日付形式です"),
+});
+
 export async function getCumulativeTotals(
   templateId: string,
   fieldKeys: string[],
   reportDate: string
 ): Promise<ActionResult<Record<string, number>>> {
-  if (!templateId || !fieldKeys.length || !reportDate) {
-    return { success: false, error: "パラメータが不足しています" };
+  const parsed = cumulativeTotalsSchema.safeParse({ templateId, fieldKeys, reportDate });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
   }
 
   try {

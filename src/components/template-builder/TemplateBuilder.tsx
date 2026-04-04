@@ -358,7 +358,7 @@ export function TemplateBuilder({
       </div>
 
       {/* Desktop: Side-by-side layout (>= lg) */}
-      <div className="hidden lg:flex lg:flex-1">
+      <div className="hidden lg:flex lg:flex-1 lg:max-h-[70vh]">
         {/* Left: Builder */}
         <div className="flex-1 min-w-0 overflow-y-auto border-r border-border">
           <div className="mx-auto max-w-2xl">

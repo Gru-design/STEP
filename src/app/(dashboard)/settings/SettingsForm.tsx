@@ -46,7 +46,7 @@ export function SettingsForm({ tenant }: SettingsFormProps) {
   const [visibility, setVisibility] = useState<ReportVisibility>(
     tenant.report_visibility
   );
-  const settings = tenant.settings as TenantSettings;
+  const settings = (tenant.settings ?? {}) as TenantSettings;
   const [peerBonusEnabled, setPeerBonusEnabled] = useState(
     settings.peer_bonus_enabled !== false
   );
