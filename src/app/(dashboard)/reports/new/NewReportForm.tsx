@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition, useMemo } from "react";
+import React, { useState, useTransition, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DynamicForm } from "@/components/reports/DynamicForm";
 import { PeerBonusSelector } from "@/components/reports/PeerBonusSelector";
-import { createReportEntry, sendPeerBonus } from "@/app/(dashboard)/reports/actions";
+import { createReportEntry, sendPeerBonus, getCumulativeTotals } from "@/app/(dashboard)/reports/actions";
 import { useToast } from "@/components/ui/use-toast";
 import { Save, Send, FileText, ChevronLeft, Check } from "lucide-react";
 import { XPToast } from "@/components/gamification/XPToast";
@@ -63,8 +63,44 @@ export function NewReportForm({
   const [xpAmount, setXpAmount] = useState(10);
   const [xpMessage, setXpMessage] = useState("日報提出ボーナス");
   const [peerBonusSelection, setPeerBonusSelection] = useState<PeerBonusSelection | null>(null);
+  const [cumulativeTotals, setCumulativeTotals] = useState<Record<string, number>>({});
 
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
+
+  // Collect field keys that need cumulative totals
+  const cumulativeFieldKeys = useMemo(() => {
+    if (!selectedTemplate) return [];
+    const schema = selectedTemplate.schema as TemplateSchema;
+    const keys: string[] = [];
+    for (const section of schema.sections) {
+      for (const field of section.fields) {
+        if (field.type === "number" && field.show_cumulative) {
+          keys.push(field.key);
+        }
+      }
+    }
+    return keys;
+  }, [selectedTemplate]);
+
+  // Fetch cumulative totals when template or date changes
+  const fetchCumulativeTotals = useCallback(async () => {
+    if (!selectedTemplateId || cumulativeFieldKeys.length === 0) {
+      setCumulativeTotals({});
+      return;
+    }
+    const result = await getCumulativeTotals(
+      selectedTemplateId,
+      cumulativeFieldKeys,
+      reportDate
+    );
+    if (result.success && result.data) {
+      setCumulativeTotals(result.data);
+    }
+  }, [selectedTemplateId, cumulativeFieldKeys, reportDate]);
+
+  useEffect(() => {
+    fetchCumulativeTotals();
+  }, [fetchCumulativeTotals]);
 
   // Calculate form progress
   const { totalFields, filledFields, progressPercent } = useMemo(() => {
@@ -262,6 +298,7 @@ export function NewReportForm({
                 schema={selectedTemplate.schema as TemplateSchema}
                 values={formValues}
                 onChange={setFormValues}
+                cumulativeTotals={cumulativeTotals}
               />
             </CardContent>
           </Card>

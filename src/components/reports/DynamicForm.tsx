@@ -22,6 +22,7 @@ interface DynamicFormProps {
   values: Record<string, unknown>;
   onChange?: (values: Record<string, unknown>) => void;
   readOnly?: boolean;
+  cumulativeTotals?: Record<string, number>;
 }
 
 export function DynamicForm({
@@ -29,6 +30,7 @@ export function DynamicForm({
   values,
   onChange,
   readOnly = false,
+  cumulativeTotals,
 }: DynamicFormProps) {
   const setValue = (key: string, value: unknown) => {
     onChange?.({ ...values, [key]: value });
@@ -44,6 +46,7 @@ export function DynamicForm({
           values={values}
           setValue={setValue}
           readOnly={readOnly}
+          cumulativeTotals={cumulativeTotals}
         />
       ))}
     </div>
@@ -56,12 +59,14 @@ function SectionRenderer({
   values,
   setValue,
   readOnly,
+  cumulativeTotals,
 }: {
   section: TemplateSection;
   totalSections: number;
   values: Record<string, unknown>;
   setValue: (key: string, value: unknown) => void;
   readOnly: boolean;
+  cumulativeTotals?: Record<string, number>;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -118,6 +123,14 @@ function SectionRenderer({
               value={values[field.key]}
               onChange={(val) => setValue(field.key, val)}
               readOnly={readOnly}
+              cumulativeTotal={
+                field.show_cumulative && cumulativeTotals
+                  ? cumulativeTotals[field.key]
+                  : undefined
+              }
+              currentValue={
+                field.show_cumulative ? values[field.key] : undefined
+              }
             />
           ))}
         </div>
@@ -131,22 +144,40 @@ function FieldRenderer({
   value,
   onChange,
   readOnly,
+  cumulativeTotal,
+  currentValue,
 }: {
   field: TemplateField;
   value: unknown;
   onChange: (value: unknown) => void;
   readOnly: boolean;
+  cumulativeTotal?: number;
+  currentValue?: unknown;
 }) {
   if (field.type === "section") {
     return null;
   }
 
+  // Calculate cumulative + current input
+  const showCumulative =
+    field.show_cumulative && cumulativeTotal !== undefined && !readOnly;
+  const currentNum = Number(currentValue) || 0;
+  const grandTotal = (cumulativeTotal ?? 0) + currentNum;
+
   return (
     <div className="space-y-1.5">
-      <Label className="text-sm font-medium text-foreground">
-        {field.label}
-        {field.required && <span className="ml-1 text-danger">*</span>}
-      </Label>
+      <div className="flex items-baseline justify-between">
+        <Label className="text-sm font-medium text-foreground">
+          {field.label}
+          {field.required && <span className="ml-1 text-danger">*</span>}
+        </Label>
+        {showCumulative && (
+          <span className="text-xs font-mono text-primary tabular-nums">
+            今月累計: {grandTotal.toLocaleString()}
+            {field.unit && <span className="ml-0.5">{field.unit}</span>}
+          </span>
+        )}
+      </div>
       {renderField(field, value, onChange, readOnly)}
     </div>
   );
