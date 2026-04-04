@@ -90,6 +90,7 @@ export const updateProfileSchema = z.object({
 export const updateTenantSchema = z.object({
   name: z.string().min(1, "テナント名を入力してください").max(100),
   report_visibility: z.enum(["manager_only", "team", "tenant_all"]),
+  peer_bonus_enabled: z.boolean().optional(),
 });
 
 // ── Knowledge ──

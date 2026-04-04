@@ -242,6 +242,18 @@ export async function sendPeerBonus(data: {
       return { success: false, error: "ユーザーが見つかりません" };
     }
 
+    // Check if peer bonus is enabled for this tenant
+    const { data: tenant } = await supabase
+      .from("tenants")
+      .select("settings")
+      .eq("id", tenantId)
+      .single();
+
+    const settings = (tenant?.settings ?? {}) as Record<string, unknown>;
+    if (settings.peer_bonus_enabled === false) {
+      return { success: false, error: "ピアボーナス機能は現在無効です" };
+    }
+
     const today = new Date().toISOString().split("T")[0];
 
     // Check daily limit + verify recipient in parallel
@@ -474,13 +486,20 @@ export async function getReactions(
 
 // ── Cumulative totals for number fields ──
 
+const cumulativeTotalsSchema = z.object({
+  templateId: z.string().uuid("無効なテンプレートIDです"),
+  fieldKeys: z.array(z.string().min(1)).min(1),
+  reportDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "無効な日付形式です"),
+});
+
 export async function getCumulativeTotals(
   templateId: string,
   fieldKeys: string[],
   reportDate: string
 ): Promise<ActionResult<Record<string, number>>> {
-  if (!templateId || !fieldKeys.length || !reportDate) {
-    return { success: false, error: "パラメータが不足しています" };
+  const parsed = cumulativeTotalsSchema.safeParse({ templateId, fieldKeys, reportDate });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
   }
 
   try {

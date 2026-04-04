@@ -234,14 +234,15 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-function getVisibleGroups(role: Role, plan: Plan): NavGroup[] {
+function getVisibleGroups(role: Role, plan: Plan, hiddenNavHrefs: string[] = []): NavGroup[] {
   return navGroups
     .map((group) => ({
       ...group,
       items: group.items.filter(
         (item) =>
           item.roles.includes(role) &&
-          (!item.feature || canAccessFeature(plan, item.feature))
+          (!item.feature || canAccessFeature(plan, item.feature)) &&
+          !hiddenNavHrefs.includes(item.href)
       ),
     }))
     .filter((group) => group.items.length > 0);
@@ -269,6 +270,7 @@ interface DashboardShellProps {
   logoUrl?: string | null;
   gamification?: GamificationData;
   activityFeed?: ActivityFeedItem[];
+  hiddenNavHrefs?: string[];
 }
 
 export function DashboardShell({
@@ -279,10 +281,11 @@ export function DashboardShell({
   logoUrl,
   gamification,
   activityFeed = [],
+  hiddenNavHrefs = [],
 }: DashboardShellProps) {
   const pathname = usePathname();
   const [sheetOpen, setSheetOpen] = useState(false);
-  const visibleGroups = getVisibleGroups(user.role, plan);
+  const visibleGroups = getVisibleGroups(user.role, plan, hiddenNavHrefs);
 
   const handleLogout = async () => {
     const supabase = createClient();

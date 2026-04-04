@@ -13,11 +13,13 @@ import {
 } from "./shared";
 import type { MemberDashboardProps } from "./types";
 
-export function MemberDashboard({ user, role, memberStats }: MemberDashboardProps) {
+export function MemberDashboard({ user, role, memberStats, peerBonusEnabled = true }: MemberDashboardProps) {
   return (
     <div className="space-y-5 pb-4">
       <GreetingHeader user={user} stats={memberStats} />
-      <NewPeerBonusBanner bonuses={memberStats.todayReceivedBonuses ?? []} />
+      {peerBonusEnabled && (
+        <NewPeerBonusBanner bonuses={memberStats.todayReceivedBonuses ?? []} />
+      )}
       <ReportCTABanner submitted={memberStats.submittedToday} />
 
       {memberStats.pendingReview && (
@@ -28,7 +30,7 @@ export function MemberDashboard({ user, role, memberStats }: MemberDashboardProp
       <MemberStatsCards stats={memberStats} />
       <GoalsProgressCard goals={memberStats.goalsProgress} />
 
-      {memberStats.peerBonus && (
+      {peerBonusEnabled && memberStats.peerBonus && (
         <PeerBonusCard bonus={memberStats.peerBonus} />
       )}
 
