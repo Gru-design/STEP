@@ -62,6 +62,7 @@ export interface TemplateField {
   unit?: string;
   min?: number;
   max?: number;
+  show_cumulative?: boolean;  // number フィールドで当月累計を表示
   options?: string[];
   fields?: TemplateField[];  // for repeater
 }

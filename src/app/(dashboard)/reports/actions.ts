@@ -472,6 +472,69 @@ export async function getReactions(
   }
 }
 
+// ── Cumulative totals for number fields ──
+
+export async function getCumulativeTotals(
+  templateId: string,
+  fieldKeys: string[],
+  reportDate: string
+): Promise<ActionResult<Record<string, number>>> {
+  if (!templateId || !fieldKeys.length || !reportDate) {
+    return { success: false, error: "パラメータが不足しています" };
+  }
+
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "認証が必要です" };
+    }
+
+    // Calculate month range from reportDate
+    const date = new Date(reportDate);
+    const monthStart = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
+    const monthEnd = reportDate; // up to the selected date (exclusive of current day's entry since it's being edited)
+
+    const { data: entries, error } = await supabase
+      .from("report_entries")
+      .select("data, report_date")
+      .eq("template_id", templateId)
+      .eq("user_id", user.id)
+      .eq("status", "submitted")
+      .gte("report_date", monthStart)
+      .lte("report_date", monthEnd);
+
+    if (error) {
+      return { success: false, error: "累計データの取得に失敗しました" };
+    }
+
+    const totals: Record<string, number> = {};
+    for (const key of fieldKeys) {
+      totals[key] = 0;
+    }
+
+    for (const entry of entries ?? []) {
+      // Exclude the current date's entry (it will be overwritten by current input)
+      if (entry.report_date === reportDate) continue;
+      const data = entry.data as Record<string, unknown>;
+      for (const key of fieldKeys) {
+        const val = Number(data[key]);
+        if (!isNaN(val)) {
+          totals[key] += val;
+        }
+      }
+    }
+
+    return { success: true, data: totals };
+  } catch {
+    return { success: false, error: "予期しないエラーが発生しました" };
+  }
+}
+
 export async function removeReaction(
   reactionId: string
 ): Promise<ActionResult> {

@@ -129,6 +129,22 @@ export function InlineFieldProperties({
         </div>
       )}
 
+      {/* Row 4: Cumulative display toggle for number fields */}
+      {field.type === "number" && (
+        <label className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-foreground select-none cursor-pointer hover:bg-muted motion-safe:transition-colors">
+          <input
+            type="checkbox"
+            checked={field.show_cumulative ?? false}
+            onChange={(e) => update({ show_cumulative: e.target.checked || undefined })}
+            className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-ring"
+          />
+          <span className="text-xs">当月累計を表示</span>
+          <span className="text-[10px] text-muted-foreground">
+            日報入力時に今月の累計値を自動表示します
+          </span>
+        </label>
+      )}
+
       {/* Options for select fields */}
       {showOptions && (
         <div className="space-y-2">
