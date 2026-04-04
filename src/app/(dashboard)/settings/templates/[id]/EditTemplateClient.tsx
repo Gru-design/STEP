@@ -110,9 +110,9 @@ export function EditTemplateClient({ template }: EditTemplateClientProps) {
   const fieldCount = schema.sections.reduce((acc, s) => acc + s.fields.length, 0);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl lg:max-w-6xl space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 lg:max-w-3xl">
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
@@ -137,13 +137,13 @@ export function EditTemplateClient({ template }: EditTemplateClientProps) {
       </div>
 
       {error && (
-        <div className="rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div className="lg:max-w-3xl rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
           {error}
         </div>
       )}
 
       {/* Step 1: Basic settings */}
-      <Card className="border-border shadow-sm">
+      <Card className="border-border shadow-sm lg:max-w-3xl">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-sm font-bold">
             <Settings2 className="h-4 w-4 text-primary" />
@@ -268,7 +268,7 @@ export function EditTemplateClient({ template }: EditTemplateClientProps) {
       </Card>
 
       {/* Action buttons - sticky bottom on mobile */}
-      <div className="sticky bottom-0 z-10 -mx-4 flex items-center justify-between gap-3 border-t border-border bg-white/95 px-4 py-3 backdrop-blur-sm sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+      <div className="sticky bottom-0 z-10 -mx-4 flex items-center justify-between gap-3 border-t border-border bg-white/95 px-4 py-3 backdrop-blur-sm sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none lg:max-w-3xl">
         <p className="text-xs text-muted-foreground">
           v{template.version}
         </p>

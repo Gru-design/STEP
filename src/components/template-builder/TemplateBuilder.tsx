@@ -207,6 +207,107 @@ export function TemplateBuilder({
     [sections]
   );
 
+  // Shared builder content (used in both mobile tab and desktop left pane)
+  const builderContent = (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="space-y-4 p-4 sm:p-6">
+        {sections.map((section) => (
+          <SectionBlock
+            key={section.id}
+            section={section}
+            fields={section.fields}
+            selectedFieldKey={selectedFieldKey}
+            onSelectField={handleSelectField}
+            onUpdateSectionLabel={(label) =>
+              handleUpdateSectionLabel(section.id, label)
+            }
+            onDeleteSection={() =>
+              handleDeleteSection(section.id)
+            }
+            onAddField={(type) =>
+              handleAddFieldToSection(section.id, type)
+            }
+            onUpdateField={handleUpdateField}
+            onDeleteField={handleDeleteField}
+          />
+        ))}
+
+        {sections.length === 0 && (
+          <div className="rounded-xl border-2 border-dashed border-border px-6 py-16 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+              <Plus className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="mb-1 text-sm font-medium text-foreground">
+              テンプレートを作成しましょう
+            </p>
+            <p className="mb-4 text-xs text-muted-foreground">
+              セクションを追加して、フィールドを配置してください
+            </p>
+            <Button
+              type="button"
+              onClick={handleAddSection}
+              className="bg-primary text-white hover:bg-primary-hover"
+            >
+              <Plus className="mr-1.5 h-4 w-4" />
+              最初のセクションを追加
+            </Button>
+          </div>
+        )}
+
+        {sections.length > 0 && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleAddSection}
+            className="w-full border-dashed"
+          >
+            <Plus className="mr-1.5 h-4 w-4" />
+            セクション追加
+          </Button>
+        )}
+      </div>
+    </DndContext>
+  );
+
+  // Shared preview content (used in both mobile tab and desktop right pane)
+  const previewContent = (
+    <div className="space-y-6">
+      {sections.length === 0 ? (
+        <div className="rounded-xl border-2 border-dashed border-border px-6 py-16 text-center">
+          <p className="text-sm text-muted-foreground">
+            フィールドを追加するとプレビューが表示されます
+          </p>
+        </div>
+      ) : (
+        sections.map((section) => (
+          <div key={section.id} className="space-y-4">
+            <h3 className="text-base font-bold text-foreground">
+              {section.label}
+            </h3>
+            <div className="space-y-5 rounded-xl border border-border bg-white p-5">
+              {section.fields.map((field) => (
+                <FieldRenderer
+                  key={field.key}
+                  field={field}
+                  mode="preview"
+                />
+              ))}
+              {section.fields.length === 0 && (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  フィールドがありません
+                </p>
+              )}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+
   return (
     <div className="flex flex-col">
       {/* Header */}
@@ -226,122 +327,56 @@ export function TemplateBuilder({
         </div>
       </div>
 
-      {/* Tabs: Builder / Preview */}
-      <Tabs defaultValue="builder" className="flex flex-1 flex-col">
-        <div className="border-b border-border px-4 pt-2 sm:px-5">
-          <TabsList className="h-9">
-            <TabsTrigger value="builder" className="gap-1.5 text-sm">
-              <Wrench className="h-3.5 w-3.5" />
-              ビルダー
-            </TabsTrigger>
-            <TabsTrigger value="preview" className="gap-1.5 text-sm">
-              <Eye className="h-3.5 w-3.5" />
-              プレビュー
-            </TabsTrigger>
-          </TabsList>
+      {/* Mobile: Tab-based layout (< lg) */}
+      <div className="lg:hidden">
+        <Tabs defaultValue="builder" className="flex flex-1 flex-col">
+          <div className="border-b border-border px-4 pt-2 sm:px-5">
+            <TabsList className="h-9">
+              <TabsTrigger value="builder" className="gap-1.5 text-sm">
+                <Wrench className="h-3.5 w-3.5" />
+                ビルダー
+              </TabsTrigger>
+              <TabsTrigger value="preview" className="gap-1.5 text-sm">
+                <Eye className="h-3.5 w-3.5" />
+                プレビュー
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="builder" className="flex-1 m-0">
+            <div className="mx-auto max-w-2xl">
+              {builderContent}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="preview" className="flex-1 m-0 p-4 sm:p-6">
+            <div className="mx-auto max-w-2xl">
+              {previewContent}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Desktop: Side-by-side layout (>= lg) */}
+      <div className="hidden lg:flex lg:flex-1">
+        {/* Left: Builder */}
+        <div className="flex-1 min-w-0 overflow-y-auto border-r border-border">
+          <div className="mx-auto max-w-2xl">
+            {builderContent}
+          </div>
         </div>
 
-        {/* Builder Tab */}
-        <TabsContent value="builder" className="flex-1 m-0">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <div className="mx-auto max-w-2xl space-y-4 p-4 sm:p-6">
-              {sections.map((section) => (
-                <SectionBlock
-                  key={section.id}
-                  section={section}
-                  fields={section.fields}
-                  selectedFieldKey={selectedFieldKey}
-                  onSelectField={handleSelectField}
-                  onUpdateSectionLabel={(label) =>
-                    handleUpdateSectionLabel(section.id, label)
-                  }
-                  onDeleteSection={() =>
-                    handleDeleteSection(section.id)
-                  }
-                  onAddField={(type) =>
-                    handleAddFieldToSection(section.id, type)
-                  }
-                  onUpdateField={handleUpdateField}
-                  onDeleteField={handleDeleteField}
-                />
-              ))}
-
-              {sections.length === 0 && (
-                <div className="rounded-xl border-2 border-dashed border-border px-6 py-16 text-center">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                    <Plus className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <p className="mb-1 text-sm font-medium text-foreground">
-                    テンプレートを作成しましょう
-                  </p>
-                  <p className="mb-4 text-xs text-muted-foreground">
-                    セクションを追加して、フィールドを配置してください
-                  </p>
-                  <Button
-                    type="button"
-                    onClick={handleAddSection}
-                    className="bg-primary text-white hover:bg-primary-hover"
-                  >
-                    <Plus className="mr-1.5 h-4 w-4" />
-                    最初のセクションを追加
-                  </Button>
-                </div>
-              )}
-
-              {sections.length > 0 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleAddSection}
-                  className="w-full border-dashed"
-                >
-                  <Plus className="mr-1.5 h-4 w-4" />
-                  セクション追加
-                </Button>
-              )}
-            </div>
-          </DndContext>
-        </TabsContent>
-
-        {/* Preview Tab */}
-        <TabsContent value="preview" className="flex-1 m-0 p-4 sm:p-6">
-          <div className="mx-auto max-w-2xl space-y-6">
-            {sections.length === 0 ? (
-              <div className="rounded-xl border-2 border-dashed border-border px-6 py-16 text-center">
-                <p className="text-sm text-muted-foreground">
-                  フィールドを追加するとプレビューが表示されます
-                </p>
-              </div>
-            ) : (
-              sections.map((section) => (
-                <div key={section.id} className="space-y-4">
-                  <h3 className="text-base font-bold text-foreground">
-                    {section.label}
-                  </h3>
-                  <div className="space-y-5 rounded-xl border border-border bg-white p-5">
-                    {section.fields.map((field) => (
-                      <FieldRenderer
-                        key={field.key}
-                        field={field}
-                        mode="preview"
-                      />
-                    ))}
-                    {section.fields.length === 0 && (
-                      <p className="py-4 text-center text-sm text-muted-foreground">
-                        フィールドがありません
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
+        {/* Right: Live Preview */}
+        <div className="w-[420px] shrink-0 overflow-y-auto bg-muted/30">
+          <div className="sticky top-0 z-10 flex items-center gap-1.5 border-b border-border bg-white/80 backdrop-blur-sm px-5 py-2.5">
+            <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs font-medium text-muted-foreground">プレビュー</span>
           </div>
-        </TabsContent>
-      </Tabs>
+          <div className="p-5">
+            {previewContent}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
