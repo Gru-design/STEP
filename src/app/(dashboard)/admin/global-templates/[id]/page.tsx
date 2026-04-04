@@ -46,7 +46,7 @@ export default async function EditGlobalTemplatePage({
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+    <div className="max-w-5xl lg:max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
       <h1 className="text-xl sm:text-2xl font-bold text-primary mb-4 sm:mb-6">
         グローバルテンプレート編集
       </h1>
