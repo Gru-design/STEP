@@ -24,13 +24,15 @@ export async function GET() {
       return NextResponse.json({ needsCheckin: false }, { status: 401 });
     }
 
-    // Check if today is Monday
-    const today = new Date();
-    if (today.getDay() !== 1) {
+    // Check if today is Monday (JST = UTC+9)
+    const now = new Date();
+    const jstOffset = 9 * 60 * 60 * 1000;
+    const jstDate = new Date(now.getTime() + jstOffset);
+    if (jstDate.getUTCDay() !== 1) {
       return NextResponse.json({ needsCheckin: false });
     }
 
-    const todayStr = today.toISOString().split("T")[0];
+    const todayStr = jstDate.toISOString().split("T")[0];
 
     // Fetch checkin template for tenant
     const { data: template } = await supabase
