@@ -149,68 +149,60 @@ export function TemplateListClient({ templates }: TemplateListClientProps) {
                       <span>v{template.version}</span>
                       <span>作成: {formatDate(template.created_at)}</span>
                     </div>
-                    {template.source_template_id ? (
-                      <div className="mt-4">
-                        <p className="text-xs text-muted-foreground">
-                          このテンプレートはシステム管理者が管理しています。編集・削除はできません。
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="mt-4 flex items-center gap-2">
-                        <Button
-                          asChild
-                          variant="outline"
-                          size="sm"
-                          className="h-8 text-xs"
-                        >
-                          <Link href={`/settings/templates/${template.id}`}>
-                            <Pencil className="mr-1 h-3 w-3" />
-                            編集
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 text-xs"
-                          disabled={isPending}
-                          onClick={() =>
-                            handlePublishToggle(template.id, template.is_published)
-                          }
-                        >
-                          {template.is_published ? (
-                            <>
-                              <EyeOff className="mr-1 h-3 w-3" />
-                              非公開
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="mr-1 h-3 w-3" />
-                              公開
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 text-xs"
-                          disabled={isPending}
-                          onClick={() => handleDuplicate(template.id)}
-                        >
-                          <Copy className="mr-1 h-3 w-3" />
-                          複製
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 text-xs text-danger hover:text-danger"
-                          disabled={isPending}
-                          onClick={() => setDeleteTarget(template)}
-                        >
-                          <Trash2 className="mr-1 h-3 w-3" />
-                          削除
-                        </Button>
-                      </div>
-                    )}
+                    <div className="mt-4 flex flex-wrap items-center gap-1.5">
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                      >
+                        <Link href={`/settings/templates/${template.id}`}>
+                          <Pencil className="mr-1 h-3 w-3" />
+                          編集
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        disabled={isPending}
+                        onClick={() =>
+                          handlePublishToggle(template.id, template.is_published)
+                        }
+                      >
+                        {template.is_published ? (
+                          <>
+                            <EyeOff className="mr-1 h-3 w-3" />
+                            非公開
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="mr-1 h-3 w-3" />
+                            公開
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        disabled={isPending}
+                        onClick={() => handleDuplicate(template.id)}
+                      >
+                        <Copy className="mr-1 h-3 w-3" />
+                        複製
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs text-danger hover:text-danger"
+                        disabled={isPending}
+                        onClick={() => setDeleteTarget(template)}
+                      >
+                        <Trash2 className="mr-1 h-3 w-3" />
+                        削除
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}

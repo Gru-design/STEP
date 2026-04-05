@@ -43,7 +43,7 @@ export function ProfileCard({ user, teamName, streak, level, xp }: ProfileCardPr
 
           <div className="flex-1 space-y-2">
             <div>
-              <h3 className="text-lg font-semibold text-foreground">
+              <h3 className="text-lg font-semibold text-foreground truncate">
                 {user.name}
               </h3>
               <div className="mt-1 flex flex-wrap items-center justify-center sm:justify-start gap-2">
