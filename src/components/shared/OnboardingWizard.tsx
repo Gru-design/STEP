@@ -11,11 +11,16 @@ import {
   UserPlus,
   ArrowRight,
   Sparkles,
+  Building2,
+  UserSearch,
+  Megaphone,
 } from "lucide-react";
 import {
   advanceOnboarding,
   skipOnboarding,
+  selectIndustry,
   type OnboardingStep,
+  type IndustryType,
 } from "@/app/(dashboard)/onboarding/actions";
 
 interface OnboardingWizardProps {
@@ -30,13 +35,15 @@ const STEPS: {
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
   { key: "welcome", label: "ようこそ", icon: Sparkles },
+  { key: "industry", label: "業種選択", icon: Building2 },
   { key: "template", label: "テンプレート", icon: FileText },
   { key: "team", label: "チーム作成", icon: Users },
   { key: "invite", label: "メンバー招待", icon: UserPlus },
 ];
 
 const NEXT_STEP: Record<OnboardingStep, OnboardingStep> = {
-  welcome: "template",
+  welcome: "industry",
+  industry: "template",
   template: "team",
   team: "invite",
   invite: "done",
@@ -133,6 +140,20 @@ export function OnboardingWizard({
                 isPending={isPending}
               />
             )}
+            {step === "industry" && (
+              <IndustryStep
+                onSelect={(industry) => {
+                  startTransition(async () => {
+                    const result = await selectIndustry(industry);
+                    if (result.success) {
+                      setStep("template");
+                    }
+                  });
+                }}
+                onSkip={handleNext}
+                isPending={isPending}
+              />
+            )}
             {step === "template" && (
               <TemplateStep
                 onNavigate={handleNavigate}
@@ -198,15 +219,22 @@ function WelcomeStep({
           <span className="font-medium text-foreground">{tenantName}</span>{" "}
           のセットアップを始めましょう。
           <br />
-          3つのステップで、チームの日報管理がスタートできます。
+          4つのステップで、チームの日報管理がスタートできます。
         </p>
       </div>
       <div className="pt-2 space-y-3 text-left text-sm">
         <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
+          <Building2 className="h-5 w-5 text-primary shrink-0" />
+          <div>
+            <div className="font-medium">業種を選択</div>
+            <div className="text-muted-foreground text-xs">業種に合ったテンプレートが自動で適用されます</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
           <FileText className="h-5 w-5 text-primary shrink-0" />
           <div>
-            <div className="font-medium">日報テンプレートを確認</div>
-            <div className="text-muted-foreground text-xs">プリセットから選ぶか、カスタマイズ</div>
+            <div className="font-medium">テンプレートを確認</div>
+            <div className="text-muted-foreground text-xs">プリセットを確認・カスタマイズ</div>
           </div>
         </div>
         <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
@@ -232,6 +260,123 @@ function WelcomeStep({
   );
 }
 
+const INDUSTRY_OPTIONS: {
+  key: IndustryType;
+  label: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  templates: string[];
+}[] = [
+  {
+    key: "recruitment",
+    label: "人材紹介",
+    description: "RA・CA向けの日報テンプレート",
+    icon: UserSearch,
+    templates: ["RAコンサルタント日報", "CAキャリアアドバイザー日報", "月曜チェックイン", "週次行動計画"],
+  },
+  {
+    key: "staffing_agency",
+    label: "人材派遣",
+    description: "営業・コーディネーター向けの日報テンプレート",
+    icon: Building2,
+    templates: ["営業日報", "コーディネーター日報", "月曜チェックイン", "週次行動計画"],
+  },
+  {
+    key: "media",
+    label: "求人メディア",
+    description: "メディア営業・運用向けの日報テンプレート",
+    icon: Megaphone,
+    templates: ["営業日報", "メディア運用日報", "月曜チェックイン", "週次行動計画"],
+  },
+];
+
+function IndustryStep({
+  onSelect,
+  onSkip,
+  isPending,
+}: {
+  onSelect: (industry: IndustryType) => void;
+  onSkip: () => void;
+  isPending: boolean;
+}) {
+  const [selected, setSelected] = useState<IndustryType | null>(null);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+          <Building2 className="h-5 w-5 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-foreground">業種を選択</h2>
+          <p className="text-sm text-muted-foreground">
+            業種に合ったテンプレートが自動で適用されます。
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {INDUSTRY_OPTIONS.map((option) => {
+          const Icon = option.icon;
+          const isSelected = selected === option.key;
+          return (
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => setSelected(option.key)}
+              disabled={isPending}
+              className={`w-full text-left rounded-xl border-2 p-4 transition-all ${
+                isSelected
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:border-primary/40 hover:bg-muted/50"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                  isSelected ? "bg-primary text-white" : "bg-muted text-muted-foreground"
+                }`}>
+                  <Icon className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-foreground">{option.label}</span>
+                    {isSelected && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{option.description}</p>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {option.templates.map((t) => (
+                      <span
+                        key={t}
+                        className="inline-block rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex gap-2">
+        <Button
+          onClick={() => selected && onSelect(selected)}
+          disabled={isPending || !selected}
+          className="flex-1 gap-2"
+        >
+          {isPending ? "適用中..." : "この業種で始める"}
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" onClick={onSkip} disabled={isPending}>
+          スキップ
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function TemplateStep({
   onNavigate,
   onSkip,
@@ -249,17 +394,16 @@ function TemplateStep({
         </div>
         <div>
           <h2 className="text-lg font-bold text-foreground">
-            日報テンプレートを確認
+            テンプレートを確認
           </h2>
           <p className="text-sm text-muted-foreground">
-            プリセットが用意されています。カスタマイズも可能です。
+            業種に合ったテンプレートが適用されました。
           </p>
         </div>
       </div>
       <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-        テンプレートはメンバーが毎日入力するフォームの定義です。
-        営業日報、開発日報など、チームに合ったものを選んでください。
-        後からいつでも変更できます。
+        テンプレートの項目名や入力欄は自由にカスタマイズできます。
+        後からいつでも変更・追加が可能です。
       </div>
       <div className="flex gap-2">
         <Button
