@@ -70,6 +70,24 @@ export function formatNudgeNotification(content: string): string {
 /**
  * Format a weekly digest summary notification for Chatwork.
  */
+/**
+ * Format a morning reminder for yesterday's non-submitters.
+ */
+export function formatMorningReminder(
+  nonSubmitterNames: string[],
+  date: string
+): string {
+  const names = nonSubmitterNames.map((n) => `・${n}`).join("\n");
+  return [
+    "[info][title]未提出リマインダー[/title]",
+    `${date} の日報が未提出のメンバーがいます。`,
+    "",
+    names,
+    "",
+    "本日中に提出をお願いします。[/info]",
+  ].join("\n");
+}
+
 export function formatWeeklyDigestNotification(digest: {
   weekStart: string;
   submissionRate?: number;

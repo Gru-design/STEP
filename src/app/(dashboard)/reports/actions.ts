@@ -9,6 +9,7 @@ import { resolveTenantId } from "@/lib/resolve-tenant";
 import { createReportSchema } from "@/lib/validations";
 import { z } from "zod";
 import type { ReactionType } from "@/types/database";
+import { notifyReportSubmitted } from "@/lib/notifications/report-submitted";
 
 interface ActionResult<T = unknown> {
   success: boolean;
@@ -96,6 +97,14 @@ export async function createReportEntry(data: {
         user_id: user.id,
         report_date: data.reportDate,
       });
+
+      // Chatworkグループに提出通知（非同期・失敗しても日報保存は成功）
+      notifyReportSubmitted({
+        tenantId,
+        userId: user.id,
+        templateId: data.templateId,
+        reportDate: data.reportDate,
+      }).catch(() => {});
     }
 
     revalidatePath("/reports");
@@ -124,6 +133,18 @@ export async function submitReportEntry(
       return { success: false, error: "認証が必要です" };
     }
 
+    // Fetch entry details before update for notification
+    const { data: entry } = await supabase
+      .from("report_entries")
+      .select("template_id, report_date, tenant_id")
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .single();
+
+    if (!entry) {
+      return { success: false, error: "日報が見つかりません" };
+    }
+
     const { error } = await supabase
       .from("report_entries")
       .update({
@@ -136,6 +157,14 @@ export async function submitReportEntry(
     if (error) {
       return { success: false, error: "提出に失敗しました" };
     }
+
+    // Chatworkグループに提出通知
+    notifyReportSubmitted({
+      tenantId: entry.tenant_id,
+      userId: user.id,
+      templateId: entry.template_id,
+      reportDate: entry.report_date,
+    }).catch(() => {});
 
     revalidatePath("/reports");
     revalidatePath("/reports/my");
