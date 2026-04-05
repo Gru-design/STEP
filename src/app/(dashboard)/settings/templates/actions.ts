@@ -137,14 +137,19 @@ export async function updateTemplate(id: string, data: UpdateTemplateData) {
       return { success: false, error: "テンプレートが見つかりません" };
     }
 
-    if (existing.source_template_id) {
-      return { success: false, error: "共通テンプレートは編集できません。システム管理者にお問い合わせください。" };
-    }
+    // グローバルテンプレートのコピーを編集した場合、
+    // 紐付けを解除してテナント独自テンプレートに切り離す
+    const detachFromGlobal = !!existing.source_template_id;
 
     const updateData: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
       version: existing.version + 1,
     };
+
+    if (detachFromGlobal) {
+      updateData.source_template_id = null;
+      updateData.is_system = false;
+    }
 
     if (data.name !== undefined) updateData.name = data.name.trim();
     if (data.type !== undefined) updateData.type = data.type;
