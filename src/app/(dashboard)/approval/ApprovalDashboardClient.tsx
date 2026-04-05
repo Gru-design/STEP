@@ -97,7 +97,7 @@ export function ApprovalDashboardClient({
   return (
     <div className="space-y-6">
       {/* Summary */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -207,9 +207,9 @@ export function ApprovalDashboardClient({
           <CardContent>
             <div className="space-y-2">
               {recentLogs.slice(0, 10).map((log) => (
-                <div key={log.id} className="flex items-center gap-3 text-sm">
+                <div key={log.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                   {actionIcons[log.action] ?? <Clock className="h-3.5 w-3.5 text-muted-foreground" />}
-                  <span className="font-medium text-foreground">{log.actor_name}</span>
+                  <span className="font-medium text-foreground truncate max-w-[120px]">{log.actor_name}</span>
                   <span className="text-muted-foreground">が</span>
                   <span className="text-muted-foreground">
                     {log.target_type === "weekly_plan" ? "週次計画" : "案件"}を
@@ -291,7 +291,7 @@ function ApprovalPlanCard({
             <p className="text-xs text-muted-foreground">{formatWeekRange(plan.week_start)}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           {!isSelf && (
             <>
               <Button size="sm" onClick={handleApprove} disabled={isPending}
@@ -408,7 +408,7 @@ function ApprovalDealCard({
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">担当: {userName}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           {!isSelf && (
             <>
               <Button size="sm" onClick={handleApprove} disabled={isPending}
@@ -429,7 +429,7 @@ function ApprovalDealCard({
         <div className="space-y-2">
           <Textarea value={rejectComment} onChange={(e) => setRejectComment(e.target.value)}
             placeholder="差し戻し理由（必須）" rows={2} className="border-border text-sm" />
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={handleReject} disabled={isPending || !rejectComment.trim()}
               className="bg-danger hover:bg-danger/90 text-white">差し戻す</Button>
             <Button size="sm" variant="outline" onClick={() => { setShowReject(false); setRejectComment(""); }}>

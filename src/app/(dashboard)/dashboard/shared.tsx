@@ -585,7 +585,7 @@ export function QuickActions({ role }: { role: Role }) {
   const filtered = actions.filter((a) => a.roles.includes(role));
 
   return (
-    <div className="grid grid-cols-4 gap-2 sm:gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
       {filtered.map((action) => {
         const Icon = action.icon;
         return (
