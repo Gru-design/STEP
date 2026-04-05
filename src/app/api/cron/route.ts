@@ -10,6 +10,7 @@ import { snapshotAllGoals } from "@/lib/goals/progress";
 import { generateDeviationAlerts } from "@/lib/goals/deviation";
 import { generateWeeklyDigest } from "@/lib/digest/generator";
 import { batchUpdateExecutionRates } from "@/lib/plans/execution-rate";
+import { sendMorningReminder } from "@/lib/notifications/morning-reminder";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,9 +19,10 @@ export const maxDuration = 60;
 /**
  * Unified cron endpoint for Vercel Free plan (1 cron / 1日1回制限対策).
  *
- * スケジュール: 毎日 08:00 UTC (= 17:00 JST)
+ * スケジュール: 毎日 00:00 UTC (= 09:00 JST)
  *
  * 実行内容 (JST時刻と曜日で分岐):
+ * - 毎日(平日): 朝の未提出リマインダー (Chatwork通知)
  * - 毎日(平日): ナッジリマインダー + モチベーション低下チェック
  * - 毎日(平日): 目標スナップショット + 乖離アラート
  * - 月曜: 週刊STEP生成
@@ -71,6 +73,17 @@ export async function GET(request: Request) {
     };
 
     for (const tenant of tenants) {
+      // ── 0. 朝の未提出リマインダー - Chatwork通知 (平日のみ) ──
+      if (isWeekday) {
+        try {
+          const reminded = await sendMorningReminder(supabase, tenant.id, jst);
+          results.morningReminders =
+            ((results.morningReminders as number) || 0) + reminded;
+        } catch (e) {
+          console.error(`Morning reminder error tenant ${tenant.id}:`, e);
+        }
+      }
+
       // ── 1. ナッジ (平日のみ) ──
       if (isWeekday) {
         try {
