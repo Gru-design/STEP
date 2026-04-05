@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useTransition, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -83,24 +83,23 @@ export function NewReportForm({
   }, [selectedTemplate]);
 
   // Fetch cumulative totals when template or date changes
-  const fetchCumulativeTotals = useCallback(async () => {
+  useEffect(() => {
     if (!selectedTemplateId || cumulativeFieldKeys.length === 0) {
       setCumulativeTotals({});
       return;
     }
-    const result = await getCumulativeTotals(
+    let cancelled = false;
+    getCumulativeTotals(
       selectedTemplateId,
       cumulativeFieldKeys,
       reportDate
-    );
-    if (result.success && result.data) {
-      setCumulativeTotals(result.data);
-    }
+    ).then((result) => {
+      if (!cancelled && result.success && result.data) {
+        setCumulativeTotals(result.data);
+      }
+    });
+    return () => { cancelled = true; };
   }, [selectedTemplateId, cumulativeFieldKeys, reportDate]);
-
-  useEffect(() => {
-    fetchCumulativeTotals();
-  }, [fetchCumulativeTotals]);
 
   // Calculate form progress
   const { totalFields, filledFields, progressPercent } = useMemo(() => {
