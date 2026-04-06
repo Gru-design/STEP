@@ -9,7 +9,8 @@ export type AuditAction =
   | "export"
   | "approve"
   | "reject"
-  | "submit";
+  | "submit"
+  | "reopen";
 
 interface AuditLogEntry {
   tenantId: string;
