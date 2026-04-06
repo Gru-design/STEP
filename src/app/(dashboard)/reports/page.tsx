@@ -43,11 +43,12 @@ export default async function ReportsPage() {
       user_id,
       template_id,
       users(name, avatar_url),
-      report_templates(name, schema)
+      report_templates!inner(name, schema, type)
     `
     )
     .eq("tenant_id", dbUser.tenant_id)
     .eq("status", "submitted")
+    .eq("report_templates.type", "daily")
     .order("report_date", { ascending: false })
     .limit(50);
 

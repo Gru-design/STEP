@@ -68,8 +68,9 @@ export async function exportData(
         ).toISOString().split("T")[0];
         const { data } = await supabase
           .from("report_entries")
-          .select("report_date, user_id, status, submitted_at, created_at")
+          .select("report_date, user_id, status, submitted_at, created_at, report_templates!inner(type)")
           .eq("tenant_id", tenantId)
+          .eq("report_templates.type", "daily")
           .gte("report_date", ninetyDaysAgo)
           .order("report_date", { ascending: false });
         csv = toCsv((data ?? []) as Record<string, unknown>[]);
