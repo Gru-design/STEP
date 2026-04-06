@@ -93,21 +93,23 @@ export default async function OneOnOnePage({
   const fourWeeksAgo = new Date(thisWeekStart);
   fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
 
-  // Fetch report entries for the target user (this week)
+  // Fetch report entries for the target user (this week) — exclude checkins
   const { data: weekReports } = await supabase
     .from("report_entries")
-    .select("*, report_templates(name, schema)")
+    .select("*, report_templates!inner(name, schema, type)")
     .eq("user_id", targetUser.id)
     .eq("tenant_id", currentUser.tenant_id)
+    .eq("report_templates.type", "daily")
     .gte("report_date", thisWeekStart.toISOString().split("T")[0])
     .order("report_date", { ascending: true });
 
-  // Fetch report entries for the last 4 weeks (for motivation chart)
+  // Fetch report entries for the last 4 weeks (for motivation chart) — exclude checkins
   const { data: recentReports } = await supabase
     .from("report_entries")
-    .select("report_date, data")
+    .select("report_date, data, report_templates!inner(type)")
     .eq("user_id", targetUser.id)
     .eq("tenant_id", currentUser.tenant_id)
+    .eq("report_templates.type", "daily")
     .gte("report_date", fourWeeksAgo.toISOString().split("T")[0])
     .order("report_date", { ascending: true });
 
@@ -129,8 +131,9 @@ export default async function OneOnOnePage({
 
   const { data: teamReports } = await supabase
     .from("report_entries")
-    .select("report_date, data, user_id")
+    .select("report_date, data, user_id, report_templates!inner(type)")
     .eq("tenant_id", currentUser.tenant_id)
+    .eq("report_templates.type", "daily")
     .in("user_id", teamMemberIds.length > 0 ? teamMemberIds : ["_none_"])
     .gte("report_date", fourWeeksAgo.toISOString().split("T")[0])
     .order("report_date", { ascending: true });

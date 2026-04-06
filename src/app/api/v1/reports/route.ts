@@ -18,6 +18,14 @@ export async function GET(request: NextRequest) {
 
   const supabase = createAdminClient();
 
+  // Exclude checkin entries — only return daily reports
+  const { data: dailyTemplates } = await supabase
+    .from("report_templates")
+    .select("id")
+    .eq("tenant_id", auth.tenantId)
+    .eq("type", "daily");
+  const dailyTemplateIds = (dailyTemplates ?? []).map((t) => t.id);
+
   let query = supabase
     .from("report_entries")
     .select("id, user_id, template_id, report_date, data, status, submitted_at, created_at")
@@ -25,6 +33,9 @@ export async function GET(request: NextRequest) {
     .order("report_date", { ascending: false })
     .range(offset, offset + limit - 1);
 
+  if (dailyTemplateIds.length > 0) {
+    query = query.in("template_id", dailyTemplateIds);
+  }
   if (from) query = query.gte("report_date", from);
   if (to) query = query.lte("report_date", to);
 

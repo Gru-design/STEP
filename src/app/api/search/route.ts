@@ -47,11 +47,12 @@ export async function GET(request: Request) {
   // Search in parallel
   const [reportsResult, knowledgeResult, dealsResult, usersResult] =
     await Promise.all([
-      // Report entries (search in data JSONB as text)
+      // Report entries (search in data JSONB as text) — exclude checkins
       supabase
         .from("report_entries")
-        .select("id, report_date, user_id")
+        .select("id, report_date, user_id, report_templates!inner(type)")
         .eq("tenant_id", dbUser.tenant_id)
+        .eq("report_templates.type", "daily")
         .textSearch("data", q, { type: "plain" })
         .limit(5),
 

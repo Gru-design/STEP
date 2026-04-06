@@ -36,10 +36,11 @@ export default async function MyReportsPage() {
       status,
       submitted_at,
       template_id,
-      report_templates!inner(name)
+      report_templates!inner(name, type)
     `
     )
     .eq("user_id", authUser.id)
+    .eq("report_templates.type", "daily")
     .order("report_date", { ascending: false })
     .limit(200);
 
