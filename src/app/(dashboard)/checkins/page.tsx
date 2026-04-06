@@ -57,6 +57,29 @@ export default async function CheckinsPage() {
     );
   }
 
+  // Check if current user has submitted checkin this week (Monday)
+  const now = new Date();
+  const jstOffset = 9 * 60 * 60 * 1000;
+  const jstDate = new Date(now.getTime() + jstOffset);
+  // Find this week's Monday in JST
+  const jstDay = jstDate.getUTCDay();
+  const diffToMonday = jstDay === 0 ? -6 : 1 - jstDay;
+  const mondayDate = new Date(jstDate);
+  mondayDate.setUTCDate(mondayDate.getUTCDate() + diffToMonday);
+  const mondayStr = mondayDate.toISOString().split("T")[0];
+
+  const { data: myCheckin } = await adminClient
+    .from("report_entries")
+    .select("id")
+    .eq("user_id", dbUser.id)
+    .eq("status", "submitted")
+    .in("template_id", templateIds)
+    .eq("report_date", mondayStr)
+    .limit(1);
+
+  const hasSubmittedThisWeek = (myCheckin ?? []).length > 0;
+  const firstTemplate = checkinTemplates![0];
+
   // Fetch recent checkin entries from team
   const { data: entries } = await adminClient
     .from("report_entries")
@@ -110,6 +133,9 @@ export default async function CheckinsPage() {
       <CheckinsPageClient
         checkins={checkins}
         templateMap={templateMap}
+        canCheckin={!hasSubmittedThisWeek}
+        checkinTemplate={firstTemplate ? { id: firstTemplate.id, name: firstTemplate.name, schema: firstTemplate.schema as TemplateSchema } : null}
+        mondayDate={mondayStr}
       />
     </div>
   );
