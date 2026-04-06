@@ -19,7 +19,7 @@ import type {
   PlanReview,
   TemplateSchema,
 } from "@/types/database";
-import { createOrUpdatePlan, submitPlan, deleteWeeklyPlan } from "./actions";
+import { createOrUpdatePlan, submitPlan, deleteWeeklyPlan, reopenPlan } from "./actions";
 import { WeeklyReviewForm } from "@/components/plans/WeeklyReviewForm";
 import { ReviewCard } from "@/components/plans/ReviewCard";
 
@@ -87,12 +87,27 @@ export function PlansPageClient({
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [reopening, setReopening] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
 
   const isAdmin = ["admin", "super_admin"].includes(userRole);
+
+  const handleReopen = async (planId: string) => {
+    setReopening(true);
+    setError(null);
+    const result = await reopenPlan(planId);
+    setReopening(false);
+
+    if (result.success) {
+      setSuccessMsg("計画を再編集モードに戻しました。修正後に再提出してください。");
+      setTimeout(() => setSuccessMsg(null), 5000);
+    } else {
+      setError(result.error ?? "再編集に失敗しました");
+    }
+  };
 
   const handleDelete = async (planId: string) => {
     if (confirmDeleteId !== planId) {
@@ -264,6 +279,24 @@ export function PlansPageClient({
                   {approvalLog.comment}
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Reopen button for approved/review_pending plans */}
+          {currentPlan && (currentPlan.status === "approved" || currentPlan.status === "review_pending") && (
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => handleReopen(currentPlan.id)}
+                disabled={reopening}
+                className="border-primary text-primary hover:bg-primary-light"
+              >
+                <FileEdit className="mr-1 h-4 w-4" />
+                {reopening ? "処理中..." : "修正して再提出"}
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                ※ 再提出後、再度承認が必要です
+              </span>
             </div>
           )}
 

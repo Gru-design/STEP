@@ -335,6 +335,85 @@ export async function rejectPlan(
   }
 }
 
+// ── Reopen Approved Plan ──
+
+export async function reopenPlan(planId: string): Promise<ActionResult> {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "認証が必要です" };
+    }
+
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!dbUser) {
+      return { success: false, error: "ユーザーが見つかりません" };
+    }
+
+    // Verify the plan belongs to the user and is approved
+    const { data: plan } = await supabase
+      .from("weekly_plans")
+      .select("id, status, user_id")
+      .eq("id", planId)
+      .eq("tenant_id", dbUser.tenant_id)
+      .single();
+
+    if (!plan) {
+      return { success: false, error: "計画が見つかりません" };
+    }
+
+    if (plan.user_id !== user.id) {
+      return { success: false, error: "自分の計画のみ再編集できます" };
+    }
+
+    if (plan.status !== "approved" && plan.status !== "review_pending") {
+      return { success: false, error: "承認済みの計画のみ再編集できます" };
+    }
+
+    const { error } = await supabase
+      .from("weekly_plans")
+      .update({
+        status: "draft",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", planId)
+      .eq("user_id", user.id);
+
+    if (error) {
+      return { success: false, error: "再編集に失敗しました" };
+    }
+
+    await supabase.from("approval_logs").insert({
+      target_type: "weekly_plan",
+      target_id: planId,
+      action: "reopened",
+      actor_id: user.id,
+    });
+
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: user.id,
+      action: "reopen",
+      resource: "weekly_plan",
+      resourceId: planId,
+    });
+
+    revalidatePath("/plans");
+    return { success: true };
+  } catch {
+    return { success: false, error: "予期しないエラーが発生しました" };
+  }
+}
+
 // ── Delete Weekly Plan ──
 
 export async function deleteWeeklyPlan(

@@ -9,6 +9,7 @@ import {
   User,
   ChevronRight,
   Inbox,
+  RotateCcw,
 } from "lucide-react";
 import type {
   ReportTemplate,
@@ -195,6 +196,8 @@ export function ApprovedPlansClient({
                               <Clock className="h-4 w-4 text-accent-color" />
                             ) : log.action === "approved" ? (
                               <CheckCircle2 className="h-4 w-4 text-success" />
+                            ) : log.action === "reopened" ? (
+                              <RotateCcw className="h-4 w-4 text-warning" />
                             ) : (
                               <XCircle className="h-4 w-4 text-danger" />
                             )}
@@ -205,7 +208,9 @@ export function ApprovedPlansClient({
                                 ? "提出"
                                 : log.action === "approved"
                                   ? "承認"
-                                  : "差し戻し"}
+                                  : log.action === "reopened"
+                                    ? "再編集"
+                                    : "差し戻し"}
                             </span>
                             <span className="text-xs text-muted-foreground">
                               {log.actor_name}

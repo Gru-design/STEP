@@ -353,7 +353,7 @@ export const approvalLogs = pgTable("approval_logs", {
   }).notNull(),
   targetId: uuid("target_id").notNull(),
   action: text("action", {
-    enum: ["submitted", "approved", "rejected"],
+    enum: ["submitted", "approved", "rejected", "reopened"],
   }).notNull(),
   actorId: uuid("actor_id")
     .references(() => users.id)
