@@ -124,9 +124,9 @@ export function PlansPageClient({
     [currentPlan, approvalLogs]
   );
 
-  // Find rejection/approval comment
-  const rejectionLog = currentPlanLogs.find((l) => l.action === "rejected");
-  const approvalLog = currentPlanLogs.find((l) => l.action === "approved");
+  // Find the latest rejection/approval comment (logs are sorted ascending by created_at)
+  const rejectionLog = [...currentPlanLogs].reverse().find((l) => l.action === "rejected");
+  const approvalLog = [...currentPlanLogs].reverse().find((l) => l.action === "approved");
 
   const handleSaveDraft = async () => {
     if (!selectedTemplate) return;

@@ -312,6 +312,22 @@ export async function rejectPlan(
       comment: comment.trim(),
     });
 
+    // Create nudge notification for the plan submitter
+    const { data: actor } = await supabase
+      .from("users")
+      .select("name")
+      .eq("id", user.id)
+      .single();
+    const actorName = actor?.name ?? "マネージャー";
+
+    await supabase.from("nudges").insert({
+      tenant_id: dbUser.tenant_id,
+      target_user_id: targetPlan.user_id,
+      trigger_type: "plan_rejected",
+      content: `${actorName}が週次計画を差し戻しました: ${comment.trim()}`,
+      status: "pending",
+    });
+
     revalidatePath("/plans");
     return { success: true };
   } catch {

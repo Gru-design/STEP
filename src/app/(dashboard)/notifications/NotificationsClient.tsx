@@ -23,6 +23,8 @@ const typeConfig: Record<string, { icon: string; label: string; color: string }>
   deviation_alert: { icon: "📉", label: "目標乖離", color: "text-warning" },
   social_proof: { icon: "👥", label: "ソーシャルプルーフ", color: "text-primary" },
   approval: { icon: "✅", label: "承認", color: "text-success" },
+  plan_rejected: { icon: "🔙", label: "計画差し戻し", color: "text-danger" },
+  deal_rejected: { icon: "🔙", label: "案件差し戻し", color: "text-danger" },
 };
 
 function formatDateTime(dateStr: string): string {

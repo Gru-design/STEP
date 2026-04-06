@@ -228,20 +228,27 @@ export function ApprovalQueueClient({
                               <XCircle className="h-4 w-4 text-danger" />
                             )}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-foreground">
-                              {log.action === "submitted"
-                                ? "提出"
-                                : log.action === "approved"
-                                  ? "承認"
-                                  : "差し戻し"}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {log.actor_name}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDateTime(log.created_at)}
-                            </span>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-foreground">
+                                {log.action === "submitted"
+                                  ? "提出"
+                                  : log.action === "approved"
+                                    ? "承認"
+                                    : "差し戻し"}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {log.actor_name}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatDateTime(log.created_at)}
+                              </span>
+                            </div>
+                            {log.comment && (
+                              <p className="mt-1 text-sm text-foreground rounded-md bg-white px-3 py-2">
+                                {log.comment}
+                              </p>
+                            )}
                           </div>
                         </div>
                       ))}
