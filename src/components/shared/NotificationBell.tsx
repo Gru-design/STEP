@@ -71,6 +71,8 @@ export function NotificationBell({ userId }: NotificationBellProps) {
     deviation_alert: { icon: "📉", color: "text-warning" },
     social_proof: { icon: "👥", color: "text-primary" },
     approval: { icon: "✅", color: "text-success" },
+    plan_rejected: { icon: "🔙", color: "text-danger" },
+    deal_rejected: { icon: "🔙", color: "text-danger" },
   };
 
   const formatTime = (dateStr: string) => {

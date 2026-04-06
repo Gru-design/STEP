@@ -354,6 +354,22 @@ export async function rejectDeal(dealId: string, comment: string) {
       resourceId: dealId,
     });
 
+    // Create nudge notification for the deal owner
+    const { data: actor } = await supabase
+      .from("users")
+      .select("name")
+      .eq("id", user.id)
+      .single();
+    const actorName = actor?.name ?? "マネージャー";
+
+    await supabase.from("nudges").insert({
+      tenant_id: dbUser.tenant_id,
+      target_user_id: deal.user_id,
+      trigger_type: "deal_rejected",
+      content: `${actorName}が案件を差し戻しました: ${comment.trim()}`,
+      status: "pending",
+    });
+
     revalidatePath("/deals");
     revalidatePath(`/deals/${dealId}`);
     revalidatePath("/approval");

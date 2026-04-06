@@ -9,6 +9,7 @@ import {
   Clock,
   Send,
   AlertCircle,
+  RotateCcw,
 } from "lucide-react";
 import type { ApprovalLog } from "@/types/database";
 import { approvePlan, rejectPlan } from "@/app/(dashboard)/plans/actions";
@@ -26,12 +27,14 @@ const actionIcons: Record<string, React.ReactNode> = {
   submitted: <Send className="h-4 w-4 text-accent-color" />,
   approved: <CheckCircle2 className="h-4 w-4 text-success" />,
   rejected: <XCircle className="h-4 w-4 text-danger" />,
+  reopened: <RotateCcw className="h-4 w-4 text-warning" />,
 };
 
 const actionLabels: Record<string, string> = {
   submitted: "提出",
   approved: "承認",
   rejected: "差し戻し",
+  reopened: "再編集",
 };
 
 function formatDateTime(dateStr: string): string {

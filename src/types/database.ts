@@ -284,7 +284,7 @@ export interface PlanReview {
 // ── Approval Logs ──
 
 export type ApprovalTargetType = "weekly_plan" | "deal";
-export type ApprovalAction = "submitted" | "approved" | "rejected";
+export type ApprovalAction = "submitted" | "approved" | "rejected" | "reopened";
 
 export interface ApprovalLog {
   id: string;
