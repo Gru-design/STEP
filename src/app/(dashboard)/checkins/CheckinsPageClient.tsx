@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DynamicForm } from "@/components/reports/DynamicForm";
 import { Sparkles, ChevronDown } from "lucide-react";
+import { createReportEntry } from "@/app/(dashboard)/reports/actions";
 import type { TemplateSchema } from "@/types/database";
 
 interface CheckinItem {
@@ -20,6 +23,9 @@ interface CheckinItem {
 interface CheckinsPageClientProps {
   checkins: CheckinItem[];
   templateMap: Record<string, { name: string; schema: TemplateSchema }>;
+  canCheckin: boolean;
+  checkinTemplate: { id: string; name: string; schema: TemplateSchema } | null;
+  mondayDate: string;
 }
 
 function formatWeekLabel(dateStr: string): string {
@@ -32,19 +38,114 @@ function formatWeekLabel(dateStr: string): string {
 export function CheckinsPageClient({
   checkins,
   templateMap,
+  canCheckin,
+  checkinTemplate,
+  mondayDate,
 }: CheckinsPageClientProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [formValues, setFormValues] = useState<Record<string, unknown>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const router = useRouter();
+
+  const handleCheckinSubmit = async () => {
+    if (!checkinTemplate) return;
+    setSubmitting(true);
+    setError(null);
+
+    const result = await createReportEntry({
+      templateId: checkinTemplate.id,
+      reportDate: mondayDate,
+      data: formValues,
+      status: "submitted",
+    });
+
+    setSubmitting(false);
+
+    if (result.success) {
+      setSubmitted(true);
+      setShowForm(false);
+      router.refresh();
+    } else {
+      setError(result.error ?? "チェックインの送信に失敗しました");
+    }
+  };
+
+  const checkinBanner = canCheckin && !submitted && checkinTemplate ? (
+    <Card className="border-primary/30 bg-primary-light/30">
+      <CardContent className="py-5">
+        {!showForm ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  今週のチェックインがまだです
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  コンディションを共有しましょう
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => setShowForm(true)}
+              className="bg-primary hover:bg-primary/90 text-white"
+            >
+              チェックインする
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">チェックイン</h3>
+            </div>
+            <DynamicForm
+              schema={checkinTemplate.schema}
+              values={formValues}
+              onChange={setFormValues}
+            />
+            {error && (
+              <p className="text-sm text-danger">{error}</p>
+            )}
+            <div className="flex items-center justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowForm(false)}
+                disabled={submitting}
+                className="border-border"
+              >
+                キャンセル
+              </Button>
+              <Button
+                onClick={handleCheckinSubmit}
+                disabled={submitting}
+                className="bg-primary hover:bg-primary/90 text-white"
+              >
+                {submitting ? "送信中..." : "チェックイン送信"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  ) : null;
 
   if (checkins.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-8 text-center">
-          <Sparkles className="mx-auto h-8 w-8 text-muted-foreground/30" />
-          <p className="mt-2 text-sm text-muted-foreground">
-            まだチェックインの回答がありません
-          </p>
-        </CardContent>
-      </Card>
+      <div className="space-y-4 max-w-3xl">
+        {checkinBanner}
+        <Card>
+          <CardContent className="py-8 text-center">
+            <Sparkles className="mx-auto h-8 w-8 text-muted-foreground/30" />
+            <p className="mt-2 text-sm text-muted-foreground">
+              まだチェックインの回答がありません
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -62,6 +163,7 @@ export function CheckinsPageClient({
 
   return (
     <div className="space-y-6 max-w-3xl">
+      {checkinBanner}
       {weekGroups.map((group) => (
         <div key={group.week}>
           <div className="mb-3 flex items-center gap-2">
