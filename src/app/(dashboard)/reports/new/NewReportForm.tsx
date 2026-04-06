@@ -83,14 +83,13 @@ export function NewReportForm({
   }, [selectedTemplate]);
 
   // Fetch cumulative totals when template or date changes
+  const shouldFetchCumulative = !!selectedTemplateId && cumulativeFieldKeys.length > 0;
+
   useEffect(() => {
-    if (!selectedTemplateId || cumulativeFieldKeys.length === 0) {
-      setCumulativeTotals({});
-      return;
-    }
+    if (!shouldFetchCumulative) return;
     let cancelled = false;
     getCumulativeTotals(
-      selectedTemplateId,
+      selectedTemplateId!,
       cumulativeFieldKeys,
       reportDate
     ).then((result) => {
@@ -99,7 +98,10 @@ export function NewReportForm({
       }
     });
     return () => { cancelled = true; };
-  }, [selectedTemplateId, cumulativeFieldKeys, reportDate]);
+  }, [shouldFetchCumulative, selectedTemplateId, cumulativeFieldKeys, reportDate]);
+
+  // Reset cumulative totals when not applicable
+  const resolvedCumulativeTotals = shouldFetchCumulative ? cumulativeTotals : {};
 
   // Calculate form progress
   const { totalFields, filledFields, progressPercent } = useMemo(() => {
@@ -297,7 +299,7 @@ export function NewReportForm({
                 schema={selectedTemplate.schema as TemplateSchema}
                 values={formValues}
                 onChange={setFormValues}
-                cumulativeTotals={cumulativeTotals}
+                cumulativeTotals={resolvedCumulativeTotals}
               />
             </CardContent>
           </Card>
