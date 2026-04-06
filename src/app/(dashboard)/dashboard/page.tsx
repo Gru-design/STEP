@@ -24,12 +24,25 @@ function getNextLevelXP(level: number): number {
 
 // ── Fetch member stats (shared across all roles) ──
 
+async function fetchDailyTemplateIds(
+  supabase: ReturnType<typeof createAdminClient>,
+  tenantId: string,
+): Promise<string[]> {
+  const { data } = await supabase
+    .from("report_templates")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("type", "daily");
+  return (data ?? []).map((t) => t.id);
+}
+
 async function fetchMemberStats(
   supabase: ReturnType<typeof createAdminClient>,
   user: User,
   today: string,
   weekStartStr: string,
   nowMs: number,
+  dailyTemplateIds: string[],
 ): Promise<MemberStats> {
   const [
     recentEntriesResult,
@@ -42,13 +55,16 @@ async function fetchMemberStats(
     totalReceivedResult,
     pendingReviewResult,
   ] = await Promise.all([
-    supabase
-      .from("report_entries")
-      .select("report_date")
-      .eq("user_id", user.id)
-      .eq("status", "submitted")
-      .order("report_date", { ascending: false })
-      .limit(60),
+    dailyTemplateIds.length > 0
+      ? supabase
+          .from("report_entries")
+          .select("report_date")
+          .eq("user_id", user.id)
+          .eq("status", "submitted")
+          .in("template_id", dailyTemplateIds)
+          .order("report_date", { ascending: false })
+          .limit(60)
+      : Promise.resolve({ data: [] as { report_date: string }[] }),
     supabase
       .from("user_levels")
       .select("level, xp")
@@ -249,9 +265,10 @@ async function ManagerSection({
   const today = new Date().toISOString().split("T")[0];
   const isAdmin = user.role === "admin" || user.role === "super_admin";
 
-  const [managedTeamsResult, nudgesResult] = await Promise.all([
+  const [managedTeamsResult, nudgesResult, dailyTplIds] = await Promise.all([
     supabase.from("teams").select("id, name").eq("tenant_id", tenantId).eq("manager_id", user.id),
     supabase.from("nudges").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "pending"),
+    fetchDailyTemplateIds(supabase, tenantId),
   ]);
 
   const managedTeams = managedTeamsResult.data ?? [];
@@ -266,7 +283,9 @@ async function ManagerSection({
     if (memberIds.length > 0) {
       const [memberUsersResult, todaySubmissionsResult] = await Promise.all([
         supabase.from("users").select("id, name").in("id", memberIds),
-        supabase.from("report_entries").select("user_id").in("user_id", memberIds).eq("report_date", today).eq("status", "submitted"),
+        dailyTplIds.length > 0
+          ? supabase.from("report_entries").select("user_id").in("user_id", memberIds).eq("report_date", today).eq("status", "submitted").in("template_id", dailyTplIds)
+          : Promise.resolve({ data: [] as { user_id: string }[] }),
       ]);
       const submittedIds = new Set(todaySubmissionsResult.data?.map((s) => s.user_id) ?? []);
       teamMembers = (memberUsersResult.data ?? []).map((u) => ({
@@ -280,8 +299,9 @@ async function ManagerSection({
     const allUserIds = allUsers?.map((u) => u.id) ?? [];
 
     if (allUserIds.length > 0) {
-      const { data: todaySubmissions } = await supabase
-        .from("report_entries").select("user_id").in("user_id", allUserIds).eq("report_date", today).eq("status", "submitted");
+      const { data: todaySubmissions } = dailyTplIds.length > 0
+        ? await supabase.from("report_entries").select("user_id").in("user_id", allUserIds).eq("report_date", today).eq("status", "submitted").in("template_id", dailyTplIds)
+        : { data: [] as { user_id: string }[] };
       const submittedIds = new Set(todaySubmissions?.map((s) => s.user_id) ?? []);
       teamMembers = (allUsers ?? []).map((u) => ({
         id: u.id, name: u.name, submitted: submittedIds.has(u.id),
@@ -306,11 +326,15 @@ async function ManagerSection({
   });
 
   const weekCountResults = await Promise.all(
-    weekRanges.map((wr) =>
-      supabase.from("report_entries").select("*", { count: "exact", head: true })
+    weekRanges.map((wr) => {
+      let query = supabase.from("report_entries").select("*", { count: "exact", head: true })
         .eq("tenant_id", tenantId).eq("status", "submitted")
-        .gte("report_date", wr.start).lte("report_date", wr.end)
-    )
+        .gte("report_date", wr.start).lte("report_date", wr.end);
+      if (dailyTplIds.length > 0) {
+        query = query.in("template_id", dailyTplIds);
+      }
+      return query;
+    })
   );
 
   const expected = Math.max(1, teamMembers.length * 5);
@@ -346,10 +370,14 @@ async function ManagerSection({
     ownerUsersRes, stagesRes, activeDealsStageRes,
   ] = await Promise.all([
     supabase.from("users").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId),
-    supabase.from("report_entries").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("report_date", today).eq("status", "submitted"),
+    dailyTplIds.length > 0
+      ? supabase.from("report_entries").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("report_date", today).eq("status", "submitted").in("template_id", dailyTplIds)
+      : Promise.resolve({ count: 0 }),
     supabase.from("deals").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "active"),
     supabase.from("teams").select("id, name").eq("tenant_id", tenantId),
-    supabase.from("report_entries").select("user_id").eq("tenant_id", tenantId).eq("report_date", today).eq("status", "submitted"),
+    dailyTplIds.length > 0
+      ? supabase.from("report_entries").select("user_id").eq("tenant_id", tenantId).eq("report_date", today).eq("status", "submitted").in("template_id", dailyTplIds)
+      : Promise.resolve({ data: [] as { user_id: string }[] }),
     supabase.from("goals").select("id, name, target_value, period_start, period_end, owner_id").eq("tenant_id", tenantId),
     supabase.from("users").select("id, name").eq("tenant_id", tenantId),
     supabase.from("pipeline_stages").select("id, name, sort_order").eq("tenant_id", tenantId).order("sort_order", { ascending: true }),
@@ -484,9 +512,10 @@ export default async function DashboardPage() {
   weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
   const weekStartStr = weekStart.toISOString().split("T")[0];
 
-  // Fetch member stats and tenant settings in parallel
+  // Fetch daily template IDs, member stats and tenant settings in parallel
+  const dailyTemplateIds = await fetchDailyTemplateIds(supabase, user.tenant_id);
   const [memberStats, tenantSettingsResult] = await Promise.all([
-    fetchMemberStats(supabase, user, today, weekStartStr, nowMs),
+    fetchMemberStats(supabase, user, today, weekStartStr, nowMs, dailyTemplateIds),
     supabase.from("tenants").select("settings").eq("id", user.tenant_id).single(),
   ]);
 

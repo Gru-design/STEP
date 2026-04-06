@@ -115,19 +115,29 @@ export default async function DashboardLayout({
   // Fetch gamification data in parallel (non-blocking via Suspense)
   // For initial render, provide defaults so DashboardShell renders immediately
   const supabaseForGamification = await createClient();
+  const { data: dailyTemplates } = await adminClient
+    .from("report_templates")
+    .select("id")
+    .eq("tenant_id", user.tenant_id)
+    .eq("type", "daily");
+  const dailyTemplateIds = (dailyTemplates ?? []).map((t) => t.id);
+
   const [levelResult, streakResult] = await Promise.all([
     supabaseForGamification
       .from("user_levels")
       .select("level, xp")
       .eq("user_id", user.id)
       .single(),
-    supabaseForGamification
-      .from("report_entries")
-      .select("report_date")
-      .eq("user_id", user.id)
-      .eq("status", "submitted")
-      .order("report_date", { ascending: false })
-      .limit(60),
+    dailyTemplateIds.length > 0
+      ? supabaseForGamification
+          .from("report_entries")
+          .select("report_date")
+          .eq("user_id", user.id)
+          .eq("status", "submitted")
+          .in("template_id", dailyTemplateIds)
+          .order("report_date", { ascending: false })
+          .limit(60)
+      : Promise.resolve({ data: [] as { report_date: string }[] }),
   ]);
 
   const level = levelResult.data?.level ?? 1;
