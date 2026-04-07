@@ -17,6 +17,7 @@ function parseApprovalLogs(
     const actor = log.users as Record<string, unknown> | null;
     return {
       id: log.id as string,
+      tenant_id: log.tenant_id as string,
       target_type: log.target_type as "weekly_plan",
       target_id: log.target_id as string,
       action: log.action as "submitted" | "approved" | "rejected",
