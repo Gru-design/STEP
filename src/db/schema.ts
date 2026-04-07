@@ -348,6 +348,9 @@ export const weeklyPlans = pgTable(
 
 export const approvalLogs = pgTable("approval_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: uuid("tenant_id")
+    .references(() => tenants.id)
+    .notNull(),
   targetType: text("target_type", {
     enum: ["weekly_plan", "deal"],
   }).notNull(),
