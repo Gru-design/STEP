@@ -264,6 +264,7 @@ export async function approveDeal(dealId: string, comment?: string) {
 
     // Record approval log
     await supabase.from("approval_logs").insert({
+      tenant_id: dbUser.tenant_id,
       target_type: "deal",
       target_id: dealId,
       action: "approved",
@@ -339,6 +340,7 @@ export async function rejectDeal(dealId: string, comment: string) {
     }
 
     await supabase.from("approval_logs").insert({
+      tenant_id: dbUser.tenant_id,
       target_type: "deal",
       target_id: dealId,
       action: "rejected",

@@ -288,6 +288,7 @@ export type ApprovalAction = "submitted" | "approved" | "rejected" | "reopened";
 
 export interface ApprovalLog {
   id: string;
+  tenant_id: string;
   target_type: ApprovalTargetType;
   target_id: string;
   action: ApprovalAction;

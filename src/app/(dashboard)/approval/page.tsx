@@ -49,6 +49,7 @@ export default async function ApprovalPage() {
     adminClient
       .from("approval_logs")
       .select("id, target_type, target_id, action, actor_id, comment, created_at")
+      .eq("tenant_id", tenantId)
       .order("created_at", { ascending: false })
       .limit(20),
   ]);

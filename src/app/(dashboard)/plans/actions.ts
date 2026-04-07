@@ -72,6 +72,7 @@ export async function createOrUpdatePlan(data: {
     // If submitting, also create an approval_log entry
     if (data.status === "submitted") {
       await supabase.from("approval_logs").insert({
+        tenant_id: dbUser.tenant_id,
         target_type: "weekly_plan",
         target_id: plan.id,
         action: "submitted",
@@ -122,6 +123,7 @@ export async function submitPlan(planId: string): Promise<ActionResult> {
     }
 
     await supabase.from("approval_logs").insert({
+      tenant_id: dbUser.tenant_id,
       target_type: "weekly_plan",
       target_id: planId,
       action: "submitted",
@@ -202,6 +204,7 @@ export async function approvePlan(planId: string, comment?: string): Promise<Act
     }
 
     await supabase.from("approval_logs").insert({
+      tenant_id: dbUser.tenant_id,
       target_type: "weekly_plan",
       target_id: planId,
       action: "approved",
@@ -290,6 +293,7 @@ export async function rejectPlan(
     }
 
     await supabase.from("approval_logs").insert({
+      tenant_id: dbUser.tenant_id,
       target_type: "weekly_plan",
       target_id: planId,
       action: "rejected",
@@ -393,6 +397,7 @@ export async function reopenPlan(planId: string): Promise<ActionResult> {
     }
 
     await supabase.from("approval_logs").insert({
+      tenant_id: dbUser.tenant_id,
       target_type: "weekly_plan",
       target_id: planId,
       action: "reopened",
