@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { pipelineStagesCacheTag } from "@/lib/cache";
@@ -19,7 +20,8 @@ async function getAdminUser() {
 
   if (!authUser) return null;
 
-  const { data: dbUser } = await supabase
+  const adminClient = createAdminClient();
+  const { data: dbUser } = await adminClient
     .from("users")
     .select("tenant_id, role")
     .eq("id", authUser.id)
@@ -27,7 +29,7 @@ async function getAdminUser() {
 
   if (!dbUser || !["admin", "super_admin"].includes(dbUser.role)) return null;
 
-  return { supabase, authUser, dbUser };
+  return { supabase: adminClient, authUser, dbUser };
 }
 
 export async function getPipelineStages() {
@@ -160,14 +162,19 @@ export async function deletePipelineStage(id: string) {
       };
     }
 
-    const { error } = await supabase
+    const { data: deleted, error } = await supabase
       .from("pipeline_stages")
       .delete()
       .eq("id", id)
-      .eq("tenant_id", dbUser.tenant_id);
+      .eq("tenant_id", dbUser.tenant_id)
+      .select("id");
 
     if (error) {
       return { success: false, error: "ステージの削除に失敗しました" };
+    }
+
+    if (!deleted || deleted.length === 0) {
+      return { success: false, error: "ステージの削除に失敗しました。対象が見つかりません。" };
     }
 
     await writeAuditLog({
