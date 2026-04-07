@@ -6,7 +6,7 @@ import { OnboardingWizard } from "@/components/shared/OnboardingWizard";
 import { CheckinModal } from "@/components/shared/CheckinModal";
 import { NudgeTrigger } from "@/components/shared/NudgeTrigger";
 import { extractTheme, themeToStyle } from "@/lib/tenant-theme";
-import { getCachedTenantInfo, getCachedPipelineStages } from "@/lib/cache";
+import { getCachedTenantInfo } from "@/lib/cache";
 import { calculateStreak, LEVEL_THRESHOLDS } from "@/lib/gamification/level";
 import type { User, Plan, TenantSettings } from "@/types/database";
 import type { OnboardingStep } from "@/app/(dashboard)/onboarding/actions";
@@ -222,9 +222,6 @@ export default async function DashboardLayout({
   activityFeed.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const feedItems = activityFeed.slice(0, 8);
 
-  // Fetch pipeline stages for sidebar
-  const pipelineStages = await getCachedPipelineStages(user.tenant_id);
-
   // Build hidden nav items from tenant settings
   const tenantSettings = (tenant?.settings ?? {}) as TenantSettings;
   const hiddenNavHrefs: string[] = [];
@@ -242,7 +239,6 @@ export default async function DashboardLayout({
         gamification={gamification}
         activityFeed={feedItems}
         hiddenNavHrefs={hiddenNavHrefs}
-        pipelineStages={pipelineStages}
       >
         {children}
         <CheckinModal userId={user.id} tenantId={user.tenant_id} />

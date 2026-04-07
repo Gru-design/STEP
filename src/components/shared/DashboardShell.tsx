@@ -54,9 +54,8 @@ import { NotificationBell } from "./NotificationBell";
 import { FeatureRequestDialog } from "./FeatureRequestDialog";
 import { SidebarActivityFeed } from "./SidebarActivityFeed";
 import type { ActivityFeedItem } from "./SidebarActivityFeed";
-import type { User as UserType, Role, Plan, PipelineStage } from "@/types/database";
+import type { User as UserType, Role, Plan } from "@/types/database";
 import { canAccessFeature } from "@/lib/plan-limits";
-import { SidebarPipelineStages } from "./SidebarPipelineStages";
 
 // ── Nav Groups ──
 
@@ -272,7 +271,6 @@ interface DashboardShellProps {
   gamification?: GamificationData;
   activityFeed?: ActivityFeedItem[];
   hiddenNavHrefs?: string[];
-  pipelineStages?: PipelineStage[];
 }
 
 export function DashboardShell({
@@ -284,7 +282,6 @@ export function DashboardShell({
   gamification,
   activityFeed = [],
   hiddenNavHrefs = [],
-  pipelineStages = [],
 }: DashboardShellProps) {
   const pathname = usePathname();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -322,18 +319,6 @@ export function DashboardShell({
             {group.label}
           </p>
           {group.items.map((item) => {
-            // Replace static "案件" link with expandable pipeline stages sidebar
-            if (item.href === "/deals") {
-              return (
-                <SidebarPipelineStages
-                  key={item.href}
-                  stages={pipelineStages}
-                  userRole={user.role}
-                  onLinkClick={onLinkClick}
-                />
-              );
-            }
-
             const Icon = item.icon;
             const active = isActive(item.href);
             return (
