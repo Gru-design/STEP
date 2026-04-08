@@ -10,6 +10,7 @@ import { createReportSchema } from "@/lib/validations";
 import { z } from "zod";
 import type { ReactionType } from "@/types/database";
 import { notifyReportSubmitted } from "@/lib/notifications/report-submitted";
+import { notifyReaction, notifyPeerBonus } from "@/lib/notifications/create";
 
 interface ActionResult<T = unknown> {
   success: boolean;
@@ -200,10 +201,10 @@ export async function addReaction(
       return { success: false, error: "ユーザーが見つかりません" };
     }
 
-    // Validate entry belongs to same tenant (RLS also enforces this)
+    // Validate entry belongs to same tenant and get owner
     const { data: entry } = await supabase
       .from("report_entries")
-      .select("id")
+      .select("id, user_id")
       .eq("id", entryId)
       .eq("tenant_id", tenantId)
       .single();
@@ -230,6 +231,29 @@ export async function addReaction(
       resource: "reaction",
       details: { entry_id: entryId, type },
     });
+
+    // Send notification to report owner (async, non-blocking)
+    (async () => {
+      try {
+        const { data: actor } = await supabase
+          .from("users")
+          .select("name")
+          .eq("id", user.id)
+          .single();
+        if (actor) {
+          await notifyReaction({
+            tenantId,
+            actorId: user.id,
+            actorName: actor.name,
+            entryOwnerId: entry.user_id,
+            entryId,
+            reactionType: type,
+          });
+        }
+      } catch (err) {
+        console.error("[Reaction] notification error:", err);
+      }
+    })();
 
     revalidatePath(`/reports/${entryId}`);
     revalidatePath("/reports");
@@ -344,6 +368,29 @@ export async function sendPeerBonus(data: {
       resource: "peer_bonus",
       details: { to_user_id: data.toUserId },
     });
+
+    // Send notification to recipient (async, non-blocking)
+    (async () => {
+      try {
+        const { data: actor } = await supabase
+          .from("users")
+          .select("name")
+          .eq("id", user.id)
+          .single();
+        if (actor) {
+          await notifyPeerBonus({
+            tenantId,
+            actorId: user.id,
+            actorName: actor.name,
+            toUserId: data.toUserId,
+            message: data.message,
+            reportEntryId: data.reportEntryId,
+          });
+        }
+      } catch (err) {
+        console.error("[PeerBonus] notification error:", err);
+      }
+    })();
 
     revalidatePath("/dashboard");
     revalidatePath("/reports");

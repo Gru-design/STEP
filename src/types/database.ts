@@ -164,6 +164,30 @@ export interface UserLevel {
   updated_at: string;
 }
 
+// ── Notifications ──
+
+export type NotificationType =
+  | "comment"
+  | "reaction"
+  | "peer_bonus"
+  | "comment_reply"
+  | "approval"
+  | "rejection";
+
+export interface Notification {
+  id: string;
+  tenant_id: string;
+  target_user_id: string;
+  actor_id: string;
+  type: NotificationType;
+  title: string;
+  body: string | null;
+  link: string | null;
+  reference_id: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
 // ── Peer Bonus ──
 
 export interface PeerBonus {

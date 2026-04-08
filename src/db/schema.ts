@@ -431,6 +431,34 @@ export const integrations = pgTable("integrations", {
     .notNull(),
 });
 
+// ── Notifications ──
+
+export const notifications = pgTable("notifications", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: uuid("tenant_id")
+    .references(() => tenants.id, { onDelete: "cascade" })
+    .notNull(),
+  targetUserId: uuid("target_user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  actorId: uuid("actor_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  type: text("type", {
+    enum: ["comment", "reaction", "peer_bonus", "comment_reply", "approval", "rejection"],
+  }).notNull(),
+  title: text("title").notNull(),
+  body: text("body"),
+  link: text("link"),
+  referenceId: uuid("reference_id"),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+// ── Activity Logs ──
+
 export const activityLogs = pgTable("activity_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
   tenantId: uuid("tenant_id")
