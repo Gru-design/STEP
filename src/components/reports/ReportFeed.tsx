@@ -449,8 +449,8 @@ function ReportDetailInline({
   const [loading, setLoading] = useState(true);
 
   // Fetch reactions + comments when entry changes
-  const fetchInteractions = useCallback(async () => {
-    setLoading(true);
+  const fetchInteractions = useCallback(async (showSpinner = false) => {
+    if (showSpinner) setLoading(true);
     try {
       const [reactionsResult, commentsResult] = await Promise.all([
         getReactions(entry.id),
@@ -482,7 +482,7 @@ function ReportDetailInline({
   }, [entry.id]);
 
   useEffect(() => {
-    fetchInteractions();
+    fetchInteractions(true);
   }, [fetchInteractions]);
 
   // Re-fetch after server action completes (reactions/comments change)
@@ -609,18 +609,14 @@ function InlineReactionBar({
   userNames: Record<string, string>;
   onChanged: () => void;
 }) {
-  // We use the existing ReactionBar but wrap it to detect changes
-  // The ReactionBar calls addReaction/removeReaction which revalidate paths
-  // We use MutationObserver-like approach: re-fetch after any interaction
   return (
-    <div onClick={() => setTimeout(onChanged, 500)}>
-      <ReactionBar
-        entryId={entryId}
-        reactions={reactions}
-        currentUserId={currentUserId}
-        userNames={userNames}
-      />
-    </div>
+    <ReactionBar
+      entryId={entryId}
+      reactions={reactions}
+      currentUserId={currentUserId}
+      userNames={userNames}
+      onReactionChange={onChanged}
+    />
   );
 }
 
@@ -649,14 +645,13 @@ function InlineCommentThread({
   onChanged: () => void;
 }) {
   return (
-    <div onClick={() => setTimeout(onChanged, 500)}>
-      <CommentThread
-        entryId={entryId}
-        comments={comments}
-        currentUserId={currentUserId}
-        currentUserRole={currentUserRole}
-      />
-    </div>
+    <CommentThread
+      entryId={entryId}
+      comments={comments}
+      currentUserId={currentUserId}
+      currentUserRole={currentUserRole}
+      onCommentChange={onChanged}
+    />
   );
 }
 

@@ -22,6 +22,8 @@ interface CommentThreadProps {
   comments: Comment[];
   currentUserId: string;
   currentUserRole: string;
+  /** Called after a comment is successfully added or deleted */
+  onCommentChange?: () => void;
 }
 
 export function CommentThread({
@@ -29,6 +31,7 @@ export function CommentThread({
   comments,
   currentUserId,
   currentUserRole,
+  onCommentChange,
 }: CommentThreadProps) {
   const [showForm, setShowForm] = useState(false);
 
@@ -69,7 +72,10 @@ export function CommentThread({
         <CommentForm
           entryId={entryId}
           onCancel={() => setShowForm(false)}
-          onSubmitted={() => setShowForm(false)}
+          onSubmitted={() => {
+            setShowForm(false);
+            onCommentChange?.();
+          }}
         />
       )}
 
@@ -88,6 +94,7 @@ export function CommentThread({
           entryId={entryId}
           currentUserId={currentUserId}
           currentUserRole={currentUserRole}
+          onCommentChange={onCommentChange}
         />
       ))}
     </div>
@@ -100,8 +107,9 @@ function CommentItem(props: {
   entryId: string;
   currentUserId: string;
   currentUserRole: string;
+  onCommentChange?: () => void;
 }) {
-  const { comment, replies, entryId, currentUserId, currentUserRole } = props;
+  const { comment, replies, entryId, currentUserId, currentUserRole, onCommentChange } = props;
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -112,6 +120,7 @@ function CommentItem(props: {
   const handleDelete = () => {
     startTransition(async () => {
       await deleteComment(comment.id);
+      onCommentChange?.();
     });
   };
 
@@ -169,7 +178,10 @@ function CommentItem(props: {
             entryId={entryId}
             parentId={comment.id}
             onCancel={() => setShowReplyForm(false)}
-            onSubmitted={() => setShowReplyForm(false)}
+            onSubmitted={() => {
+              setShowReplyForm(false);
+              onCommentChange?.();
+            }}
             placeholder={`${comment.users?.name ?? ""}さんに返信...`}
             compact
           />
@@ -185,6 +197,7 @@ function CommentItem(props: {
               comment={reply}
               currentUserId={currentUserId}
               currentUserRole={currentUserRole}
+              onCommentChange={onCommentChange}
             />
           ))}
         </div>
@@ -197,8 +210,9 @@ function ReplyItem(props: {
   comment: Comment;
   currentUserId: string;
   currentUserRole: string;
+  onCommentChange?: () => void;
 }) {
-  const { comment, currentUserId, currentUserRole } = props;
+  const { comment, currentUserId, currentUserRole, onCommentChange } = props;
   const [isPending, startTransition] = useTransition();
   const canDelete =
     comment.user_id === currentUserId ||
@@ -207,6 +221,7 @@ function ReplyItem(props: {
   const handleDelete = () => {
     startTransition(async () => {
       await deleteComment(comment.id);
+      onCommentChange?.();
     });
   };
 
