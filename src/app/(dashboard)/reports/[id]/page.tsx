@@ -42,7 +42,7 @@ export default async function ReportDetailPage({
   // This avoids join issues when RLS policies conflict on report_templates
   const { data: entry, error: entryError } = await adminClient
     .from("report_entries")
-    .select("*")
+    .select("id, tenant_id, user_id, template_id, report_date, data, status, submitted_at, created_at")
     .eq("id", id)
     .single();
 
@@ -51,46 +51,49 @@ export default async function ReportDetailPage({
     notFound();
   }
 
-  // Fetch user separately (with error logging)
-  const { data: entryUser, error: userError } = await adminClient
-    .from("users")
-    .select("id, name, avatar_url, email")
-    .eq("id", entry.user_id)
-    .single();
+  // Parallel: fetch user, template, reactions, comments, currentDbUser after entry
+  const [
+    { data: entryUser, error: userError },
+    { data: entryTemplate, error: templateError },
+    { data: reactions, error: reactionsError },
+    { data: comments },
+    { data: currentDbUser },
+  ] = await Promise.all([
+    adminClient
+      .from("users")
+      .select("id, name, avatar_url, email")
+      .eq("id", entry.user_id)
+      .single(),
+    adminClient
+      .from("report_templates")
+      .select("name, type, schema")
+      .eq("id", entry.template_id)
+      .single(),
+    adminClient
+      .from("reactions")
+      .select("id, entry_id, user_id, type, comment, created_at")
+      .eq("entry_id", id)
+      .order("created_at", { ascending: true }),
+    adminClient
+      .from("report_comments")
+      .select("*, users(name, avatar_url)")
+      .eq("entry_id", id)
+      .order("created_at", { ascending: true }),
+    adminClient
+      .from("users")
+      .select("role")
+      .eq("id", authUser.id)
+      .single(),
+  ]);
 
   if (userError) {
-    console.error("[ReportDetail] User fetch failed:", {
-      userId: entry.user_id,
-      error: userError,
-    });
+    console.error("[ReportDetail] User fetch failed:", { userId: entry.user_id, error: userError });
   }
-
-  // Fetch template separately (with error logging)
-  const { data: entryTemplate, error: templateError } = await adminClient
-    .from("report_templates")
-    .select("name, type, schema")
-    .eq("id", entry.template_id)
-    .single();
-
   if (templateError) {
-    console.error("[ReportDetail] Template fetch failed:", {
-      templateId: entry.template_id,
-      error: templateError,
-    });
+    console.error("[ReportDetail] Template fetch failed:", { templateId: entry.template_id, error: templateError });
   }
-
-  // Fetch reactions
-  const { data: reactions, error: reactionsError } = await adminClient
-    .from("reactions")
-    .select("*")
-    .eq("entry_id", id)
-    .order("created_at", { ascending: true });
-
   if (reactionsError) {
-    console.error("[ReportDetail] Reactions fetch failed:", {
-      entryId: id,
-      error: reactionsError,
-    });
+    console.error("[ReportDetail] Reactions fetch failed:", { entryId: id, error: reactionsError });
   }
 
   const user = (entryUser ?? {}) as Record<string, unknown>;
@@ -137,20 +140,6 @@ export default async function ReportDetailPage({
       );
     }
   }
-
-  // Fetch comments
-  const { data: comments } = await adminClient
-    .from("report_comments")
-    .select("*, users(name, avatar_url)")
-    .eq("entry_id", id)
-    .order("created_at", { ascending: true });
-
-  // Get current user's role for comment permissions
-  const { data: currentDbUser } = await adminClient
-    .from("users")
-    .select("role")
-    .eq("id", authUser.id)
-    .single();
 
   const statusLabels: Record<string, { label: string; color: string }> = {
     draft: {

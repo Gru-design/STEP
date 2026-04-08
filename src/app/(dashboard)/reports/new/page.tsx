@@ -32,7 +32,7 @@ export default async function NewReportPage() {
     await Promise.all([
       supabase
         .from("report_templates")
-        .select("*")
+        .select("id, tenant_id, name, type, target_roles, schema, is_published, visibility_override")
         .eq("tenant_id", dbUser.tenant_id)
         .eq("is_published", true)
         .in("type", ["daily", "weekly"])

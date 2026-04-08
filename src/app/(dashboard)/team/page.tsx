@@ -22,7 +22,7 @@ export default async function TeamPage() {
 
   const { data: dbUser } = await supabase
     .from("users")
-    .select("*")
+    .select("id, tenant_id, role, name, email, avatar_url")
     .eq("id", authUser.id)
     .single();
 
@@ -33,31 +33,36 @@ export default async function TeamPage() {
   const user = dbUser as User;
   const canManage = ["admin", "manager", "super_admin"].includes(user.role);
 
-  // Fetch teams with members
-  const { data: teams } = await supabase
-    .from("teams")
-    .select(
+  // Fetch teams with members (limited) + all users in parallel
+  const [teamsResult, allUsersResult] = await Promise.all([
+    supabase
+      .from("teams")
+      .select(
+        `
+        id, tenant_id, name, manager_id, parent_team_id, created_at,
+        team_members (
+          id, team_id, user_id, tenant_id, role, created_at,
+          users (id, name, email, role, avatar_url)
+        )
       `
-      *,
-      team_members (
-        *,
-        users (id, name, email, role, avatar_url)
       )
-    `
-    )
-    .eq("tenant_id", user.tenant_id)
-    .order("created_at", { ascending: true });
+      .eq("tenant_id", user.tenant_id)
+      .order("created_at", { ascending: true })
+      .limit(50),
+    supabase
+      .from("users")
+      .select("id, name, email, role, avatar_url")
+      .eq("tenant_id", user.tenant_id)
+      .order("name", { ascending: true })
+      .limit(200),
+  ]);
 
-  // Fetch all users in tenant (for adding members)
-  const { data: allUsers } = await supabase
-    .from("users")
-    .select("id, name, email, role, avatar_url")
-    .eq("tenant_id", user.tenant_id)
-    .order("name", { ascending: true });
+  const teams = teamsResult.data;
+  const allUsers = allUsersResult.data;
 
   return (
     <TeamPageClient
-      teams={(teams as TeamWithMembers[]) ?? []}
+      teams={(teams as unknown as TeamWithMembers[]) ?? []}
       allUsers={
         (allUsers as Pick<
           User,

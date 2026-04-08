@@ -62,7 +62,7 @@ export default async function PlansPage({
   // Fetch plan templates
   const { data: templatesData } = await supabase
     .from("report_templates")
-    .select("*")
+    .select("id, tenant_id, name, type, target_roles, schema, is_published, visibility_override")
     .eq("tenant_id", dbUser.tenant_id)
     .eq("type", "plan")
     .eq("is_published", true);
@@ -72,7 +72,7 @@ export default async function PlansPage({
   // Fetch user's weekly plans (most recent first)
   const { data: plansData } = await supabase
     .from("weekly_plans")
-    .select("*")
+    .select("id, tenant_id, user_id, week_start, template_id, items, status, approved_by, approved_at, execution_rate, created_at, updated_at")
     .eq("user_id", dbUser.id)
     .order("week_start", { ascending: false })
     .limit(20);
@@ -101,7 +101,7 @@ export default async function PlansPage({
   if (planIds.length > 0) {
     const { data: reviewsData } = await supabase
       .from("plan_reviews")
-      .select("*")
+      .select("id, tenant_id, plan_id, user_id, self_rating, went_well, to_improve, next_actions, manager_id, manager_comment, manager_reviewed_at, created_at, updated_at")
       .in("plan_id", planIds);
 
     planReviews = (reviewsData ?? []) as PlanReview[];

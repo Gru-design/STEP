@@ -101,7 +101,7 @@ async function fetchMemberStats(
       .single(),
     supabase
       .from("peer_bonuses")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("to_user_id", user.id),
     supabase
       .from("weekly_plans")
@@ -187,14 +187,23 @@ async function fetchMemberStats(
   }
 
   const weeklyContributions = new Map<string, number>();
-  if (weekEntriesResult.data) {
+  if (weekEntriesResult.data && goalsWithKPI.length > 0) {
+    // Pre-group entries by template_id for O(goals + entries) instead of O(goals × entries)
+    const entriesByTemplate = new Map<string, { data: unknown; template_id: string }[]>();
+    for (const entry of weekEntriesResult.data) {
+      const existing = entriesByTemplate.get(entry.template_id);
+      if (existing) {
+        existing.push(entry);
+      } else {
+        entriesByTemplate.set(entry.template_id, [entry]);
+      }
+    }
     for (const goal of goalsWithKPI) {
       let weekSum = 0;
-      for (const entry of weekEntriesResult.data) {
-        if (entry.template_id === goal.template_id) {
-          const val = Number((entry.data as Record<string, unknown>)[goal.kpi_field_key!]);
-          if (!isNaN(val)) weekSum += val;
-        }
+      const entries = entriesByTemplate.get(goal.template_id!) ?? [];
+      for (const entry of entries) {
+        const val = Number((entry.data as Record<string, unknown>)[goal.kpi_field_key!]);
+        if (!isNaN(val)) weekSum += val;
       }
       weeklyContributions.set(goal.id, weekSum);
     }
@@ -267,7 +276,7 @@ async function ManagerSection({
 
   const [managedTeamsResult, nudgesResult, dailyTplIds] = await Promise.all([
     supabase.from("teams").select("id, name").eq("tenant_id", tenantId).eq("manager_id", user.id),
-    supabase.from("nudges").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "pending"),
+    supabase.from("nudges").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "pending"),
     fetchDailyTemplateIds(supabase, tenantId),
   ]);
 
@@ -295,18 +304,18 @@ async function ManagerSection({
   }
 
   if (isAdmin && teamMembers.length === 0) {
-    const { data: allUsers } = await supabase.from("users").select("id, name").eq("tenant_id", tenantId).neq("id", user.id);
-    const allUserIds = allUsers?.map((u) => u.id) ?? [];
-
-    if (allUserIds.length > 0) {
-      const { data: todaySubmissions } = dailyTplIds.length > 0
-        ? await supabase.from("report_entries").select("user_id").in("user_id", allUserIds).eq("report_date", today).eq("status", "submitted").in("template_id", dailyTplIds)
-        : { data: [] as { user_id: string }[] };
-      const submittedIds = new Set(todaySubmissions?.map((s) => s.user_id) ?? []);
-      teamMembers = (allUsers ?? []).map((u) => ({
-        id: u.id, name: u.name, submitted: submittedIds.has(u.id),
-      }));
-    }
+    // Parallel: fetch all users + today's submissions by tenant (no dependency)
+    const [allUsersResult, todaySubmissionsResult] = await Promise.all([
+      supabase.from("users").select("id, name").eq("tenant_id", tenantId).neq("id", user.id),
+      dailyTplIds.length > 0
+        ? supabase.from("report_entries").select("user_id").eq("tenant_id", tenantId).eq("report_date", today).eq("status", "submitted").in("template_id", dailyTplIds)
+        : Promise.resolve({ data: [] as { user_id: string }[] }),
+    ]);
+    const allUsers = allUsersResult.data ?? [];
+    const submittedIds = new Set(todaySubmissionsResult.data?.map((s) => s.user_id) ?? []);
+    teamMembers = allUsers.map((u) => ({
+      id: u.id, name: u.name, submitted: submittedIds.has(u.id),
+    }));
   }
 
   const submittedCount = teamMembers.filter((m) => m.submitted).length;
@@ -327,7 +336,7 @@ async function ManagerSection({
 
   const weekCountResults = await Promise.all(
     weekRanges.map((wr) => {
-      let query = supabase.from("report_entries").select("*", { count: "exact", head: true })
+      let query = supabase.from("report_entries").select("id", { count: "exact", head: true })
         .eq("tenant_id", tenantId).eq("status", "submitted")
         .gte("report_date", wr.start).lte("report_date", wr.end);
       if (dailyTplIds.length > 0) {
@@ -369,11 +378,11 @@ async function ManagerSection({
     teamsRes, todayEntriesRes, allGoalsRes,
     ownerUsersRes, stagesRes, activeDealsStageRes,
   ] = await Promise.all([
-    supabase.from("users").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId),
+    supabase.from("users").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId),
     dailyTplIds.length > 0
-      ? supabase.from("report_entries").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("report_date", today).eq("status", "submitted").in("template_id", dailyTplIds)
+      ? supabase.from("report_entries").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("report_date", today).eq("status", "submitted").in("template_id", dailyTplIds)
       : Promise.resolve({ count: 0 }),
-    supabase.from("deals").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "active"),
+    supabase.from("deals").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "active"),
     supabase.from("teams").select("id, name").eq("tenant_id", tenantId),
     dailyTplIds.length > 0
       ? supabase.from("report_entries").select("user_id").eq("tenant_id", tenantId).eq("report_date", today).eq("status", "submitted").in("template_id", dailyTplIds)
@@ -512,12 +521,12 @@ export default async function DashboardPage() {
   weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
   const weekStartStr = weekStart.toISOString().split("T")[0];
 
-  // Fetch daily template IDs, member stats and tenant settings in parallel
-  const dailyTemplateIds = await fetchDailyTemplateIds(supabase, user.tenant_id);
-  const [memberStats, tenantSettingsResult] = await Promise.all([
-    fetchMemberStats(supabase, user, today, weekStartStr, nowMs, dailyTemplateIds),
+  // Fetch daily template IDs + tenant settings in parallel, then member stats
+  const [dailyTemplateIds, tenantSettingsResult] = await Promise.all([
+    fetchDailyTemplateIds(supabase, user.tenant_id),
     supabase.from("tenants").select("settings").eq("id", user.tenant_id).single(),
   ]);
+  const memberStats = await fetchMemberStats(supabase, user, today, weekStartStr, nowMs, dailyTemplateIds);
 
   const tenantSettings = (tenantSettingsResult.data?.settings ?? {}) as TenantSettings;
   const peerBonusEnabled = tenantSettings.peer_bonus_enabled !== false;
@@ -529,9 +538,9 @@ export default async function DashboardPage() {
 
   // Manager/Admin: fetch approval stats quickly, then render with Suspense for heavy sections
   const [pendingPlansResult, pendingDealsResult] = await Promise.all([
-    supabase.from("weekly_plans").select("*", { count: "exact", head: true })
+    supabase.from("weekly_plans").select("id", { count: "exact", head: true })
       .eq("tenant_id", user.tenant_id).eq("status", "submitted"),
-    supabase.from("deals").select("*", { count: "exact", head: true })
+    supabase.from("deals").select("id", { count: "exact", head: true })
       .eq("tenant_id", user.tenant_id).eq("status", "submitted" as string),
   ]);
 

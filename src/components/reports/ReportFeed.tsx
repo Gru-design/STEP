@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -422,6 +422,21 @@ export function ReportFeed({
   );
 }
 
+// Cache type for interaction data
+interface InteractionData {
+  reactions: Reaction[];
+  reactionUserNames: Record<string, string>;
+  comments: {
+    id: string;
+    entry_id: string;
+    user_id: string;
+    parent_id: string | null;
+    body: string;
+    created_at: string;
+    users: { name: string; avatar_url: string | null } | null;
+  }[];
+}
+
 /** Inline report detail for the right panel with reactions + comments */
 function ReportDetailInline({
   entry,
@@ -437,19 +452,28 @@ function ReportDetailInline({
   const schema = entry.template_schema;
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [reactionUserNames, setReactionUserNames] = useState<Record<string, string>>({});
-  const [comments, setComments] = useState<{
-    id: string;
-    entry_id: string;
-    user_id: string;
-    parent_id: string | null;
-    body: string;
-    created_at: string;
-    users: { name: string; avatar_url: string | null } | null;
-  }[]>([]);
+  const [comments, setComments] = useState<InteractionData["comments"]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Cache: Map<entryId, InteractionData>
+  const cacheRef = useRef<Map<string, InteractionData>>(new Map());
+  // Debounce timer ref
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Fetch reactions + comments when entry changes
-  const fetchInteractions = useCallback(async (showSpinner = false) => {
+  const fetchInteractions = useCallback(async (showSpinner = false, skipCache = false) => {
+    // Check cache first
+    if (!skipCache) {
+      const cached = cacheRef.current.get(entry.id);
+      if (cached) {
+        setReactions(cached.reactions);
+        setReactionUserNames(cached.reactionUserNames);
+        setComments(cached.comments);
+        setLoading(false);
+        return;
+      }
+    }
+
     if (showSpinner) setLoading(true);
     try {
       const [reactionsResult, commentsResult] = await Promise.all([
@@ -457,23 +481,26 @@ function ReportDetailInline({
         getComments(entry.id),
       ]);
 
-      if (reactionsResult.success && reactionsResult.data) {
-        setReactions(reactionsResult.data.reactions as Reaction[]);
-        setReactionUserNames(reactionsResult.data.userNames);
-      }
-      if (commentsResult.success && commentsResult.data) {
-        setComments(
-          commentsResult.data as {
-            id: string;
-            entry_id: string;
-            user_id: string;
-            parent_id: string | null;
-            body: string;
-            created_at: string;
-            users: { name: string; avatar_url: string | null } | null;
-          }[]
-        );
-      }
+      const newReactions = (reactionsResult.success && reactionsResult.data)
+        ? reactionsResult.data.reactions as Reaction[]
+        : [];
+      const newUserNames = (reactionsResult.success && reactionsResult.data)
+        ? reactionsResult.data.userNames
+        : {};
+      const newComments = (commentsResult.success && commentsResult.data)
+        ? commentsResult.data as InteractionData["comments"]
+        : [];
+
+      // Update cache
+      cacheRef.current.set(entry.id, {
+        reactions: newReactions,
+        reactionUserNames: newUserNames,
+        comments: newComments,
+      });
+
+      setReactions(newReactions);
+      setReactionUserNames(newUserNames);
+      setComments(newComments);
     } catch {
       // silently fail
     } finally {
@@ -483,13 +510,16 @@ function ReportDetailInline({
 
   useEffect(() => {
     fetchInteractions(true);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [fetchInteractions]);
 
   // Re-fetch after server action completes (reactions/comments change)
-  // We poll briefly after actions to pick up revalidated data
+  // Debounced to 300ms to avoid rapid re-fetches
   const handleInteractionChange = useCallback(() => {
-    // Small delay to let server action complete revalidation
-    setTimeout(() => fetchInteractions(), 300);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchInteractions(false, true), 300);
   }, [fetchInteractions]);
 
   return (

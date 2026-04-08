@@ -115,30 +115,32 @@ export default async function DashboardLayout({
   // Fetch gamification data in parallel (non-blocking via Suspense)
   // For initial render, provide defaults so DashboardShell renders immediately
   const supabaseForGamification = await createClient();
-  const { data: dailyTemplates } = await adminClient
-    .from("report_templates")
-    .select("id")
-    .eq("tenant_id", user.tenant_id)
-    .eq("type", "daily");
-  const dailyTemplateIds = (dailyTemplates ?? []).map((t) => t.id);
 
-  const [levelResult, streakResult] = await Promise.all([
+  // Fetch daily template IDs + level in parallel, then streak
+  const [dailyTemplatesResult, levelResult] = await Promise.all([
+    adminClient
+      .from("report_templates")
+      .select("id")
+      .eq("tenant_id", user.tenant_id)
+      .eq("type", "daily"),
     supabaseForGamification
       .from("user_levels")
       .select("level, xp")
       .eq("user_id", user.id)
       .single(),
-    dailyTemplateIds.length > 0
-      ? supabaseForGamification
-          .from("report_entries")
-          .select("report_date")
-          .eq("user_id", user.id)
-          .eq("status", "submitted")
-          .in("template_id", dailyTemplateIds)
-          .order("report_date", { ascending: false })
-          .limit(60)
-      : Promise.resolve({ data: [] as { report_date: string }[] }),
   ]);
+  const dailyTemplateIds = (dailyTemplatesResult.data ?? []).map((t) => t.id);
+
+  const streakResult = dailyTemplateIds.length > 0
+    ? await supabaseForGamification
+        .from("report_entries")
+        .select("report_date")
+        .eq("user_id", user.id)
+        .eq("status", "submitted")
+        .in("template_id", dailyTemplateIds)
+        .order("report_date", { ascending: false })
+        .limit(60)
+    : { data: [] as { report_date: string }[] };
 
   const level = levelResult.data?.level ?? 1;
   const xp = levelResult.data?.xp ?? 0;
@@ -166,38 +168,40 @@ export default async function DashboardLayout({
   const bonusRows = recentBonusesResult.data ?? [];
   const checkinRows = recentCheckinsResult.data ?? [];
 
+  // Pre-collect ALL possible user IDs so we can fetch users + templates in parallel
   const feedUserIds = new Set<string>();
   for (const b of bonusRows) {
     feedUserIds.add(b.from_user_id);
     feedUserIds.add(b.to_user_id);
   }
-
-  let checkinTemplateIds: Set<string> = new Set();
-  if (checkinRows.length > 0) {
-    const templateIds = [...new Set(checkinRows.map((e) => e.template_id).filter(Boolean))];
-    if (templateIds.length > 0) {
-      const { data: templates } = await adminClient
-        .from("report_templates")
-        .select("id, type")
-        .in("id", templateIds)
-        .eq("type", "checkin");
-      checkinTemplateIds = new Set((templates ?? []).map((t) => t.id));
-    }
-  }
-
-  const checkinEntries = checkinRows.filter((e) => e.template_id && checkinTemplateIds.has(e.template_id));
-  for (const c of checkinEntries) {
+  for (const c of checkinRows) {
     feedUserIds.add(c.user_id);
   }
 
-  let feedUserMap: Record<string, string> = {};
-  if (feedUserIds.size > 0) {
-    const { data: feedUsers } = await adminClient
-      .from("users")
-      .select("id, name")
-      .in("id", [...feedUserIds]);
-    feedUserMap = Object.fromEntries((feedUsers ?? []).map((u) => [u.id, u.name]));
-  }
+  const checkinTemplateIds_arr = [...new Set(checkinRows.map((e) => e.template_id).filter(Boolean))];
+
+  // Parallel: fetch checkin templates + all feed user names at once
+  const [checkinTemplatesResult, feedUsersResult] = await Promise.all([
+    checkinTemplateIds_arr.length > 0
+      ? adminClient
+          .from("report_templates")
+          .select("id, type")
+          .in("id", checkinTemplateIds_arr)
+          .eq("type", "checkin")
+      : Promise.resolve({ data: [] as { id: string; type: string }[] }),
+    feedUserIds.size > 0
+      ? adminClient
+          .from("users")
+          .select("id, name")
+          .in("id", [...feedUserIds])
+      : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+  ]);
+
+  const checkinTemplateIds = new Set((checkinTemplatesResult.data ?? []).map((t) => t.id));
+  const checkinEntries = checkinRows.filter((e) => e.template_id && checkinTemplateIds.has(e.template_id));
+  const feedUserMap: Record<string, string> = Object.fromEntries(
+    (feedUsersResult.data ?? []).map((u) => [u.id, u.name])
+  );
 
   type ActivityFeedItemType = { id: string; type: "peer_bonus" | "checkin"; userName: string; targetName?: string; message?: string; date: string };
   const activityFeed: ActivityFeedItemType[] = [];
