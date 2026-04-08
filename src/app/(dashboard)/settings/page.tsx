@@ -17,7 +17,7 @@ export default async function SettingsPage() {
 
   const { data: dbUser } = await supabase
     .from("users")
-    .select("*")
+    .select("id, tenant_id, role")
     .eq("id", authUser.id)
     .single();
 
@@ -39,7 +39,7 @@ export default async function SettingsPage() {
 
   const { data: tenant } = await supabase
     .from("tenants")
-    .select("*")
+    .select("id, name, plan, domain, settings, report_visibility, created_at, updated_at")
     .eq("id", user.tenant_id)
     .single();
 

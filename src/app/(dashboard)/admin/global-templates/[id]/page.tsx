@@ -36,7 +36,7 @@ export default async function EditGlobalTemplatePage({
   const adminClient = createAdminClient();
   const { data: template } = await adminClient
     .from("report_templates")
-    .select("*")
+    .select("id, tenant_id, name, type, target_roles, schema, visibility_override, is_system, is_published, version, source_template_id, created_at, updated_at")
     .eq("id", id)
     .is("tenant_id", null)
     .single();

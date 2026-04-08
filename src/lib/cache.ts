@@ -155,7 +155,7 @@ export function getCachedPipelineStages(tenantId: string) {
       const adminClient = createAdminClient();
       const { data } = await adminClient
         .from("pipeline_stages")
-        .select("*")
+        .select("id, tenant_id, name, sort_order, conversion_target, created_at")
         .eq("tenant_id", tenantId)
         .order("sort_order", { ascending: true });
       return data ?? [];
@@ -177,7 +177,7 @@ export function getCachedBadgeDefinitions() {
       const adminClient = createAdminClient();
       const { data } = await adminClient
         .from("badges")
-        .select("*")
+        .select("id, name, description, icon, condition, rarity, created_at")
         .order("rarity", { ascending: true });
       return data ?? [];
     },

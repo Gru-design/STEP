@@ -305,7 +305,7 @@ export async function duplicateTemplate(id: string) {
 
     const { data: original } = await admin
       .from("report_templates")
-      .select("*")
+      .select("name, type, target_roles, schema, visibility_override")
       .eq("id", id)
       .eq("tenant_id", user.tenant_id)
       .single();

@@ -43,7 +43,7 @@ export default async function OneOnOnePage({
 
   const { data: dbUser } = await supabase
     .from("users")
-    .select("*")
+    .select("id, tenant_id, role")
     .eq("id", authUser.id)
     .single();
 
@@ -61,7 +61,7 @@ export default async function OneOnOnePage({
   // Fetch the target user
   const { data: targetUserData } = await supabase
     .from("users")
-    .select("*")
+    .select("id, name, email, role, tenant_id, avatar_url, phone, slack_id, calendar_url, bio")
     .eq("id", userId)
     .eq("tenant_id", currentUser.tenant_id)
     .single();
@@ -333,7 +333,7 @@ export default async function OneOnOnePage({
   if (reviewPlanIds.length > 0) {
     const { data: reviewsData } = await supabase
       .from("plan_reviews")
-      .select("*")
+      .select("id, tenant_id, plan_id, user_id, self_rating, went_well, to_improve, next_actions, manager_id, manager_comment, manager_reviewed_at, created_at, updated_at")
       .in("plan_id", reviewPlanIds);
 
     planReviews = (reviewsData ?? []) as PlanReview[];

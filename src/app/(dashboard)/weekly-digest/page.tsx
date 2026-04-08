@@ -16,7 +16,7 @@ export default async function WeeklyDigestPage() {
 
   const { data: dbUser } = await supabase
     .from("users")
-    .select("*")
+    .select("id, tenant_id, role")
     .eq("id", authUser.id)
     .single();
 
@@ -29,7 +29,7 @@ export default async function WeeklyDigestPage() {
   // Fetch latest weekly digests for the tenant (last 12 weeks)
   const { data: digests } = await supabase
     .from("weekly_digests")
-    .select("*")
+    .select("id, tenant_id, week_start, week_end, data, rankings, mvp, stats, badges_earned, recommendations, created_at")
     .eq("tenant_id", user.tenant_id)
     .order("week_start", { ascending: false })
     .limit(12);

@@ -16,7 +16,7 @@ export default async function NewTemplatePage() {
 
   const { data: dbUser } = await supabase
     .from("users")
-    .select("*")
+    .select("id, tenant_id, role")
     .eq("id", authUser.id)
     .single();
 

@@ -57,7 +57,7 @@ export async function listGlobalTemplates() {
 
     const { data, error } = await adminClient
       .from("report_templates")
-      .select("*")
+      .select("id, tenant_id, name, type, target_roles, schema, visibility_override, is_system, is_published, version, source_template_id, created_at, updated_at")
       .is("tenant_id", null)
       .order("created_at", { ascending: false });
 
@@ -266,7 +266,7 @@ export async function applyGlobalTemplatesToAllTenants() {
     // 1. Get all global templates
     const { data: globalTemplates, error: gtError } = await adminClient
       .from("report_templates")
-      .select("*")
+      .select("id, tenant_id, name, type, target_roles, schema, visibility_override, is_system, is_published, version, source_template_id, created_at, updated_at")
       .is("tenant_id", null)
       .eq("is_published", true);
 
@@ -363,7 +363,7 @@ export async function applyGlobalTemplatesToTenant(tenantId: string) {
 
     const { data: globalTemplates, error: gtError } = await adminClient
       .from("report_templates")
-      .select("*")
+      .select("id, tenant_id, name, type, target_roles, schema, visibility_override, is_system, is_published, version, source_template_id, created_at, updated_at")
       .is("tenant_id", null)
       .eq("is_published", true);
 
@@ -425,7 +425,7 @@ export async function syncGlobalTemplateToTenants(globalTemplateId: string) {
     // 1. Get the global template
     const { data: globalTemplate, error: gtError } = await adminClient
       .from("report_templates")
-      .select("*")
+      .select("id, tenant_id, name, type, target_roles, schema, visibility_override, is_system, is_published, version, source_template_id, created_at, updated_at")
       .eq("id", globalTemplateId)
       .is("tenant_id", null)
       .single();

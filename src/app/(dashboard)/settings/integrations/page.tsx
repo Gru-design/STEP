@@ -17,7 +17,7 @@ export default async function IntegrationsPage() {
 
   const { data: dbUser } = await supabase
     .from("users")
-    .select("*")
+    .select("id, tenant_id, role")
     .eq("id", authUser.id)
     .single();
 
@@ -39,7 +39,7 @@ export default async function IntegrationsPage() {
 
   const { data: integrations } = await supabase
     .from("integrations")
-    .select("*")
+    .select("id, tenant_id, provider, credentials, settings, status, created_at")
     .eq("tenant_id", user.tenant_id)
     .order("created_at", { ascending: true });
 

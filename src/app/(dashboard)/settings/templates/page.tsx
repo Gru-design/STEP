@@ -19,7 +19,7 @@ export default async function TemplatesPage() {
 
   const { data: dbUser } = await admin
     .from("users")
-    .select("*")
+    .select("id, tenant_id, role")
     .eq("id", authUser.id)
     .single();
 
@@ -41,7 +41,7 @@ export default async function TemplatesPage() {
 
   const { data: templates } = await admin
     .from("report_templates")
-    .select("*")
+    .select("id, tenant_id, name, type, target_roles, schema, visibility_override, is_system, is_published, version, source_template_id, created_at, updated_at")
     .eq("tenant_id", user.tenant_id)
     .order("created_at", { ascending: false });
 
