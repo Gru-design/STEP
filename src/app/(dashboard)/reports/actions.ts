@@ -531,7 +531,7 @@ export async function getReactions(
 
     const { data: reactions, error } = await supabase
       .from("reactions")
-      .select("*")
+      .select("id, entry_id, user_id, type, comment, created_at")
       .eq("entry_id", entryId)
       .order("created_at", { ascending: true });
 
