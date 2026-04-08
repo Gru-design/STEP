@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import type { User, TenantSettings } from "@/types/database";
 import { MemberDashboard } from "./MemberDashboard";
 import { calculateStreak, LEVEL_THRESHOLDS } from "@/lib/gamification/level";
+import { getCachedDailyTemplateIds } from "@/lib/cache";
 import type { MemberStats, ManagerStats, AdminStats, ApprovalStats } from "./types";
 
 const ManagerDashboard = dynamic(
@@ -25,15 +26,11 @@ function getNextLevelXP(level: number): number {
 // ── Fetch member stats (shared across all roles) ──
 
 async function fetchDailyTemplateIds(
-  supabase: ReturnType<typeof createAdminClient>,
+  _supabase: ReturnType<typeof createAdminClient>,
   tenantId: string,
 ): Promise<string[]> {
-  const { data } = await supabase
-    .from("report_templates")
-    .select("id")
-    .eq("tenant_id", tenantId)
-    .eq("type", "daily");
-  return (data ?? []).map((t) => t.id);
+  // Delegate to request-scoped cache to deduplicate across layout + page
+  return getCachedDailyTemplateIds(tenantId);
 }
 
 async function fetchMemberStats(

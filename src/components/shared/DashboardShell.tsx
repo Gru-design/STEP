@@ -271,6 +271,10 @@ interface DashboardShellProps {
   gamification?: GamificationData;
   activityFeed?: ActivityFeedItem[];
   hiddenNavHrefs?: string[];
+  /** Suspense-streamed slot for gamification indicator (overrides gamification prop) */
+  gamificationSlot?: React.ReactNode;
+  /** Suspense-streamed slot for activity feed (overrides activityFeed prop) */
+  activityFeedSlot?: React.ReactNode;
 }
 
 export function DashboardShell({
@@ -282,6 +286,8 @@ export function DashboardShell({
   gamification,
   activityFeed = [],
   hiddenNavHrefs = [],
+  gamificationSlot,
+  activityFeedSlot,
 }: DashboardShellProps) {
   const pathname = usePathname();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -358,12 +364,12 @@ export function DashboardShell({
         <nav className="flex-1 overflow-y-auto p-3">
           {renderNavGroups()}
         </nav>
-        {/* Activity feed */}
-        {activityFeed.length > 0 && (
+        {/* Activity feed — slot (streamed) takes priority */}
+        {activityFeedSlot ?? (activityFeed.length > 0 && (
           <div className="border-t border-border pt-2">
             <SidebarActivityFeed items={activityFeed} />
           </div>
-        )}
+        ))}
         {/* Feature request + Profile at bottom */}
         <div className="border-t border-border p-3 space-y-1">
           <FeatureRequestDialog variant="sidebar" />
@@ -410,11 +416,11 @@ export function DashboardShell({
                 <nav className="overflow-y-auto p-3">
                   {renderNavGroups(() => setSheetOpen(false))}
                 </nav>
-                {activityFeed.length > 0 && (
+                {activityFeedSlot ?? (activityFeed.length > 0 && (
                   <div className="border-t border-border pt-2">
                     <SidebarActivityFeed items={activityFeed} />
                   </div>
-                )}
+                ))}
                 <div className="border-t border-border p-3">
                   <FeatureRequestDialog variant="sidebar" />
                 </div>
@@ -451,8 +457,8 @@ export function DashboardShell({
 
           {/* Right side: gamification + notifications + user menu */}
           <div className="flex items-center gap-1">
-            {/* Gamification indicators */}
-            {gamification && (
+            {/* Gamification indicators — slot (streamed) takes priority */}
+            {gamificationSlot ?? (gamification && (
               <div className="hidden sm:flex items-center gap-2 mr-1 rounded-lg border border-border bg-muted/30 px-2.5 py-1">
                 {gamification.streak > 0 && (
                   <span className="flex items-center gap-0.5 text-xs font-medium text-orange-500">
@@ -465,7 +471,7 @@ export function DashboardShell({
                   Lv.{gamification.level}
                 </span>
               </div>
-            )}
+            ))}
             <NotificationBell userId={user.id} />
 
             <DropdownMenu>

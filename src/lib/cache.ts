@@ -37,6 +37,19 @@ export const getCachedUserInfo = cache(async (userId: string) => {
   return data;
 });
 
+// ---------------------------------------------------------------------------
+// dailyTemplateIds — per-request dedup (used by layout + dashboard)
+// ---------------------------------------------------------------------------
+export const getCachedDailyTemplateIds = cache(async (tenantId: string): Promise<string[]> => {
+  const adminClient = createAdminClient();
+  const { data } = await adminClient
+    .from("report_templates")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("type", "daily");
+  return (data ?? []).map((t) => t.id);
+});
+
 // =============================================================================
 // unstable_cache — cross-request data cache for low-frequency data
 //
