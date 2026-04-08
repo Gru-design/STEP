@@ -42,7 +42,7 @@ export default function ProfilePage() {
       if (authUser) {
         const [{ data }, { data: levelRow }, { data: userBadgeRows }, { data: allBadges }] =
           await Promise.all([
-            supabase.from("users").select("*").eq("id", authUser.id).single(),
+            supabase.from("users").select("id, tenant_id, email, role, name, avatar_url, phone, slack_id, calendar_url, bio, created_at, updated_at").eq("id", authUser.id).single(),
             supabase
               .from("user_levels")
               .select("level, xp")
@@ -52,7 +52,7 @@ export default function ProfilePage() {
               .from("user_badges")
               .select("badge_id")
               .eq("user_id", authUser.id),
-            supabase.from("badges").select("*").order("created_at", { ascending: false }).limit(5),
+            supabase.from("badges").select("id, name, icon").order("created_at", { ascending: false }).limit(5),
           ]);
 
         if (data) {
@@ -156,7 +156,7 @@ export default function ProfilePage() {
         if (authUser) {
           const { data } = await supabase
             .from("users")
-            .select("*")
+            .select("id, tenant_id, email, role, name, avatar_url, phone, slack_id, calendar_url, bio, created_at, updated_at")
             .eq("id", authUser.id)
             .single();
           if (data) {

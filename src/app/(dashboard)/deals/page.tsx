@@ -29,12 +29,13 @@ export default async function DealsPage() {
   const stagesData = await getCachedPipelineStages(dbUser.tenant_id);
   const stages = stagesData as PipelineStage[];
 
-  // Fetch all active deals for this tenant
+  // Fetch deals for this tenant (paginated)
   const { data: dealsData } = await supabase
     .from("deals")
-    .select("*")
+    .select("id, tenant_id, user_id, stage_id, company, title, value, persona, due_date, status, approval_status, created_at, updated_at")
     .eq("tenant_id", dbUser.tenant_id)
-    .order("updated_at", { ascending: false });
+    .order("updated_at", { ascending: false })
+    .limit(50);
 
   const deals = (dealsData ?? []) as Deal[];
   const userRole = dbUser.role as Role;

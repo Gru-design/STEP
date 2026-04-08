@@ -24,7 +24,7 @@ export default async function DealDetailPage({ params }: PageProps) {
   // Fetch deal
   const { data: dealData } = await supabase
     .from("deals")
-    .select("*")
+    .select("id, tenant_id, user_id, stage_id, company, title, value, persona, due_date, status, approval_status, created_at, updated_at")
     .eq("id", id)
     .single();
 
@@ -47,7 +47,7 @@ export default async function DealDetailPage({ params }: PageProps) {
   // Fetch deal history with stage names
   const { data: historyData } = await supabase
     .from("deal_history")
-    .select("*")
+    .select("id, deal_id, from_stage, to_stage, changed_at")
     .eq("deal_id", id)
     .order("changed_at", { ascending: false });
 

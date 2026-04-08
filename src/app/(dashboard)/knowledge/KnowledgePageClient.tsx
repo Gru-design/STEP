@@ -19,6 +19,7 @@ import {
   createKnowledgePost,
   searchKnowledge,
   deleteKnowledgePost,
+  loadMoreKnowledge,
 } from "./actions";
 import { useServerAction } from "@/hooks/useServerAction";
 
@@ -59,6 +60,8 @@ export function KnowledgePageClient({
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
   const [showNewPostDialog, setShowNewPostDialog] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(initialPosts.length >= 50);
 
   // New post form state
   const [newTitle, setNewTitle] = useState("");
@@ -103,6 +106,34 @@ export function KnowledgePageClient({
         };
       });
       setPosts(searchResults);
+    }
+  };
+
+  const handleLoadMore = async () => {
+    setLoadingMore(true);
+    const result = await loadMoreKnowledge(posts.length);
+    setLoadingMore(false);
+
+    if (result.success && result.data) {
+      const morePosts = (result.data as Record<string, unknown>[]).map(
+        (p: Record<string, unknown>) => {
+          const user = p.users as Record<string, unknown> | null;
+          return {
+            id: p.id as string,
+            tenant_id: p.tenant_id as string,
+            user_id: p.user_id as string,
+            title: p.title as string,
+            body: p.body as string,
+            tags: (p.tags as string[]) ?? [],
+            created_at: p.created_at as string,
+            updated_at: p.updated_at as string,
+            user_name: (user?.name as string) ?? "",
+            user_avatar_url: (user?.avatar_url as string) ?? null,
+          };
+        }
+      );
+      if (morePosts.length < 50) setHasMore(false);
+      setPosts((prev) => [...prev, ...morePosts]);
     }
   };
 
@@ -336,6 +367,20 @@ export function KnowledgePageClient({
               </div>
             );
           })}
+
+          {/* Load more button */}
+          {hasMore && !searchQuery && !selectedTag && (
+            <div className="flex justify-center pt-2">
+              <Button
+                variant="outline"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="border-border"
+              >
+                {loadingMore ? "読み込み中..." : "もっと見る"}
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

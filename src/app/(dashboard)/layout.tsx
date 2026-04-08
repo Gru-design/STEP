@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -5,9 +6,12 @@ import { DashboardShell } from "@/components/shared/DashboardShell";
 import { OnboardingWizard } from "@/components/shared/OnboardingWizard";
 import { CheckinModal } from "@/components/shared/CheckinModal";
 import { NudgeTrigger } from "@/components/shared/NudgeTrigger";
+import {
+  GamificationIndicator,
+  ActivityFeedLoader,
+} from "@/components/shared/StreamedShellData";
 import { extractTheme, themeToStyle } from "@/lib/tenant-theme";
 import { getCachedTenantInfo } from "@/lib/cache";
-import { calculateStreak, LEVEL_THRESHOLDS } from "@/lib/gamification/level";
 import type { User, Plan, TenantSettings } from "@/types/database";
 import type { OnboardingStep } from "@/app/(dashboard)/onboarding/actions";
 
@@ -112,116 +116,6 @@ export default async function DashboardLayout({
     );
   }
 
-  // Fetch gamification data in parallel (non-blocking via Suspense)
-  // For initial render, provide defaults so DashboardShell renders immediately
-  const supabaseForGamification = await createClient();
-  const { data: dailyTemplates } = await adminClient
-    .from("report_templates")
-    .select("id")
-    .eq("tenant_id", user.tenant_id)
-    .eq("type", "daily");
-  const dailyTemplateIds = (dailyTemplates ?? []).map((t) => t.id);
-
-  const [levelResult, streakResult] = await Promise.all([
-    supabaseForGamification
-      .from("user_levels")
-      .select("level, xp")
-      .eq("user_id", user.id)
-      .single(),
-    dailyTemplateIds.length > 0
-      ? supabaseForGamification
-          .from("report_entries")
-          .select("report_date")
-          .eq("user_id", user.id)
-          .eq("status", "submitted")
-          .in("template_id", dailyTemplateIds)
-          .order("report_date", { ascending: false })
-          .limit(60)
-      : Promise.resolve({ data: [] as { report_date: string }[] }),
-  ]);
-
-  const level = levelResult.data?.level ?? 1;
-  const xp = levelResult.data?.xp ?? 0;
-  const xpForNextLevel = LEVEL_THRESHOLDS[level] ?? LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
-  const streak = calculateStreak(streakResult.data ?? []);
-  const gamification = { level, xp, xpForNextLevel, streak };
-
-  // Activity feed — fetch in background, pass to shell
-  const [recentBonusesResult, recentCheckinsResult] = await Promise.all([
-    adminClient
-      .from("peer_bonuses")
-      .select("id, from_user_id, to_user_id, message, created_at")
-      .eq("tenant_id", user.tenant_id)
-      .order("created_at", { ascending: false })
-      .limit(8),
-    adminClient
-      .from("report_entries")
-      .select("id, user_id, created_at, template_id")
-      .eq("tenant_id", user.tenant_id)
-      .eq("status", "submitted")
-      .order("created_at", { ascending: false })
-      .limit(10),
-  ]);
-
-  const bonusRows = recentBonusesResult.data ?? [];
-  const checkinRows = recentCheckinsResult.data ?? [];
-
-  const feedUserIds = new Set<string>();
-  for (const b of bonusRows) {
-    feedUserIds.add(b.from_user_id);
-    feedUserIds.add(b.to_user_id);
-  }
-
-  let checkinTemplateIds: Set<string> = new Set();
-  if (checkinRows.length > 0) {
-    const templateIds = [...new Set(checkinRows.map((e) => e.template_id).filter(Boolean))];
-    if (templateIds.length > 0) {
-      const { data: templates } = await adminClient
-        .from("report_templates")
-        .select("id, type")
-        .in("id", templateIds)
-        .eq("type", "checkin");
-      checkinTemplateIds = new Set((templates ?? []).map((t) => t.id));
-    }
-  }
-
-  const checkinEntries = checkinRows.filter((e) => e.template_id && checkinTemplateIds.has(e.template_id));
-  for (const c of checkinEntries) {
-    feedUserIds.add(c.user_id);
-  }
-
-  let feedUserMap: Record<string, string> = {};
-  if (feedUserIds.size > 0) {
-    const { data: feedUsers } = await adminClient
-      .from("users")
-      .select("id, name")
-      .in("id", [...feedUserIds]);
-    feedUserMap = Object.fromEntries((feedUsers ?? []).map((u) => [u.id, u.name]));
-  }
-
-  type ActivityFeedItemType = { id: string; type: "peer_bonus" | "checkin"; userName: string; targetName?: string; message?: string; date: string };
-  const activityFeed: ActivityFeedItemType[] = [];
-  for (const b of bonusRows) {
-    activityFeed.push({
-      id: b.id,
-      type: "peer_bonus",
-      userName: feedUserMap[b.from_user_id] ?? "不明",
-      targetName: feedUserMap[b.to_user_id] ?? "不明",
-      message: b.message,
-      date: b.created_at,
-    });
-  }
-  for (const c of checkinEntries) {
-    activityFeed.push({
-      id: c.id,
-      type: "checkin",
-      userName: feedUserMap[c.user_id] ?? "不明",
-      date: c.created_at,
-    });
-  }
-  activityFeed.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  const feedItems = activityFeed.slice(0, 8);
-
   // Build hidden nav items from tenant settings
   const tenantSettings = (tenant?.settings ?? {}) as TenantSettings;
   const hiddenNavHrefs: string[] = [];
@@ -229,6 +123,7 @@ export default async function DashboardLayout({
     hiddenNavHrefs.push("/peer-bonus");
   }
 
+  // Gamification + Activity Feed are streamed via Suspense — shell renders immediately
   return (
     <div style={themeStyle ?? undefined}>
       <DashboardShell
@@ -236,9 +131,17 @@ export default async function DashboardLayout({
         plan={tenantPlan}
         appName={theme.appName}
         logoUrl={theme.logoUrl}
-        gamification={gamification}
-        activityFeed={feedItems}
         hiddenNavHrefs={hiddenNavHrefs}
+        gamificationSlot={
+          <Suspense fallback={null}>
+            <GamificationIndicator userId={user.id} tenantId={user.tenant_id} />
+          </Suspense>
+        }
+        activityFeedSlot={
+          <Suspense fallback={null}>
+            <ActivityFeedLoader tenantId={user.tenant_id} />
+          </Suspense>
+        }
       >
         {children}
         <CheckinModal userId={user.id} tenantId={user.tenant_id} />

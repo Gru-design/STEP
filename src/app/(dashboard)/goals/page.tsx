@@ -20,7 +20,7 @@ export default async function GoalsPage() {
 
   const { data: dbUser } = await adminClient
     .from("users")
-    .select("*")
+    .select("id, tenant_id, role")
     .eq("id", authUser.id)
     .single();
 
@@ -33,7 +33,7 @@ export default async function GoalsPage() {
   // Fetch goals
   const { data: goalsData, error: goalsError } = await adminClient
     .from("goals")
-    .select("*")
+    .select("id, tenant_id, parent_id, level, name, target_value, kpi_field_key, template_id, period_start, period_end, owner_id, team_id, created_at")
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: true });
 
@@ -49,7 +49,7 @@ export default async function GoalsPage() {
   if (goalIds.length > 0) {
     const { data: snapshotsData, error: snapshotsError } = await adminClient
       .from("goal_snapshots")
-      .select("*")
+      .select("id, goal_id, actual_value, progress_rate, snapshot_date, created_at")
       .in("goal_id", goalIds)
       .order("snapshot_date", { ascending: false });
 

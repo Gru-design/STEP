@@ -79,7 +79,12 @@ export function NotificationBell({ userId }: NotificationBellProps) {
 
   // Initial fetch + Realtime subscription
   useEffect(() => {
-    fetchNotifications();
+    let cancelled = false;
+    // Fetch in a non-blocking way to avoid synchronous setState in effect
+    const doFetch = async () => {
+      if (!cancelled) await fetchNotifications();
+    };
+    doFetch();
 
     const supabase = createClient();
 
@@ -103,6 +108,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
       .subscribe();
 
     return () => {
+      cancelled = true;
       supabase.removeChannel(channel);
     };
   }, [userId, fetchNotifications]);

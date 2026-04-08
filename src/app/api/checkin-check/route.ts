@@ -37,7 +37,7 @@ export async function GET() {
     // Fetch checkin template for tenant
     const { data: template } = await supabase
       .from("report_templates")
-      .select("*")
+      .select("id, name, type, schema")
       .eq("tenant_id", dbUser.tenant_id)
       .eq("type", "checkin")
       .eq("is_published", true)

@@ -26,7 +26,7 @@ export default async function EditReportPage({ params }: EditReportPageProps) {
   const adminClient = createAdminClient();
   const { data: entry, error: entryError } = await adminClient
     .from("report_entries")
-    .select("*")
+    .select("id, user_id, template_id, report_date, data, status, submitted_at, created_at")
     .eq("id", id)
     .single();
 
@@ -57,7 +57,7 @@ export default async function EditReportPage({ params }: EditReportPageProps) {
     await Promise.all([
       adminClient
         .from("report_templates")
-        .select("*")
+        .select("id, tenant_id, name, type, target_roles, schema, is_published, visibility_override")
         .eq("id", entry.template_id)
         .single(),
       supabase

@@ -34,7 +34,7 @@ export default async function PipelineSettingsPage() {
 
   const { data: stages } = await supabase
     .from("pipeline_stages")
-    .select("*")
+    .select("id, tenant_id, name, sort_order, conversion_target, created_at")
     .eq("tenant_id", dbUser.tenant_id)
     .order("sort_order", { ascending: true });
 

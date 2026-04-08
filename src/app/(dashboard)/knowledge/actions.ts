@@ -141,6 +141,48 @@ export async function searchKnowledge(
   }
 }
 
+export async function loadMoreKnowledge(
+  offset: number,
+  limit: number = 50
+): Promise<ActionResult> {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "認証が必要です" };
+    }
+
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!dbUser) {
+      return { success: false, error: "ユーザーが見つかりません" };
+    }
+
+    const { data: posts, error } = await supabase
+      .from("knowledge_posts")
+      .select("*, users!inner(name, avatar_url)")
+      .eq("tenant_id", dbUser.tenant_id)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      return { success: false, error: "読み込みに失敗しました" };
+    }
+
+    return { success: true, data: posts };
+  } catch {
+    return { success: false, error: "予期しないエラーが発生しました" };
+  }
+}
+
 export async function deleteKnowledgePost(
   id: string
 ): Promise<ActionResult> {
