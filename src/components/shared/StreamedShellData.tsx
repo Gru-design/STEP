@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { calculateStreak, LEVEL_THRESHOLDS } from "@/lib/gamification/level";
+import { calculateStreak } from "@/lib/gamification/level";
 import { getCachedDailyTemplateIds } from "@/lib/cache";
 import { SidebarActivityFeed } from "./SidebarActivityFeed";
 import type { ActivityFeedItem } from "./SidebarActivityFeed";
@@ -38,7 +38,6 @@ export async function GamificationIndicator({
   ]);
 
   const level = levelResult.data?.level ?? 1;
-  const xp = levelResult.data?.xp ?? 0;
   const streak = calculateStreak(streakResult.data ?? []);
 
   return (
