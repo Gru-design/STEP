@@ -21,6 +21,8 @@ interface ReactionBarProps {
   reactions: Reaction[];
   currentUserId: string;
   userNames?: Record<string, string>;
+  /** Called after a reaction is successfully added or removed */
+  onReactionChange?: () => void;
 }
 
 export function ReactionBar({
@@ -28,6 +30,7 @@ export function ReactionBar({
   reactions,
   currentUserId,
   userNames = {},
+  onReactionChange,
 }: ReactionBarProps) {
   const [isPending, startTransition] = useTransition();
   const [showCommentInput, setShowCommentInput] = useState(false);
@@ -47,6 +50,7 @@ export function ReactionBar({
       } else {
         await addReaction(entryId, type);
       }
+      onReactionChange?.();
     });
   };
 
@@ -58,6 +62,7 @@ export function ReactionBar({
       await addReaction(entryId, commentReactionType, comment.trim());
       setComment("");
       setShowCommentInput(false);
+      onReactionChange?.();
     });
   };
 

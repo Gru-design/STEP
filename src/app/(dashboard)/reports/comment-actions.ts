@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { notifyComment } from "@/lib/notifications/create";
 
 const addCommentSchema = z.object({
   entryId: z.string().uuid(),
@@ -70,6 +71,62 @@ export async function addComment(formData: FormData) {
       console.error("[Comment] insert error:", error);
       return { success: false, error: "コメントの投稿に失敗しました" };
     }
+
+    // Send notification to the report owner (async, non-blocking)
+    (async () => {
+      try {
+        const { data: entryDetail } = await supabase
+          .from("report_entries")
+          .select("user_id")
+          .eq("id", entryId)
+          .single();
+
+        const { data: actor } = await supabase
+          .from("users")
+          .select("name")
+          .eq("id", authUser.id)
+          .single();
+
+        if (entryDetail && actor) {
+          // If it's a reply, also notify the parent comment author
+          let replyTargetId: string | undefined;
+          if (parentId) {
+            const { data: parentComment } = await supabase
+              .from("report_comments")
+              .select("user_id")
+              .eq("id", parentId)
+              .single();
+            replyTargetId = parentComment?.user_id;
+          }
+
+          // Notify the report owner
+          await notifyComment({
+            tenantId: dbUser.tenant_id,
+            actorId: authUser.id,
+            actorName: actor.name,
+            entryOwnerId: entryDetail.user_id,
+            entryId,
+            commentBody: body,
+            isReply: false,
+          });
+
+          // If replying, also notify the parent comment author (if different from entry owner)
+          if (replyTargetId && replyTargetId !== entryDetail.user_id) {
+            await notifyComment({
+              tenantId: dbUser.tenant_id,
+              actorId: authUser.id,
+              actorName: actor.name,
+              entryOwnerId: replyTargetId,
+              entryId,
+              commentBody: body,
+              isReply: true,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("[Comment] notification error:", err);
+      }
+    })();
 
     revalidatePath(`/reports/${entryId}`);
     revalidatePath("/reports");
