@@ -97,13 +97,10 @@ export async function sendPendingNudges(
           }
         }
 
-        if (integration.provider === "chatwork" && creds?.api_token && creds?.room_id) {
-          await sendChatworkMessage(
-            creds.api_token,
-            creds.room_id,
-            formatChatworkNudge(nudge.content)
-          ).catch(() => {});
-        }
+        // Chatworkナッジ通知は現在無効（日報提出通知のみに限定）
+        // if (integration.provider === "chatwork" && creds?.api_token && creds?.room_id) {
+        //   await sendChatworkMessage(creds.api_token, creds.room_id, formatChatworkNudge(nudge.content)).catch(() => {});
+        // }
       }
     } catch {
       // Non-critical: external dispatch failure shouldn't block nudge
