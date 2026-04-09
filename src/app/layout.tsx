@@ -6,9 +6,24 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "STEP - 日報・マネジメントサイクル統合SaaS",
-  description: "毎日1STEP、チームが強くなる。",
+  title: "STEP - 日報が届かないを、なくす | マネジメントサイクル統合プラットフォーム",
+  description:
+    "日報・目標管理・案件管理をひとつに統合。提出30秒、全員の状況を一画面で把握。人材紹介・派遣業のチームを仕組みで強くするプラットフォーム。5名まで無料。",
   manifest: "/manifest.json",
+  openGraph: {
+    title: "STEP - 日報が届かないを、なくす",
+    description:
+      "日報・目標管理・案件管理をひとつに統合。提出30秒、全員の状況を一画面で把握。人材紹介・派遣業のチームを仕組みで強くするプラットフォーム。",
+    type: "website",
+    locale: "ja_JP",
+    siteName: "STEP",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "STEP - 日報が届かないを、なくす",
+    description:
+      "日報・目標管理・案件管理をひとつに統合。人材紹介・派遣業のチームを仕組みで強くするプラットフォーム。",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

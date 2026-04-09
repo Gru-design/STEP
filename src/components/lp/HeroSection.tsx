@@ -57,7 +57,7 @@ export function HeroSection() {
 
         {/* Product mockup */}
         <div className="mt-14 sm:mt-20 max-w-4xl mx-auto">
-          <div className="rounded-xl border border-border bg-muted/30 shadow-lg overflow-hidden">
+          <div className="rounded-xl border border-border bg-muted/30 shadow-xl overflow-hidden">
             {/* Browser chrome */}
             <div className="bg-muted border-b border-border px-4 py-3 flex items-center gap-2">
               <div className="flex gap-1.5">
@@ -124,6 +124,49 @@ export function HeroSection() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Trust signals */}
+        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 mt-8 sm:mt-10">
+          {[
+            {
+              icon: (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                </svg>
+              ),
+              label: "テナント完全分離",
+            },
+            {
+              icon: (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                </svg>
+              ),
+              label: "Slack / Chatwork 連携",
+            },
+            {
+              icon: (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+                </svg>
+              ),
+              label: "PWA モバイル対応",
+            },
+            {
+              icon: (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                </svg>
+              ),
+              label: "REST API & Webhook",
+            },
+          ].map((signal) => (
+            <div key={signal.label} className="flex items-center gap-2 text-muted-foreground">
+              {signal.icon}
+              <span className="text-[12px]">{signal.label}</span>
+            </div>
+          ))}
         </div>
       </div>
     </section>

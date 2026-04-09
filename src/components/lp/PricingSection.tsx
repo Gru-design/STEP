@@ -4,6 +4,16 @@ export function PricingSection() {
   return (
     <section id="contact" className="py-16 sm:py-24 md:py-32 bg-muted/40 border-t border-border">
       <div className="max-w-[960px] mx-auto px-6">
+        {/* Urgency banner */}
+        <div className="bg-accent-light border border-accent-color/20 rounded-xl p-4 sm:p-5 text-center mb-10 sm:mb-14">
+          <p className="text-[14px] sm:text-[15px] font-semibold text-accent-color mb-1">
+            ベータ導入特典
+          </p>
+          <p className="text-[12px] sm:text-[13px] text-accent-color/80">
+            早期パートナー企業には、正式リリース後も特別価格を永久適用します
+          </p>
+        </div>
+
         <div className="text-center mb-12 sm:mb-16">
           <p className="text-[13px] font-medium text-primary tracking-wide mb-4">
             Early Access
@@ -22,7 +32,10 @@ export function PricingSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Free trial card */}
-          <div className="bg-white rounded-xl border border-border p-6 sm:p-8">
+          <div className="bg-white rounded-xl border-2 border-primary/20 p-6 sm:p-8 relative">
+            <div className="absolute -top-3 left-6 px-3 py-0.5 bg-primary text-white text-[11px] font-semibold rounded-full">
+              おすすめ
+            </div>
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-lg bg-primary-light flex items-center justify-center">
                 <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -54,6 +67,9 @@ export function PricingSection() {
               className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl bg-primary text-white text-[14px] font-semibold hover:bg-primary-hover transition-colors"
             >
               無料で始める
+              <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </Link>
           </div>
 
