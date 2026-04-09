@@ -265,7 +265,7 @@ CREATE TABLE weekly_digests (
 CREATE TABLE integrations (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id UUID REFERENCES tenants(id) NOT NULL,
-  provider TEXT NOT NULL CHECK (provider IN ('google_calendar', 'gmail', 'slack', 'teams', 'cti')),
+  provider TEXT NOT NULL CHECK (provider IN ('google_calendar', 'gmail', 'slack', 'teams', 'cti', 'chatwork')),
   credentials JSONB NOT NULL DEFAULT '{}',
   settings JSONB DEFAULT '{}',
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'error')),
