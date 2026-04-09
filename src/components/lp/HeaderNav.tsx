@@ -55,7 +55,7 @@ export function HeaderNav() {
           </Link>
           <Link
             href="/signup"
-            className="px-5 py-2.5 rounded-lg bg-foreground text-white text-[13px] font-medium hover:bg-foreground/85 transition-colors hidden sm:inline-flex"
+            className="px-5 py-2.5 rounded-lg bg-primary text-white text-[13px] font-medium hover:bg-primary-hover transition-colors hidden sm:inline-flex"
           >
             無料で始める
           </Link>
@@ -105,7 +105,7 @@ export function HeaderNav() {
               <Link
                 href="/signup"
                 onClick={closeMenu}
-                className="inline-flex items-center justify-center px-5 py-3 rounded-lg bg-foreground text-white text-[15px] font-medium hover:bg-foreground/85 transition-colors"
+                className="inline-flex items-center justify-center px-5 py-3 rounded-lg bg-primary text-white text-[15px] font-medium hover:bg-primary-hover transition-colors"
               >
                 無料で始める
               </Link>

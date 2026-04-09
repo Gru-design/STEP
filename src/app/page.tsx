@@ -1,11 +1,11 @@
 import { HeaderNav } from "@/components/lp/HeaderNav";
 import { HeroSection } from "@/components/lp/HeroSection";
-import { StatsSection } from "@/components/lp/StatsSection";
-import { FeaturesSection } from "@/components/lp/FeaturesSection";
+import { PainSection } from "@/components/lp/PainSection";
 import { SolutionSection } from "@/components/lp/SolutionSection";
-import { PlatformSection } from "@/components/lp/PlatformSection";
+import { FeaturesSection } from "@/components/lp/FeaturesSection";
+import { ComparisonSection } from "@/components/lp/ComparisonSection";
 import { PricingSection } from "@/components/lp/PricingSection";
-import { TestimonialsSection } from "@/components/lp/TestimonialsSection";
+import { FAQSection } from "@/components/lp/FAQSection";
 import { CTASection } from "@/components/lp/CTASection";
 import { FooterSection } from "@/components/lp/FooterSection";
 
@@ -15,12 +15,12 @@ export default function LandingPage() {
       <HeaderNav />
       <main className="flex-1">
         <HeroSection />
-        <StatsSection />
-        <FeaturesSection />
+        <PainSection />
         <SolutionSection />
-        <PlatformSection />
-        <TestimonialsSection />
+        <FeaturesSection />
+        <ComparisonSection />
         <PricingSection />
+        <FAQSection />
         <CTASection />
       </main>
       <FooterSection />

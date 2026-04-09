@@ -1,10 +1,10 @@
 export { HeaderNav } from "./HeaderNav";
 export { HeroSection } from "./HeroSection";
-export { StatsSection } from "./StatsSection";
-export { FeaturesSection } from "./FeaturesSection";
+export { PainSection } from "./PainSection";
 export { SolutionSection } from "./SolutionSection";
-export { PlatformSection } from "./PlatformSection";
+export { FeaturesSection } from "./FeaturesSection";
+export { ComparisonSection } from "./ComparisonSection";
 export { PricingSection } from "./PricingSection";
-export { TestimonialsSection } from "./TestimonialsSection";
+export { FAQSection } from "./FAQSection";
 export { CTASection } from "./CTASection";
 export { FooterSection } from "./FooterSection";
