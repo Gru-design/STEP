@@ -245,7 +245,7 @@ function IntegrationCard({ provider, integration }: IntegrationCardProps) {
                   disabled={isPending}
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  通知先チャットルームのURLの末尾の数字 (例: #!rid123456789)
+                  通知先チャットルームのURLの末尾の数字のみ (例: 123456789)
                 </p>
               </div>
             </div>

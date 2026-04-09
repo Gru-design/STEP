@@ -68,7 +68,8 @@ export async function saveIntegration(data: SaveIntegrationInput) {
         .eq("id", existing.id);
 
       if (error) {
-        return { success: false, error: "連携設定の更新に失敗しました" };
+        console.error("[Integrations] update error:", error);
+        return { success: false, error: `連携設定の更新に失敗しました: ${error.message}` };
       }
 
       await writeAuditLog({
@@ -90,7 +91,8 @@ export async function saveIntegration(data: SaveIntegrationInput) {
       }).select("id").single();
 
       if (error) {
-        return { success: false, error: "連携設定の保存に失敗しました" };
+        console.error("[Integrations] insert error:", error);
+        return { success: false, error: `連携設定の保存に失敗しました: ${error.message}` };
       }
 
       if (inserted) {
