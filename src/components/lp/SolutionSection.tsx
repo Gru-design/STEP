@@ -1,64 +1,108 @@
-const PERSONAS = [
-  {
-    role: "経営・管理者",
-    before: "チームのKPI進捗は月次レポートまで把握できない。ツールが分散し、手動集計に毎回4時間。",
-    after: "ダッシュボードでリアルタイムに全社KPIを把握。部門別比較、ドリルダウンが即座に可能。",
-  },
-  {
-    role: "マネージャー",
-    before: "誰が日報を出したか一人ずつ確認。メンバーのコンディション変化に気づけず、週次MTGが形骸化。",
-    after: "未提出者をダッシュボードで即座に把握。コンディション推移チャートで変化を早期発見。",
-  },
-  {
-    role: "メンバー",
-    before: "日報に毎日20分。テンプレートが統一されず何を書くべきか迷う。書いても読まれている実感がない。",
-    after: "前回値プリフィルで30秒で提出。リアクションとXPで書く意味を実感。ピアボーナスで感謝が可視化。",
-  },
-];
-
 export function SolutionSection() {
   return (
-    <section id="solution" className="py-16 sm:py-24 md:py-32 bg-muted/40">
+    <section id="solution" className="py-16 sm:py-24 md:py-32 bg-white">
       <div className="max-w-[1200px] mx-auto px-6">
-        <div className="max-w-2xl mb-12 sm:mb-20">
+        <div className="text-center max-w-2xl mx-auto mb-14 sm:mb-20">
           <p className="text-[13px] font-medium text-primary tracking-wide mb-4">
-            Solution
+            How it works
           </p>
           <h2 className="font-serif text-[28px] sm:text-[32px] md:text-[40px] font-semibold text-foreground leading-[1.2] tracking-tight mb-6">
-            すべてのロールに、
+            3ステップで、
             <br />
-            確かな変化を。
+            チームが変わる。
           </h2>
+          <p className="text-[14px] sm:text-[16px] text-muted-foreground leading-[1.8]">
+            最短30分でセットアップ完了。面倒な初期設定は不要です。
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {PERSONAS.map((persona) => (
-            <div key={persona.role} className="bg-white rounded-xl border border-border p-6 sm:p-8">
-              <h3 className="text-[15px] font-semibold text-foreground mb-6 sm:mb-8">
-                {persona.role}
-              </h3>
-
-              <div className="space-y-6">
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-5 h-[1px] bg-muted-foreground/30" />
-                    <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Before</span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12">
+          {[
+            {
+              step: "01",
+              title: "テンプレートを設定",
+              description:
+                "ドラッグ&ドロップで日報フォーマットを作成。業界別テンプレートも用意。チームの運用に合わせてカスタマイズできます。",
+              visual: (
+                <div className="rounded-lg border border-border bg-muted/30 p-4 mt-6">
+                  <div className="space-y-2">
+                    {["本日の商談件数", "成約金額", "明日の予定"].map((f) => (
+                      <div key={f} className="flex items-center gap-3 bg-white rounded-md border border-border px-3 py-2.5">
+                        <div className="w-1 h-4 rounded-full bg-primary/40" />
+                        <span className="text-[11px] text-foreground">{f}</span>
+                        <div className="ml-auto w-8 h-2 rounded bg-muted" />
+                      </div>
+                    ))}
                   </div>
-                  <p className="text-[13px] sm:text-[14px] text-muted-foreground leading-[1.7]">
-                    {persona.before}
-                  </p>
                 </div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-5 h-[1px] bg-primary" />
-                    <span className="text-[11px] font-medium text-primary uppercase tracking-wider">After</span>
+              ),
+            },
+            {
+              step: "02",
+              title: "メンバーが30秒で提出",
+              description:
+                "前回値の自動入力、モバイル対応、ゲーミフィケーション。「書きたくなる」仕組みで、提出率が自然に上がります。",
+              visual: (
+                <div className="rounded-lg border border-border bg-muted/30 p-4 mt-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center">
+                      <span className="text-[11px] font-semibold text-primary">田</span>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-medium text-foreground">田中さん</p>
+                      <p className="text-[10px] text-primary">+10 XP 獲得!</p>
+                    </div>
+                    <span className="ml-auto text-[11px] text-accent-color font-mono font-semibold">Lv.3</span>
                   </div>
-                  <p className="text-[13px] sm:text-[14px] text-foreground leading-[1.7]">
-                    {persona.after}
-                  </p>
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-primary rounded-full" style={{ width: "65%" }} />
+                  </div>
                 </div>
+              ),
+            },
+            {
+              step: "03",
+              title: "全体を一画面で把握",
+              description:
+                "提出状況、KPI進捗、コンディション変化をリアルタイムで確認。未提出者へのナッジも自動。マネージャーの負荷を最小化。",
+              visual: (
+                <div className="rounded-lg border border-border bg-muted/30 p-4 mt-6">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-md bg-white border border-border p-2.5">
+                      <p className="text-[9px] text-muted-foreground">提出率</p>
+                      <p className="text-[16px] font-bold font-mono text-primary">92%</p>
+                    </div>
+                    <div className="rounded-md bg-white border border-border p-2.5">
+                      <p className="text-[9px] text-muted-foreground">未提出</p>
+                      <p className="text-[16px] font-bold font-mono text-accent-color">3名</p>
+                    </div>
+                  </div>
+                </div>
+              ),
+            },
+          ].map((item, i) => (
+            <div key={item.step} className="relative">
+              {/* Step number */}
+              <div className="mb-4">
+                <span className="text-[48px] sm:text-[56px] font-serif font-bold text-primary/10 leading-none">
+                  {item.step}
+                </span>
               </div>
+              <h3 className="text-[18px] sm:text-[20px] font-semibold text-foreground mb-3">
+                {item.title}
+              </h3>
+              <p className="text-[13px] sm:text-[14px] text-muted-foreground leading-[1.7]">
+                {item.description}
+              </p>
+              {item.visual}
+              {/* Connector arrow */}
+              {i < 2 && (
+                <div className="hidden md:block absolute top-8 -right-6 text-border">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              )}
             </div>
           ))}
         </div>

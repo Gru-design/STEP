@@ -1,133 +1,162 @@
 const FEATURES = [
   {
-    number: "01",
-    title: "日報管理",
-    subtitle: "提出30秒、確認5分",
+    label: "Daily Report",
+    title: "書かせる日報から、\n書きたくなる日報へ。",
     description:
-      "ドラッグ&ドロップのテンプレートビルダーで、チームに最適な日報フォーマットを設計。前回値のプリフィル、リアクション、コメントスレッドまで。提出を義務から習慣に変えます。",
-    capabilities: [
-      "カスタムテンプレートビルダー",
-      "前回値プリフィル",
-      "リアクション & コメント",
-      "閲覧ポリシー制御",
-      "モバイル対応",
-    ],
+      "テンプレートビルダーで最適なフォーマットを設計。前回値の自動入力で記入は30秒。リアクション・コメント・XPで「出して良かった」を実感できる仕組み。催促不要の日報運用を実現します。",
+    highlights: ["テンプレートビルダー", "前回値プリフィル", "ゲーミフィケーション", "ナッジ自動通知"],
+    mockup: (
+      <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-primary-light flex items-center justify-center text-[10px] font-bold text-primary">鈴</div>
+            <div>
+              <p className="text-[12px] font-medium text-foreground">鈴木 太郎</p>
+              <p className="text-[10px] text-muted-foreground">営業1課 / 2026.04.09</p>
+            </div>
+          </div>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary-light text-primary font-medium">提出済</span>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1">本日の商談件数</p>
+            <p className="text-[14px] font-mono font-semibold text-foreground">5 <span className="text-[10px] text-muted-foreground font-sans">件</span></p>
+          </div>
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1">成約金額</p>
+            <p className="text-[14px] font-mono font-semibold text-foreground">&yen;1,200,000</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1">気づき・学び</p>
+            <p className="text-[11px] text-foreground leading-[1.6]">A社案件でクロージング成功。決裁者との直接面談がポイントだった。ナレッジに共有予定。</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border">
+          <div className="flex gap-1">
+            {["👍", "🎉", "💡"].map((e) => (
+              <span key={e} className="text-[12px] px-1.5 py-0.5 rounded bg-muted">{e}</span>
+            ))}
+          </div>
+          <span className="text-[10px] text-primary ml-auto">+10 XP</span>
+        </div>
+      </div>
+    ),
   },
   {
-    number: "02",
-    title: "目標 & 案件管理",
-    subtitle: "組織目標をKPIで追跡",
+    label: "Goal & Pipeline",
+    title: "目標を立てて終わり、\nを、やめる。",
     description:
-      "会社・部門・チーム・個人の4階層で目標をツリー管理。日報の数値フィールドとKPIを紐付け、進捗を自動で追跡。案件はカンバンビューで直感的にパイプライン管理。",
-    capabilities: [
-      "OKR / KPIツリー",
-      "日報連動の自動追跡",
-      "乖離アラート",
-      "カンバン案件管理",
-      "ファネル分析",
-    ],
+      "会社→部門→チーム→個人の4階層で目標をツリー管理。日報の数値がKPIに自動反映されるから、「いま目標に対してどこにいるか」が常にわかる。案件はカンバンで直感的に管理。",
+    highlights: ["OKR/KPIツリー", "日報連動の自動追跡", "乖離アラート", "カンバン案件管理"],
+    mockup: (
+      <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
+        <p className="text-[10px] text-muted-foreground mb-3">Q1 目標ツリー</p>
+        <div className="space-y-3">
+          {[
+            { level: 0, name: "売上目標 ¥50M", progress: 68, ok: true },
+            { level: 1, name: "新規開拓 ¥30M", progress: 72, ok: true },
+            { level: 1, name: "既存深耕 ¥20M", progress: 61, ok: false },
+            { level: 2, name: "田中: ¥8M", progress: 85, ok: true },
+            { level: 2, name: "佐藤: ¥7M", progress: 54, ok: false },
+          ].map((goal) => (
+            <div key={goal.name} style={{ marginLeft: goal.level * 16 }}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] text-foreground">{goal.name}</span>
+                <span className={`text-[11px] font-mono font-semibold ${goal.ok ? "text-primary" : "text-accent-color"}`}>{goal.progress}%</span>
+              </div>
+              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                <div className={`h-full rounded-full ${goal.ok ? "bg-primary" : "bg-accent-color"}`} style={{ width: `${goal.progress}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ),
   },
   {
-    number: "03",
-    title: "計画 & 承認",
-    subtitle: "PDCAを仕組み化",
+    label: "Team Insight",
+    title: "マネジメントを、\n感覚から仕組みへ。",
     description:
-      "週次計画の作成から承認、実行率の自動算出、セルフレビューとマネージャーフィードバックまで。計画→実行→振り返りのサイクルをプラットフォームが支援します。",
-    capabilities: [
-      "週次計画 & 承認フロー",
-      "実行率の自動算出",
-      "週次レビュー",
-      "承認ログ",
-      "週刊ダイジェスト自動生成",
-    ],
-  },
-  {
-    number: "04",
-    title: "エンゲージメント",
-    subtitle: "定着率を仕組みで上げる",
-    description:
-      "XP・レベル・バッジのゲーミフィケーションで日報提出を自然に習慣化。ピアボーナスでチーム内の感謝を可視化。ナッジエンジンが未提出者へ自動リマインド。",
-    capabilities: [
-      "XP & レベルシステム",
-      "バッジ (4段階レアリティ)",
-      "ピアボーナス",
-      "ストリーク",
-      "ナッジ自動通知",
-    ],
-  },
-  {
-    number: "05",
-    title: "ナレッジ & 1on1",
-    subtitle: "暗黙知を組織知へ",
-    description:
-      "チーム内のベストプラクティスをナレッジベースに蓄積。タグ分類と全文検索で必要な情報に即座にアクセス。1on1アジェンダ管理とコンディション推移で個別フォローを支援。",
-    capabilities: [
-      "ナレッジベース",
-      "全文検索",
-      "1on1アジェンダ管理",
-      "コンディション推移",
-      "Calendar連携",
-    ],
+      "提出状況・コンディション推移・目標乖離をダッシュボードでリアルタイム把握。異変にはナッジが自動通知。週次計画の承認フロー、1on1アジェンダ管理まで、マネジメント業務を一元化。",
+    highlights: ["リアルタイムダッシュボード", "コンディション推移", "承認ワークフロー", "1on1アジェンダ"],
+    mockup: (
+      <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
+        <p className="text-[10px] text-muted-foreground mb-3">チームコンディション</p>
+        <div className="space-y-2">
+          {[
+            { name: "田中", mood: [4, 4, 5, 4, 5, 4, 4], streak: 12 },
+            { name: "佐藤", mood: [4, 3, 3, 2, 3, 2, 3], streak: 8 },
+            { name: "鈴木", mood: [3, 4, 4, 4, 5, 5, 4], streak: 15 },
+          ].map((m) => (
+            <div key={m.name} className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-full bg-primary-light flex items-center justify-center text-[9px] font-semibold text-primary">{m.name[0]}</div>
+              <span className="text-[11px] text-foreground w-8">{m.name}</span>
+              <div className="flex gap-0.5 flex-1">
+                {m.mood.map((v, i) => (
+                  <div key={i} className={`h-4 flex-1 rounded-sm ${v >= 4 ? "bg-primary/60" : v >= 3 ? "bg-warning/40" : "bg-danger/40"}`} />
+                ))}
+              </div>
+              <span className="text-[10px] font-mono text-muted-foreground">{m.streak}日</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 pt-3 border-t border-border">
+          <div className="flex items-center gap-2 text-[10px]">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent-color" />
+            <span className="text-accent-color font-medium">佐藤さんのコンディション低下を検知しました</span>
+          </div>
+        </div>
+      </div>
+    ),
   },
 ];
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="py-16 sm:py-24 md:py-32 bg-white">
+    <section id="features" className="py-16 sm:py-24 md:py-32 bg-muted/40">
       <div className="max-w-[1200px] mx-auto px-6">
-        {/* Section header */}
-        <div className="max-w-2xl mb-12 sm:mb-20">
+        <div className="text-center max-w-2xl mx-auto mb-14 sm:mb-20">
           <p className="text-[13px] font-medium text-primary tracking-wide mb-4">
             Features
           </p>
-          <h2 className="font-serif text-[28px] sm:text-[32px] md:text-[40px] font-semibold text-foreground leading-[1.2] tracking-tight mb-6">
-            マネジメントに必要な
+          <h2 className="font-serif text-[28px] sm:text-[32px] md:text-[40px] font-semibold text-foreground leading-[1.2] tracking-tight">
+            バラバラの管理を、
             <br />
-            すべてを、ひとつに。
+            ひとつの流れに。
           </h2>
-          <p className="text-[15px] sm:text-[16px] text-muted-foreground leading-[1.8]">
-            分散していたツールを統合し、日報からKPI追跡、承認、振り返りまでを
-            一貫したワークフローで実現します。
-          </p>
         </div>
 
-        {/* Feature list */}
-        <div className="space-y-0">
-          {FEATURES.map((feature) => (
+        <div className="space-y-16 sm:space-y-24">
+          {FEATURES.map((feature, i) => (
             <div
-              key={feature.number}
-              className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-16 py-10 sm:py-14 border-t border-border"
+              key={feature.label}
+              className={`grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center ${
+                i % 2 === 1 ? "lg:[direction:rtl] lg:[&>*]:[direction:ltr]" : ""
+              }`}
             >
-              {/* Number + Title */}
-              <div className="lg:col-span-4">
-                <span className="text-[12px] font-mono text-muted-foreground">
-                  {feature.number}
+              {/* Text */}
+              <div>
+                <span className="text-[11px] font-medium text-primary tracking-wider uppercase mb-3 block">
+                  {feature.label}
                 </span>
-                <h3 className="font-serif text-[22px] sm:text-[24px] md:text-[28px] font-semibold text-foreground mt-1 tracking-tight">
+                <h3 className="font-serif text-[22px] sm:text-[26px] md:text-[30px] font-semibold text-foreground leading-[1.3] tracking-tight whitespace-pre-line mb-5">
                   {feature.title}
                 </h3>
-                <p className="text-[13px] text-primary font-medium mt-1">
-                  {feature.subtitle}
-                </p>
-              </div>
-
-              {/* Description */}
-              <div className="lg:col-span-4">
-                <p className="text-[14px] sm:text-[15px] text-muted-foreground leading-[1.8]">
+                <p className="text-[14px] sm:text-[15px] text-muted-foreground leading-[1.8] mb-6">
                   {feature.description}
                 </p>
+                <div className="flex flex-wrap gap-2">
+                  {feature.highlights.map((h) => (
+                    <span key={h} className="text-[12px] px-3 py-1.5 rounded-full bg-white border border-border text-foreground">
+                      {h}
+                    </span>
+                  ))}
+                </div>
               </div>
 
-              {/* Capabilities */}
-              <div className="lg:col-span-4">
-                <ul className="space-y-2.5">
-                  {feature.capabilities.map((cap) => (
-                    <li key={cap} className="flex items-center gap-3">
-                      <div className="w-1 h-1 rounded-full bg-primary shrink-0" />
-                      <span className="text-[13px] sm:text-[14px] text-foreground">{cap}</span>
-                    </li>
-                  ))}
-                </ul>
+              {/* Mockup */}
+              <div className="max-w-md mx-auto lg:max-w-none">
+                {feature.mockup}
               </div>
             </div>
           ))}

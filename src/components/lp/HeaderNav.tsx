@@ -26,9 +26,11 @@ export function HeaderNav() {
     >
       <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
-            <span className="text-white font-bold text-sm tracking-tight">S</span>
-          </div>
+          <svg className="w-7 h-7" viewBox="0 0 32 32" fill="none">
+            <rect x="1" y="21" width="9" height="10" rx="2" fill="#0D9488" opacity="0.4"/>
+            <rect x="12" y="12" width="9" height="19" rx="2" fill="#0D9488" opacity="0.7"/>
+            <rect x="23" y="3" width="9" height="28" rx="2" fill="#0D9488"/>
+          </svg>
           <span className="text-[18px] font-semibold tracking-tight text-foreground">
             STEP
           </span>
@@ -55,7 +57,7 @@ export function HeaderNav() {
           </Link>
           <Link
             href="/signup"
-            className="px-5 py-2.5 rounded-lg bg-foreground text-white text-[13px] font-medium hover:bg-foreground/85 transition-colors hidden sm:inline-flex"
+            className="px-5 py-2.5 rounded-lg bg-primary text-white text-[13px] font-medium hover:bg-primary-hover transition-colors hidden sm:inline-flex"
           >
             無料で始める
           </Link>
@@ -105,7 +107,7 @@ export function HeaderNav() {
               <Link
                 href="/signup"
                 onClick={closeMenu}
-                className="inline-flex items-center justify-center px-5 py-3 rounded-lg bg-foreground text-white text-[15px] font-medium hover:bg-foreground/85 transition-colors"
+                className="inline-flex items-center justify-center px-5 py-3 rounded-lg bg-primary text-white text-[15px] font-medium hover:bg-primary-hover transition-colors"
               >
                 無料で始める
               </Link>

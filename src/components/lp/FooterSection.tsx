@@ -7,9 +7,11 @@ export function FooterSection() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 sm:gap-12 mb-10 sm:mb-14">
           <div className="sm:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center">
-                <span className="text-white text-[12px] font-bold">S</span>
-              </div>
+              <svg className="w-6 h-6" viewBox="0 0 32 32" fill="none">
+                <rect x="1" y="21" width="9" height="10" rx="2" fill="white" opacity="0.4"/>
+                <rect x="12" y="12" width="9" height="19" rx="2" fill="white" opacity="0.7"/>
+                <rect x="23" y="3" width="9" height="28" rx="2" fill="white"/>
+              </svg>
               <span className="text-[16px] font-semibold text-white tracking-tight">STEP</span>
             </div>
             <p className="text-[13px] text-white/40 leading-[1.7]">
