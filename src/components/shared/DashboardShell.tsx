@@ -29,6 +29,7 @@ import {
   Heart,
   Sparkles,
   Bell,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -205,6 +206,13 @@ const navGroups: NavGroup[] = [
         href: "/settings/users",
         icon: UserPlus,
         roles: ["super_admin", "admin"],
+      },
+      {
+        label: "外部連携",
+        href: "/settings/integrations",
+        icon: Link2,
+        roles: ["super_admin", "admin"],
+        feature: "integrations",
       },
       {
         label: "データエクスポート",

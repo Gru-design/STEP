@@ -18,12 +18,18 @@ export async function sendChatworkMessage(
   body: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // ルームIDから数字のみ抽出 (#!rid や空白を除去)
+    const cleanRoomId = roomId.replace(/\D/g, "");
+    if (!cleanRoomId) {
+      return { success: false, error: "ルームIDが無効です。数字のみ入力してください。" };
+    }
+
     const response = await fetch(
-      `${CHATWORK_API_BASE}/rooms/${roomId}/messages`,
+      `${CHATWORK_API_BASE}/rooms/${cleanRoomId}/messages`,
       {
         method: "POST",
         headers: {
-          "X-ChatWorkToken": apiToken,
+          "X-ChatWorkToken": apiToken.trim(),
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({ body, self_unread: "0" }),
