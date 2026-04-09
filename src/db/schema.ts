@@ -419,7 +419,7 @@ export const integrations = pgTable("integrations", {
     .references(() => tenants.id)
     .notNull(),
   provider: text("provider", {
-    enum: ["google_calendar", "gmail", "slack", "teams", "cti"],
+    enum: ["google_calendar", "gmail", "slack", "teams", "cti", "chatwork"],
   }).notNull(),
   credentials: jsonb("credentials").notNull().default({}),
   settings: jsonb("settings").default({}),
