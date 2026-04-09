@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { sendSlackNotification } from "@/lib/integrations/slack";
 import { sendChatworkMessage } from "@/lib/integrations/chatwork";
@@ -48,8 +49,11 @@ export async function saveIntegration(data: SaveIntegrationInput) {
       return { success: false, error: "無効なプロバイダーです" };
     }
 
+    // 認証・権限チェック済みのため、admin client でRLSをバイパス
+    const admin = createAdminClient();
+
     // Check if integration already exists for this tenant + provider
-    const { data: existing } = await supabase
+    const { data: existing } = await admin
       .from("integrations")
       .select("id")
       .eq("tenant_id", dbUser.tenant_id)
@@ -58,7 +62,7 @@ export async function saveIntegration(data: SaveIntegrationInput) {
 
     if (existing) {
       // Update existing
-      const { error } = await supabase
+      const { error } = await admin
         .from("integrations")
         .update({
           credentials: data.credentials,
@@ -82,7 +86,7 @@ export async function saveIntegration(data: SaveIntegrationInput) {
       });
     } else {
       // Insert new
-      const { data: inserted, error } = await supabase.from("integrations").insert({
+      const { data: inserted, error } = await admin.from("integrations").insert({
         tenant_id: dbUser.tenant_id,
         provider: data.provider,
         credentials: data.credentials,
@@ -137,7 +141,8 @@ export async function deleteIntegration(id: string) {
       return { success: false, error: "権限がありません" };
     }
 
-    const { error } = await supabase
+    const admin = createAdminClient();
+    const { error } = await admin
       .from("integrations")
       .delete()
       .eq("id", id)
@@ -185,7 +190,8 @@ export async function toggleIntegrationStatus(id: string, active: boolean) {
       return { success: false, error: "権限がありません" };
     }
 
-    const { error } = await supabase
+    const admin = createAdminClient();
+    const { error } = await admin
       .from("integrations")
       .update({ status: active ? "active" : "inactive" })
       .eq("id", id)
