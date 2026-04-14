@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  checkSubmissionReminder,
-  checkMotivationDrop,
-} from "@/lib/nudge/engine";
+import { checkMotivationDrop } from "@/lib/nudge/engine";
 import { sendPendingNudges } from "@/lib/nudge/sender";
 
 export const dynamic = "force-dynamic";
@@ -14,8 +11,10 @@ export const dynamic = "force-dynamic";
  * ダッシュボードアクセス時に呼び出され、ナッジ処理を実行する。
  * Vercel Free プランでの cron 制限を補完する目的。
  *
- * - 平日17:00-19:00 JST のみ実行
+ * - 平日のみ実行
  * - テナントごとに1時間に1回のみ実行（重複防止）
+ * - モチベーション低下チェック + 未送信ナッジ送信のみ
+ *   （提出リマインダーは朝9時の統合cronで実行）
  */
 export async function POST() {
   try {
@@ -28,7 +27,6 @@ export async function POST() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get user's tenant_id
     const { data: dbUser } = await userSupabase
       .from("users")
       .select("tenant_id, role")
@@ -39,18 +37,15 @@ export async function POST() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Check JST time - only run during nudge window (17:00-19:00 JST weekdays)
     const now = new Date();
     const jst = new Date(
       now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" })
     );
-    const jstHour = jst.getHours();
     const jstDay = jst.getDay();
     const isWeekday = jstDay >= 1 && jstDay <= 5;
-    const isNudgeWindow = jstHour >= 17 && jstHour <= 19;
 
-    if (!isWeekday || !isNudgeWindow) {
-      return NextResponse.json({ skipped: true, reason: "outside_window" });
+    if (!isWeekday) {
+      return NextResponse.json({ skipped: true, reason: "weekend" });
     }
 
     // Throttle: check if nudges were already created this hour for this tenant
@@ -68,18 +63,11 @@ export async function POST() {
       return NextResponse.json({ skipped: true, reason: "already_processed" });
     }
 
-    // Run nudge checks
-    const reminders = await checkSubmissionReminder(
-      admin,
-      dbUser.tenant_id,
-      jstHour
-    );
     const motivation = await checkMotivationDrop(admin, dbUser.tenant_id);
     const sent = await sendPendingNudges(admin, dbUser.tenant_id);
 
     return NextResponse.json({
       success: true,
-      reminders,
       motivation,
       sent,
     });
