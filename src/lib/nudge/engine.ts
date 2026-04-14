@@ -1,19 +1,32 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Check for users who have not submitted a daily report today.
- * Creates a 'reminder' nudge at hour=17 or 're_reminder' at hour=18.
+ * 朝9時に前日の日報未提出者をチェックし、リマインダーナッジを作成する。
+ * 月曜は金曜分をチェック。土日はスキップ。
  */
 export async function checkSubmissionReminder(
   supabase: SupabaseClient,
-  tenantId: string,
-  hour: number
+  tenantId: string
 ): Promise<number> {
-  // Get today's date in JST (YYYY-MM-DD)
-  const today = new Date(
+  // Get current JST time
+  const jstNow = new Date(
     new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" })
   );
-  const todayStr = today.toISOString().split("T")[0];
+  const jstDay = jstNow.getDay();
+
+  // Skip weekends
+  if (jstDay === 0 || jstDay === 6) return 0;
+
+  // Target date: Monday → Friday, Tue-Fri → previous day
+  let targetDate: Date;
+  if (jstDay === 1) {
+    targetDate = new Date(jstNow);
+    targetDate.setDate(targetDate.getDate() - 3);
+  } else {
+    targetDate = new Date(jstNow);
+    targetDate.setDate(targetDate.getDate() - 1);
+  }
+  const targetDateStr = targetDate.toISOString().split("T")[0];
 
   // Get all active users in the tenant
   const { data: users, error: usersError } = await supabase
@@ -24,12 +37,12 @@ export async function checkSubmissionReminder(
 
   if (usersError || !users) return 0;
 
-  // Get users who submitted today
+  // Get users who submitted on the target date
   const { data: submittedEntries } = await supabase
     .from("report_entries")
     .select("user_id")
     .eq("tenant_id", tenantId)
-    .eq("report_date", todayStr)
+    .eq("report_date", targetDateStr)
     .eq("status", "submitted");
 
   const submittedUserIds = new Set(
@@ -43,18 +56,12 @@ export async function checkSubmissionReminder(
 
   if (nonSubmitters.length === 0) return 0;
 
-  const triggerType = hour === 17 ? "reminder" : "re_reminder";
-  const content =
-    hour === 17
-      ? "本日の日報がまだ提出されていません。お忘れなく！"
-      : "日報の提出期限が近づいています。今すぐ提出しましょう！";
-
   // Insert nudges for each non-submitter
   const nudges = nonSubmitters.map((u: { id: string }) => ({
     tenant_id: tenantId,
     target_user_id: u.id,
-    trigger_type: triggerType,
-    content,
+    trigger_type: "daily_reminder",
+    content: `${targetDateStr} の日報がまだ提出されていません。確認をお願いします。`,
     status: "pending",
   }));
 

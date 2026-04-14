@@ -1,10 +1,7 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  checkSubmissionReminder,
-  checkMotivationDrop,
-} from "@/lib/nudge/engine";
+import { checkSubmissionReminder, checkMotivationDrop } from "@/lib/nudge/engine";
 import { sendPendingNudges } from "@/lib/nudge/sender";
 import { snapshotAllGoals } from "@/lib/goals/progress";
 import { generateDeviationAlerts } from "@/lib/goals/deviation";
@@ -23,7 +20,7 @@ export const maxDuration = 60;
  *
  * 実行内容 (JST時刻と曜日で分岐):
  * - 毎日(平日): 朝の未提出リマインダー (Chatwork通知)
- * - 毎日(平日): ナッジリマインダー + モチベーション低下チェック
+ * - 毎日(平日): 前日未提出リマインダー(アプリ内ナッジ) + モチベーション低下チェック
  * - 毎日(平日): 目標スナップショット + 乖離アラート
  * - 月曜: 週刊STEP生成
  * - 金曜: 計画実行率計算
@@ -84,10 +81,10 @@ export async function GET(request: Request) {
         }
       }
 
-      // ── 1. ナッジ (平日のみ) ──
+      // ── 1. 前日未提出リマインダー + モチベーション低下チェック (平日のみ) ──
       if (isWeekday) {
         try {
-          const reminders = await checkSubmissionReminder(supabase, tenant.id, jstHour);
+          const reminders = await checkSubmissionReminder(supabase, tenant.id);
           results.reminders = ((results.reminders as number) || 0) + reminders;
 
           const motiv = await checkMotivationDrop(supabase, tenant.id);
