@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { upsertPlanSchema, updateDealSchema } from "@/lib/validations";
+import { upsertPlanSchema, updateDealSchema, inviteUserSchema } from "@/lib/validations";
 
 const UUID = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -117,6 +117,48 @@ describe("updateDealSchema", () => {
 
   it("rejects over-length company name", () => {
     const r = updateDealSchema.safeParse({ company: "x".repeat(201) });
+    expect(r.success).toBe(false);
+  });
+});
+
+describe("inviteUserSchema", () => {
+  const base = { email: "new@example.com", name: "New User" };
+
+  it("accepts role=admin", () => {
+    expect(inviteUserSchema.safeParse({ ...base, role: "admin" }).success).toBe(true);
+  });
+  it("accepts role=manager", () => {
+    expect(inviteUserSchema.safeParse({ ...base, role: "manager" }).success).toBe(true);
+  });
+  it("accepts role=member", () => {
+    expect(inviteUserSchema.safeParse({ ...base, role: "member" }).success).toBe(true);
+  });
+
+  it("rejects role=super_admin (privilege-escalation attempt)", () => {
+    const r = inviteUserSchema.safeParse({ ...base, role: "super_admin" });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects unknown role", () => {
+    const r = inviteUserSchema.safeParse({ ...base, role: "owner" });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects invalid email", () => {
+    const r = inviteUserSchema.safeParse({
+      email: "not-an-email",
+      name: "x",
+      role: "member",
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects empty name", () => {
+    const r = inviteUserSchema.safeParse({
+      email: "a@b.com",
+      name: "",
+      role: "member",
+    });
     expect(r.success).toBe(false);
   });
 });

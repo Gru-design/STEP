@@ -9,6 +9,19 @@ export const signupSchema = z.object({
   password: z.string().min(8, "パスワードは8文字以上で入力してください").max(128),
 });
 
+// ── Users / Invitations ──
+
+// Invitable roles. super_admin is deliberately excluded — that role is
+// provisioned only via the CLI script or Supabase SQL editor. Allowing it
+// here would let any tenant admin mint a global super_admin.
+export const inviteUserSchema = z.object({
+  email: z.string().email("有効なメールアドレスを入力してください").max(255),
+  name: z.string().min(1, "名前を入力してください").max(100).trim(),
+  role: z.enum(["admin", "manager", "member"], {
+    message: "ロールは admin / manager / member のいずれかにしてください",
+  }),
+});
+
 // ── Team ──
 
 export const createTeamSchema = z.object({

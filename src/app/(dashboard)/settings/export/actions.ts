@@ -3,26 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { writeAuditLog } from "@/lib/audit";
-
-function toCsv(rows: Record<string, unknown>[]): string {
-  if (rows.length === 0) return "";
-  const headers = Object.keys(rows[0]);
-  const lines = [
-    headers.join(","),
-    ...rows.map((row) =>
-      headers
-        .map((h) => {
-          const val = row[h];
-          const str = val === null || val === undefined ? "" : String(val);
-          return str.includes(",") || str.includes('"') || str.includes("\n")
-            ? `"${str.replace(/"/g, '""')}"`
-            : str;
-        })
-        .join(",")
-    ),
-  ];
-  return "\uFEFF" + lines.join("\n"); // BOM for Excel
-}
+import { buildCSV } from "@/lib/csv-export";
 
 export async function exportData(
   target: string
@@ -59,7 +40,7 @@ export async function exportData(
           .select("name, email, role, phone, created_at")
           .eq("tenant_id", tenantId)
           .order("created_at");
-        csv = toCsv((data ?? []) as Record<string, unknown>[]);
+        csv = buildCSV((data ?? []) as Record<string, unknown>[]);
         break;
       }
       case "reports": {
@@ -73,7 +54,7 @@ export async function exportData(
           .eq("report_templates.type", "daily")
           .gte("report_date", ninetyDaysAgo)
           .order("report_date", { ascending: false });
-        csv = toCsv((data ?? []) as Record<string, unknown>[]);
+        csv = buildCSV((data ?? []) as Record<string, unknown>[]);
         break;
       }
       case "deals": {
@@ -82,7 +63,7 @@ export async function exportData(
           .select("company, title, value, status, due_date, created_at")
           .eq("tenant_id", tenantId)
           .order("created_at", { ascending: false });
-        csv = toCsv((data ?? []) as Record<string, unknown>[]);
+        csv = buildCSV((data ?? []) as Record<string, unknown>[]);
         break;
       }
       case "goals": {
@@ -91,7 +72,7 @@ export async function exportData(
           .select("name, level, target_value, period_start, period_end, created_at")
           .eq("tenant_id", tenantId)
           .order("created_at");
-        csv = toCsv((data ?? []) as Record<string, unknown>[]);
+        csv = buildCSV((data ?? []) as Record<string, unknown>[]);
         break;
       }
       default:
