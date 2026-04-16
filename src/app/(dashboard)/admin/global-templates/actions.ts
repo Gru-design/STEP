@@ -1,31 +1,11 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath, revalidateTag } from "next/cache";
 import type { TemplateSchema, TemplateType, ReportVisibility } from "@/types/database";
 import { writeAuditLog } from "@/lib/audit";
 import { templatesCacheTag } from "@/lib/cache";
-
-// --------------------------------------------------------------------------
-// Auth guard: super_admin only
-// --------------------------------------------------------------------------
-async function requireSuperAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "認証が必要です。" };
-  }
-
-  if (user.user_metadata?.role !== "super_admin") {
-    return { error: "スーパーアドミン権限が必要です。" };
-  }
-
-  return { user };
-}
+import { requireSuperAdmin } from "@/lib/auth/require-role";
 
 /**
  * Invalidate template caches for all active tenants.
@@ -48,7 +28,7 @@ async function invalidateAllTenantTemplateCaches() {
 // --------------------------------------------------------------------------
 export async function listGlobalTemplates() {
   const auth = await requireSuperAdmin();
-  if ("error" in auth && auth.error) {
+  if (!auth.ok) {
     return { success: false, error: auth.error };
   }
 
@@ -83,7 +63,7 @@ interface CreateGlobalTemplateData {
 
 export async function createGlobalTemplate(data: CreateGlobalTemplateData) {
   const auth = await requireSuperAdmin();
-  if ("error" in auth && auth.error) {
+  if (!auth.ok) {
     return { success: false, error: auth.error };
   }
 
@@ -113,8 +93,8 @@ export async function createGlobalTemplate(data: CreateGlobalTemplateData) {
     if (error) throw error;
 
     await writeAuditLog({
-      tenantId: auth.user!.user_metadata?.tenant_id ?? auth.user!.id,
-      userId: auth.user!.id,
+      tenantId: auth.dbUser.tenant_id,
+      userId: auth.user.id,
       action: "create",
       resource: "global_template",
       resourceId: template.id,
@@ -150,7 +130,7 @@ interface UpdateGlobalTemplateData {
 
 export async function updateGlobalTemplate(id: string, data: UpdateGlobalTemplateData) {
   const auth = await requireSuperAdmin();
-  if ("error" in auth && auth.error) {
+  if (!auth.ok) {
     return { success: false, error: auth.error };
   }
 
@@ -190,8 +170,8 @@ export async function updateGlobalTemplate(id: string, data: UpdateGlobalTemplat
     if (error) throw error;
 
     await writeAuditLog({
-      tenantId: auth.user!.user_metadata?.tenant_id ?? auth.user!.id,
-      userId: auth.user!.id,
+      tenantId: auth.dbUser.tenant_id,
+      userId: auth.user.id,
       action: "update",
       resource: "global_template",
       resourceId: id,
@@ -218,7 +198,7 @@ export async function updateGlobalTemplate(id: string, data: UpdateGlobalTemplat
 // --------------------------------------------------------------------------
 export async function deleteGlobalTemplate(id: string) {
   const auth = await requireSuperAdmin();
-  if ("error" in auth && auth.error) {
+  if (!auth.ok) {
     return { success: false, error: auth.error };
   }
 
@@ -234,8 +214,8 @@ export async function deleteGlobalTemplate(id: string) {
     if (error) throw error;
 
     await writeAuditLog({
-      tenantId: auth.user!.user_metadata?.tenant_id ?? auth.user!.id,
-      userId: auth.user!.id,
+      tenantId: auth.dbUser.tenant_id,
+      userId: auth.user.id,
       action: "delete",
       resource: "global_template",
       resourceId: id,
@@ -256,7 +236,7 @@ export async function deleteGlobalTemplate(id: string) {
 // --------------------------------------------------------------------------
 export async function applyGlobalTemplatesToAllTenants() {
   const auth = await requireSuperAdmin();
-  if ("error" in auth && auth.error) {
+  if (!auth.ok) {
     return { success: false, error: auth.error };
   }
 
@@ -337,8 +317,8 @@ export async function applyGlobalTemplatesToAllTenants() {
     }
 
     await writeAuditLog({
-      tenantId: auth.user!.user_metadata?.tenant_id ?? auth.user!.id,
-      userId: auth.user!.id,
+      tenantId: auth.dbUser.tenant_id,
+      userId: auth.user.id,
       action: "create",
       resource: "global_template",
       details: { operation: "apply_to_all_tenants", distributed, skipped },
@@ -415,7 +395,7 @@ export async function applyGlobalTemplatesToTenant(tenantId: string) {
 // --------------------------------------------------------------------------
 export async function syncGlobalTemplateToTenants(globalTemplateId: string) {
   const auth = await requireSuperAdmin();
-  if ("error" in auth && auth.error) {
+  if (!auth.ok) {
     return { success: false, error: auth.error };
   }
 
@@ -503,8 +483,8 @@ export async function syncGlobalTemplateToTenants(globalTemplateId: string) {
     }
 
     await writeAuditLog({
-      tenantId: auth.user!.user_metadata?.tenant_id ?? auth.user!.id,
-      userId: auth.user!.id,
+      tenantId: auth.dbUser.tenant_id,
+      userId: auth.user.id,
       action: "update",
       resource: "global_template",
       resourceId: globalTemplateId,
@@ -526,7 +506,7 @@ export async function syncGlobalTemplateToTenants(globalTemplateId: string) {
 // --------------------------------------------------------------------------
 export async function promoteToGlobalTemplate(tenantTemplateId: string) {
   const auth = await requireSuperAdmin();
-  if ("error" in auth && auth.error) {
+  if (!auth.ok) {
     return { success: false, error: auth.error };
   }
 
@@ -573,8 +553,8 @@ export async function promoteToGlobalTemplate(tenantTemplateId: string) {
       .eq("id", tenantTemplateId);
 
     await writeAuditLog({
-      tenantId: auth.user!.user_metadata?.tenant_id ?? auth.user!.id,
-      userId: auth.user!.id,
+      tenantId: auth.dbUser.tenant_id,
+      userId: auth.user.id,
       action: "create",
       resource: "global_template",
       resourceId: globalTemplate.id,
@@ -604,7 +584,7 @@ export async function listAllTenantTemplates(options?: {
   type?: TemplateType;
 }) {
   const auth = await requireSuperAdmin();
-  if ("error" in auth && auth.error) {
+  if (!auth.ok) {
     return { success: false, error: auth.error };
   }
 
@@ -641,7 +621,7 @@ export async function listAllTenantTemplates(options?: {
 // --------------------------------------------------------------------------
 export async function getTemplateDistributionStatus(templateId: string) {
   const auth = await requireSuperAdmin();
-  if ("error" in auth && auth.error) {
+  if (!auth.ok) {
     return { success: false, error: auth.error };
   }
 
