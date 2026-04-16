@@ -75,6 +75,16 @@ export const createPlanSchema = z.object({
   items: z.unknown(),
 });
 
+// Upsert (create-or-update) accepts only draft/submitted. approved/rejected/
+// reviewed are set by the dedicated approval actions — rejecting them here
+// prevents self-approval via a crafted payload from the client.
+export const upsertPlanSchema = z.object({
+  weekStart: z.string().min(1, "週の開始日を入力してください"),
+  templateId: z.string().uuid("テンプレートを選択してください"),
+  items: z.record(z.string(), z.unknown()),
+  status: z.enum(["draft", "submitted"]),
+});
+
 // ── Profile ──
 
 export const updateProfileSchema = z.object({
