@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendChatworkMessage, formatMorningReminder } from "@/lib/integrations/chatwork";
 import { getChatworkCredentials } from "@/lib/integrations/chatwork-credentials";
+import { jstDateString, jstParts, addDaysToDateString } from "@/lib/tz";
 
 /**
  * 前日の日報未提出者をChatworkグループに通知する。
@@ -11,20 +12,17 @@ import { getChatworkCredentials } from "@/lib/integrations/chatwork-credentials"
 export async function sendMorningReminder(
   supabase: SupabaseClient,
   tenantId: string,
-  jstNow: Date
+  /** 省略時は現時刻の JST を使用。テストから注入可能。 */
+  now: Date = new Date()
 ): Promise<number> {
-  const jstDay = jstNow.getDay();
+  const { dayOfWeek } = jstParts(now);
+  const todayStr = jstDateString(now);
 
   // 対象日を算出（月曜→金曜、火〜金→前日）
-  let targetDate: Date;
-  if (jstDay === 1) {
-    targetDate = new Date(jstNow);
-    targetDate.setDate(targetDate.getDate() - 3);
-  } else {
-    targetDate = new Date(jstNow);
-    targetDate.setDate(targetDate.getDate() - 1);
-  }
-  const targetDateStr = targetDate.toISOString().split("T")[0];
+  const targetDateStr = addDaysToDateString(
+    todayStr,
+    dayOfWeek === 1 ? -3 : -1
+  );
 
   // Chatwork連携が有効か確認
   const creds = await getChatworkCredentials(supabase, tenantId);

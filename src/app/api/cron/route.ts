@@ -8,6 +8,7 @@ import { generateDeviationAlerts } from "@/lib/goals/deviation";
 import { generateWeeklyDigest } from "@/lib/digest/generator";
 import { batchUpdateExecutionRates } from "@/lib/plans/execution-rate";
 import { sendMorningReminder } from "@/lib/notifications/morning-reminder";
+import { jstParts, jstDateString, addDaysToDateString } from "@/lib/tz";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,14 +43,14 @@ export async function GET(request: Request) {
   try {
     const supabase = createAdminClient();
 
-    // JST time info
+    // JST time info — read via Intl.DateTimeFormat so results are correct
+    // regardless of the runtime's system timezone.
     const now = new Date();
-    const jst = new Date(
-      now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" })
-    );
-    const jstHour = jst.getHours();
-    const jstDay = jst.getDay(); // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
+    const jst = jstParts(now);
+    const jstHour = jst.hour;
+    const jstDay = jst.dayOfWeek; // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
     const isWeekday = jstDay >= 1 && jstDay <= 5;
+    const jstToday = jstDateString(now);
 
     const { data: tenants, error: tenantsError } = await supabase
       .from("tenants")
@@ -73,7 +74,7 @@ export async function GET(request: Request) {
       // ── 0. 朝の未提出リマインダー - Chatwork通知 (平日のみ) ──
       if (isWeekday) {
         try {
-          const reminded = await sendMorningReminder(supabase, tenant.id, jst);
+          const reminded = await sendMorningReminder(supabase, tenant.id, now);
           results.morningReminders =
             ((results.morningReminders as number) || 0) + reminded;
         } catch (e) {
@@ -116,9 +117,8 @@ export async function GET(request: Request) {
       // ── 3. 週刊STEP生成 (月曜のみ) ──
       if (jstDay === 1) {
         try {
-          const lastMonday = new Date(jst);
-          lastMonday.setDate(lastMonday.getDate() - 7);
-          const weekStart = lastMonday.toISOString().split("T")[0];
+          // Monday: jstToday is this Monday → last Monday is -7 days.
+          const weekStart = addDaysToDateString(jstToday, -7);
 
           await generateWeeklyDigest(supabase, tenant.id, weekStart);
           results.digestsGenerated =
@@ -131,9 +131,8 @@ export async function GET(request: Request) {
       // ── 4. 計画実行率 (金曜のみ) ──
       if (jstDay === 5) {
         try {
-          const monday = new Date(jst);
-          monday.setDate(monday.getDate() - (jstDay - 1));
-          const weekStart = monday.toISOString().split("T")[0];
+          // Friday: Monday of this week is -4 days.
+          const weekStart = addDaysToDateString(jstToday, -(jstDay - 1));
 
           const batchResult = await batchUpdateExecutionRates(supabase, tenant.id, weekStart);
           results.plansUpdated =

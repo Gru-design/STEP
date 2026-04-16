@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { jstDateString, jstParts, addDaysToDateString } from "@/lib/tz";
 
 /**
  * 朝9時に前日の日報未提出者をチェックし、リマインダーナッジを作成する。
@@ -8,25 +9,14 @@ export async function checkSubmissionReminder(
   supabase: SupabaseClient,
   tenantId: string
 ): Promise<number> {
-  // Get current JST time
-  const jstNow = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" })
-  );
-  const jstDay = jstNow.getDay();
+  const { dayOfWeek: jstDay } = jstParts();
+  const todayStr = jstDateString();
 
   // Skip weekends
   if (jstDay === 0 || jstDay === 6) return 0;
 
   // Target date: Monday → Friday, Tue-Fri → previous day
-  let targetDate: Date;
-  if (jstDay === 1) {
-    targetDate = new Date(jstNow);
-    targetDate.setDate(targetDate.getDate() - 3);
-  } else {
-    targetDate = new Date(jstNow);
-    targetDate.setDate(targetDate.getDate() - 1);
-  }
-  const targetDateStr = targetDate.toISOString().split("T")[0];
+  const targetDateStr = addDaysToDateString(todayStr, jstDay === 1 ? -3 : -1);
 
   // Get all active users in the tenant
   const { data: users, error: usersError } = await supabase
@@ -89,15 +79,10 @@ export async function checkMotivationDrop(
   tenantId: string
 ): Promise<number> {
   // Get the last 3 days' dates in JST
-  const now = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" })
+  const todayStr = jstDateString();
+  const dates: string[] = [1, 2, 3].map((i) =>
+    addDaysToDateString(todayStr, -i)
   );
-  const dates: string[] = [];
-  for (let i = 1; i <= 3; i++) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    dates.push(d.toISOString().split("T")[0]);
-  }
 
   // Get all submitted daily reports for the tenant in the last 3 days
   const { data: entries, error: entriesError } = await supabase
