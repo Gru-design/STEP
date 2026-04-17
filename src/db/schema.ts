@@ -23,8 +23,7 @@ export const tenants = pgTable("tenants", {
     .default("free"),
   domain: text("domain"),
   settings: jsonb("settings").default({}),
-  stripeCustomerId: text("stripe_customer_id"),
-  stripeSubscriptionId: text("stripe_subscription_id"),
+  billingCustomerCode: text("billing_customer_code").unique(),
   reportVisibility: text("report_visibility", {
     enum: ["manager_only", "team", "tenant_all"],
   })
@@ -453,6 +452,226 @@ export const notifications = pgTable("notifications", {
   referenceId: uuid("reference_id"),
   isRead: boolean("is_read").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+// ── Billing (請求書管理 / インボイス制度対応) ──
+
+export const billingAccounts = pgTable("billing_accounts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: uuid("tenant_id")
+    .references(() => tenants.id, { onDelete: "cascade" })
+    .notNull(),
+  isDefault: boolean("is_default").notNull().default(false),
+  companyName: text("company_name").notNull(),
+  companyNameKana: text("company_name_kana"),
+  corporateNumber: text("corporate_number"),
+  qualifiedInvoiceNumber: text("qualified_invoice_number"),
+  postalCode: text("postal_code"),
+  prefecture: text("prefecture"),
+  addressLine1: text("address_line1"),
+  addressLine2: text("address_line2"),
+  contactName: text("contact_name").notNull(),
+  contactDepartment: text("contact_department"),
+  contactEmail: text("contact_email").notNull(),
+  contactPhone: text("contact_phone"),
+  paymentMethod: text("payment_method", {
+    enum: ["bank_transfer", "direct_debit", "credit_card", "other"],
+  })
+    .notNull()
+    .default("bank_transfer"),
+  paymentTermsDays: integer("payment_terms_days").notNull().default(30),
+  closingDay: integer("closing_day").notNull().default(31),
+  deliveryMethod: text("delivery_method", {
+    enum: ["email", "postal", "both"],
+  })
+    .notNull()
+    .default("email"),
+  deliveryEmail: text("delivery_email"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const billingContracts = pgTable("billing_contracts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: uuid("tenant_id")
+    .references(() => tenants.id, { onDelete: "cascade" })
+    .notNull(),
+  billingAccountId: uuid("billing_account_id")
+    .references(() => billingAccounts.id)
+    .notNull(),
+  plan: text("plan", {
+    enum: ["starter", "professional", "enterprise"],
+  }).notNull(),
+  contractNumber: text("contract_number").notNull().unique(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date"),
+  autoRenew: boolean("auto_renew").notNull().default(true),
+  renewalNoticeDays: integer("renewal_notice_days").notNull().default(60),
+  billingCycle: text("billing_cycle", {
+    enum: ["monthly", "quarterly", "yearly"],
+  })
+    .notNull()
+    .default("monthly"),
+  unitPriceJpy: integer("unit_price_jpy").notNull(),
+  committedSeats: integer("committed_seats").notNull().default(0),
+  overageUnitPriceJpy: integer("overage_unit_price_jpy"),
+  discountRate: numeric("discount_rate", { precision: 5, scale: 4 }).default("0"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const billingSeatSnapshots = pgTable(
+  "billing_seat_snapshots",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" })
+      .notNull(),
+    contractId: uuid("contract_id")
+      .references(() => billingContracts.id)
+      .notNull(),
+    snapshotMonth: date("snapshot_month").notNull(),
+    activeSeats: integer("active_seats").notNull(),
+    billableSeats: integer("billable_seats").notNull(),
+    calculationMethod: text("calculation_method", {
+      enum: ["max_mid_and_end", "end_of_month", "peak"],
+    })
+      .notNull()
+      .default("max_mid_and_end"),
+    seatDetail: jsonb("seat_detail").notNull().default([]),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [unique().on(table.contractId, table.snapshotMonth)]
+);
+
+export const invoices = pgTable("invoices", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: uuid("tenant_id")
+    .references(() => tenants.id)
+    .notNull(),
+  billingAccountId: uuid("billing_account_id")
+    .references(() => billingAccounts.id)
+    .notNull(),
+  contractId: uuid("contract_id").references(() => billingContracts.id),
+  invoiceNumber: text("invoice_number").notNull().unique(),
+  status: text("status", {
+    enum: ["draft", "issued", "sent", "paid", "overdue", "void", "credit_note"],
+  })
+    .notNull()
+    .default("draft"),
+  issueDate: date("issue_date").notNull(),
+  dueDate: date("due_date").notNull(),
+  periodStart: date("period_start").notNull(),
+  periodEnd: date("period_end").notNull(),
+  subtotalJpy: integer("subtotal_jpy").notNull().default(0),
+  tax10SubtotalJpy: integer("tax_10_subtotal_jpy").notNull().default(0),
+  tax10AmountJpy: integer("tax_10_amount_jpy").notNull().default(0),
+  tax8SubtotalJpy: integer("tax_8_subtotal_jpy").notNull().default(0),
+  tax8AmountJpy: integer("tax_8_amount_jpy").notNull().default(0),
+  taxExemptSubtotalJpy: integer("tax_exempt_subtotal_jpy").notNull().default(0),
+  totalJpy: integer("total_jpy").notNull().default(0),
+  issuerQualifiedInvoiceNumber: text("issuer_qualified_invoice_number").notNull(),
+  issuerName: text("issuer_name").notNull(),
+  issuerAddress: text("issuer_address"),
+  billingCompanyName: text("billing_company_name").notNull(),
+  billingContactName: text("billing_contact_name"),
+  billingAddress: text("billing_address"),
+  paymentMethod: text("payment_method", {
+    enum: ["bank_transfer", "direct_debit", "credit_card", "other"],
+  }).notNull(),
+  bankInfo: jsonb("bank_info").default({}),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  sentToEmails: text("sent_to_emails").array(),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
+  paidAmountJpy: integer("paid_amount_jpy").notNull().default(0),
+  notes: text("notes"),
+  internalNotes: text("internal_notes"),
+  pdfStoragePath: text("pdf_storage_path"),
+  relatedInvoiceId: uuid("related_invoice_id"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  issuedAt: timestamp("issued_at", { withTimezone: true }),
+  voidedAt: timestamp("voided_at", { withTimezone: true }),
+  voidedReason: text("voided_reason"),
+});
+
+export const invoiceItems = pgTable(
+  "invoice_items",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    invoiceId: uuid("invoice_id")
+      .references(() => invoices.id, { onDelete: "cascade" })
+      .notNull(),
+    lineNo: integer("line_no").notNull(),
+    description: text("description").notNull(),
+    detail: text("detail"),
+    quantity: numeric("quantity", { precision: 12, scale: 4 })
+      .notNull()
+      .default("1"),
+    unit: text("unit"),
+    unitPriceJpy: integer("unit_price_jpy").notNull(),
+    amountJpy: integer("amount_jpy").notNull(),
+    taxRate: text("tax_rate", {
+      enum: ["standard_10", "reduced_8", "tax_exempt", "non_taxable"],
+    })
+      .notNull()
+      .default("standard_10"),
+    itemType: text("item_type", {
+      enum: ["subscription", "seat_overage", "one_time", "adjustment", "discount"],
+    })
+      .notNull()
+      .default("subscription"),
+    referenceSnapshotId: uuid("reference_snapshot_id").references(
+      () => billingSeatSnapshots.id,
+      { onDelete: "set null" }
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [unique().on(table.invoiceId, table.lineNo)]
+);
+
+export const invoicePayments = pgTable("invoice_payments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  invoiceId: uuid("invoice_id")
+    .references(() => invoices.id)
+    .notNull(),
+  tenantId: uuid("tenant_id")
+    .references(() => tenants.id)
+    .notNull(),
+  paidAt: date("paid_at").notNull(),
+  amountJpy: integer("amount_jpy").notNull(),
+  paymentMethod: text("payment_method", {
+    enum: ["bank_transfer", "direct_debit", "credit_card", "other"],
+  }).notNull(),
+  reference: text("reference"),
+  bankStatementId: text("bank_statement_id"),
+  reconciledBy: uuid("reconciled_by").references(() => users.id),
+  reconciledAt: timestamp("reconciled_at", { withTimezone: true }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
 });

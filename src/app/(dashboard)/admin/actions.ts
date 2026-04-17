@@ -415,7 +415,7 @@ export async function getAdminStats() {
     const totalUsers = usersResult.count ?? 0;
 
     // Estimate MRR (Monthly Recurring Revenue)
-    // This is a rough estimate - actual MRR would come from Stripe
+    // 法人向け請求書管理への移行後は invoices テーブルから実績値を集計する
     const planCounts = tenants.reduce(
       (acc, t) => {
         const plan = (t.plan || "free") as PlanType;

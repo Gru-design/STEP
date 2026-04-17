@@ -510,12 +510,19 @@ CREATE TABLE activity_logs (
 
 ## タスク一覧
 
-### 7-1. Stripe 課金
-- pnpm add stripe @stripe/stripe-js
-- 4プラン: Free (5名), Starter (¥980/人), Professional (¥1,980/人), Enterprise (個別)
-- Stripe Checkout でサブスクリプション作成
-- Webhook で支払い状態を同期
-- プランに応じた機能制限 (CLAUDE.md の課金モデル参照)
+### 7-1. 請求書管理 (法人向け・インボイス制度対応)
+本プロダクトは法人向け B2B SaaS のため、Stripe 等のオンライン決済は採用せず、
+請求書払い (銀行振込 / 口座振替) を課金の中核とする。詳細は `docs/billing-design.md` を参照。
+
+- DB: `billing_accounts`, `billing_contracts`, `billing_seat_snapshots`, `invoices`, `invoice_items`, `invoice_payments`
+  (マイグレーション `00032_billing_invoices.sql`)
+- プラン: Free (5名、無償), Starter (¥1,200/人), Professional (¥2,000/人), Enterprise (個別)
+- 月次シート数スナップショットに基づく請求計算 (`calculation_method='max_mid_and_end'`)
+- 適格請求書等保存方式 (インボイス制度) 対応: 登録番号、税率区分、端数処理
+- 発行フロー: draft → issued → sent → paid (部分入金に対応)
+- 電子帳簿保存法対応の PDF 保管 (Supabase Storage、7年)
+- 月次 Cron: 前月締め → invoices(draft) 自動生成 (advisory lock で二重発火防止)
+- super_admin のみが契約登録・請求発行・入金消込を実施 (member/manager は閲覧不可)
 
 ### 7-2. プラン機能制限
 `src/lib/plan-limits.ts`:
@@ -555,7 +562,8 @@ CREATE TABLE activity_logs (
 - Supabase Pro の本番設定確認
 
 ## 完了条件
-- [ ] Stripe でサブスクリプション課金ができる
+- [ ] 請求書管理 (法人向け銀行振込・口座振替) が運用できる
+- [ ] 適格請求書等保存方式 (インボイス制度) に準拠した請求書が発行できる
 - [ ] プラン別の機能制限が正しく動作する
 - [ ] スーパーアドミンでテナント管理ができる
 - [ ] ランディングページが表示される
