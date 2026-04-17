@@ -15,8 +15,9 @@ AI APIに依存せず、全機能をロジックベースで実装する。
 - **ホスティング**: Vercel
 - **UI**: Tailwind CSS v4 + shadcn/ui
 - **検索**: PostgreSQL ts_vector (全文検索)
-- **決済**: Stripe (Phase 7)
+- **課金**: 請求書管理 (法人向け・銀行振込/口座振替・インボイス制度対応、Phase 7)。詳細は `docs/billing-design.md`
 - **通知**: Vercel Cron + Supabase Realtime
+- **法務**: 利用規約・プライバシー・特商法・DPA・SLA 等は `docs/legal/` に社内ドラフト保管 (外部公開前に顧問弁護士レビュー必須)
 
 ## ディレクトリ構造
 

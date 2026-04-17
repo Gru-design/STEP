@@ -1,5 +1,8 @@
 -- ============================================
--- STEP Database Schema (全23テーブル)
+-- STEP Database Schema
+-- ============================================
+-- 本ファイルは Drizzle スキーマ (src/db/schema.ts) および
+-- Supabase マイグレーション (supabase/migrations/) と同期して管理する。
 -- ============================================
 
 -- ── Core ──
@@ -10,8 +13,7 @@ CREATE TABLE tenants (
   plan TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'starter', 'professional', 'enterprise')),
   domain TEXT,
   settings JSONB DEFAULT '{}',
-  stripe_customer_id TEXT,
-  stripe_subscription_id TEXT,
+  billing_customer_code TEXT UNIQUE,      -- 自社採番の法人識別子 (請求書に記載)
   report_visibility TEXT NOT NULL DEFAULT 'team' CHECK (report_visibility IN ('manager_only', 'team', 'tenant_all')),
   -- manager_only: マネージャー以上のみ閲覧
   -- team: 同一チーム全員が閲覧可能 (デフォルト)
@@ -279,6 +281,130 @@ CREATE TABLE activity_logs (
   source TEXT NOT NULL,
   raw_data JSONB NOT NULL,
   collected_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- ── Billing (請求書管理 / 適格請求書等保存方式対応) ──
+-- 詳細は supabase/migrations/00032_billing_invoices.sql を参照。
+
+CREATE TABLE billing_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  is_default BOOLEAN NOT NULL DEFAULT false,
+  company_name TEXT NOT NULL,
+  company_name_kana TEXT,
+  corporate_number TEXT,
+  qualified_invoice_number TEXT,                      -- T + 13桁
+  postal_code TEXT, prefecture TEXT,
+  address_line1 TEXT, address_line2 TEXT,
+  contact_name TEXT NOT NULL, contact_department TEXT,
+  contact_email TEXT NOT NULL, contact_phone TEXT,
+  payment_method TEXT NOT NULL DEFAULT 'bank_transfer'
+    CHECK (payment_method IN ('bank_transfer', 'direct_debit', 'credit_card', 'other')),
+  payment_terms_days INTEGER NOT NULL DEFAULT 30,
+  closing_day INTEGER NOT NULL DEFAULT 31,
+  delivery_method TEXT NOT NULL DEFAULT 'email'
+    CHECK (delivery_method IN ('email', 'postal', 'both')),
+  delivery_email TEXT, notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE billing_contracts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  billing_account_id UUID NOT NULL REFERENCES billing_accounts(id),
+  plan TEXT NOT NULL CHECK (plan IN ('starter', 'professional', 'enterprise')),
+  contract_number TEXT NOT NULL UNIQUE,
+  start_date DATE NOT NULL, end_date DATE,
+  auto_renew BOOLEAN NOT NULL DEFAULT true,
+  renewal_notice_days INTEGER NOT NULL DEFAULT 60,
+  billing_cycle TEXT NOT NULL DEFAULT 'monthly'
+    CHECK (billing_cycle IN ('monthly', 'quarterly', 'yearly')),
+  unit_price_jpy INTEGER NOT NULL,
+  committed_seats INTEGER NOT NULL DEFAULT 0,
+  overage_unit_price_jpy INTEGER,
+  discount_rate NUMERIC(5,4) DEFAULT 0,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE billing_seat_snapshots (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  contract_id UUID NOT NULL REFERENCES billing_contracts(id),
+  snapshot_month DATE NOT NULL,
+  active_seats INTEGER NOT NULL,
+  billable_seats INTEGER NOT NULL,
+  calculation_method TEXT NOT NULL DEFAULT 'max_mid_and_end',
+  seat_detail JSONB NOT NULL DEFAULT '[]',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (contract_id, snapshot_month)
+);
+
+CREATE TABLE invoices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  billing_account_id UUID NOT NULL REFERENCES billing_accounts(id),
+  contract_id UUID REFERENCES billing_contracts(id),
+  invoice_number TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'draft'
+    CHECK (status IN ('draft', 'issued', 'sent', 'paid', 'overdue', 'void', 'credit_note')),
+  issue_date DATE NOT NULL, due_date DATE NOT NULL,
+  period_start DATE NOT NULL, period_end DATE NOT NULL,
+  subtotal_jpy INTEGER NOT NULL DEFAULT 0,
+  tax_10_subtotal_jpy INTEGER NOT NULL DEFAULT 0,
+  tax_10_amount_jpy INTEGER NOT NULL DEFAULT 0,
+  tax_8_subtotal_jpy INTEGER NOT NULL DEFAULT 0,
+  tax_8_amount_jpy INTEGER NOT NULL DEFAULT 0,
+  tax_exempt_subtotal_jpy INTEGER NOT NULL DEFAULT 0,
+  total_jpy INTEGER NOT NULL DEFAULT 0,
+  issuer_qualified_invoice_number TEXT NOT NULL,
+  issuer_name TEXT NOT NULL, issuer_address TEXT,
+  billing_company_name TEXT NOT NULL,
+  billing_contact_name TEXT, billing_address TEXT,
+  payment_method TEXT NOT NULL,
+  bank_info JSONB DEFAULT '{}',
+  sent_at TIMESTAMPTZ, sent_to_emails TEXT[],
+  paid_at TIMESTAMPTZ, paid_amount_jpy INTEGER NOT NULL DEFAULT 0,
+  notes TEXT, internal_notes TEXT,
+  pdf_storage_path TEXT,
+  related_invoice_id UUID REFERENCES invoices(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  issued_at TIMESTAMPTZ, voided_at TIMESTAMPTZ, voided_reason TEXT
+);
+
+CREATE TABLE invoice_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  invoice_id UUID NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+  line_no INTEGER NOT NULL,
+  description TEXT NOT NULL, detail TEXT,
+  quantity NUMERIC(12,4) NOT NULL DEFAULT 1,
+  unit TEXT,
+  unit_price_jpy INTEGER NOT NULL,
+  amount_jpy INTEGER NOT NULL,
+  tax_rate TEXT NOT NULL DEFAULT 'standard_10'
+    CHECK (tax_rate IN ('standard_10', 'reduced_8', 'tax_exempt', 'non_taxable')),
+  item_type TEXT NOT NULL DEFAULT 'subscription',
+  reference_snapshot_id UUID REFERENCES billing_seat_snapshots(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (invoice_id, line_no)
+);
+
+CREATE TABLE invoice_payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  invoice_id UUID NOT NULL REFERENCES invoices(id),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  paid_at DATE NOT NULL,
+  amount_jpy INTEGER NOT NULL CHECK (amount_jpy > 0),
+  payment_method TEXT NOT NULL,
+  reference TEXT, bank_statement_id TEXT,
+  reconciled_by UUID REFERENCES users(id),
+  reconciled_at TIMESTAMPTZ,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- ── Indexes ──
