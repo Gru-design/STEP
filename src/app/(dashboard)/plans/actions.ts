@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { dispatchWebhook } from "@/lib/webhook-outbound";
 import { checkFeatureAccess } from "@/lib/plan-gate";
+import { upsertPlanSchema } from "@/lib/validations";
+import type { z } from "zod";
 
 
 interface ActionResult<T = unknown> {
@@ -14,12 +16,18 @@ interface ActionResult<T = unknown> {
   error?: string;
 }
 
-export async function createOrUpdatePlan(data: {
-  weekStart: string;
-  templateId: string;
-  items: Record<string, unknown>;
-  status: "draft" | "submitted";
-}): Promise<ActionResult> {
+export type UpsertPlanInput = z.input<typeof upsertPlanSchema>;
+
+export async function createOrUpdatePlan(input: UpsertPlanInput): Promise<ActionResult> {
+  // Validate at the boundary. Without this, a client could set
+  // `status: "approved"` and self-approve — TypeScript's union type is
+  // erased at runtime and Supabase RLS allows owner-scoped updates.
+  const parsed = upsertPlanSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
+  }
+  const data = parsed.data;
+
   try {
     const supabase = await createClient();
 

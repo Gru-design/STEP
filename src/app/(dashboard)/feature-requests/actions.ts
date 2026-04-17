@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { requireSuperAdmin } from "@/lib/auth/require-role";
 
 const createRequestSchema = z.object({
   title: z.string().min(1, "タイトルを入力してください").max(200),
@@ -71,16 +72,13 @@ export async function listFeatureRequests(options?: {
   offset?: number;
 }) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser();
-
-    if (!authUser) {
-      return { success: false, error: "認証されていません", data: [] };
+    // Cross-tenant view is super_admin only. Role is verified against the DB,
+    // NOT user_metadata (which is user-modifiable via supabase.auth.updateUser).
+    const auth = await requireSuperAdmin();
+    if (!auth.ok) {
+      return { success: false, error: auth.error, data: [] };
     }
 
-    // Use admin client to bypass RLS for cross-tenant reads
     const adminClient = createAdminClient();
 
     const limit = options?.limit ?? 50;
@@ -119,27 +117,12 @@ const updateRequestSchema = z.object({
 
 export async function updateFeatureRequest(formData: FormData) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser();
-
-    if (!authUser) {
-      return { success: false, error: "認証されていません" };
+    const auth = await requireSuperAdmin();
+    if (!auth.ok) {
+      return { success: false, error: auth.error };
     }
 
     const adminClient = createAdminClient();
-
-    // super_admin check via admin client
-    const { data: dbUser } = await adminClient
-      .from("users")
-      .select("role")
-      .eq("id", authUser.id)
-      .single();
-
-    if (!dbUser || dbUser.role !== "super_admin") {
-      return { success: false, error: "権限がありません" };
-    }
 
     const parsed = updateRequestSchema.safeParse({
       id: formData.get("id"),

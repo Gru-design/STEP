@@ -9,6 +9,19 @@ export const signupSchema = z.object({
   password: z.string().min(8, "パスワードは8文字以上で入力してください").max(128),
 });
 
+// ── Users / Invitations ──
+
+// Invitable roles. super_admin is deliberately excluded — that role is
+// provisioned only via the CLI script or Supabase SQL editor. Allowing it
+// here would let any tenant admin mint a global super_admin.
+export const inviteUserSchema = z.object({
+  email: z.string().email("有効なメールアドレスを入力してください").max(255),
+  name: z.string().min(1, "名前を入力してください").max(100).trim(),
+  role: z.enum(["admin", "manager", "member"], {
+    message: "ロールは admin / manager / member のいずれかにしてください",
+  }),
+});
+
 // ── Team ──
 
 export const createTeamSchema = z.object({
@@ -73,6 +86,16 @@ export const createPlanSchema = z.object({
   weekStart: z.string().min(1, "週の開始日を入力してください"),
   templateId: z.string().uuid().optional(),
   items: z.unknown(),
+});
+
+// Upsert (create-or-update) accepts only draft/submitted. approved/rejected/
+// reviewed are set by the dedicated approval actions — rejecting them here
+// prevents self-approval via a crafted payload from the client.
+export const upsertPlanSchema = z.object({
+  weekStart: z.string().min(1, "週の開始日を入力してください"),
+  templateId: z.string().uuid("テンプレートを選択してください"),
+  items: z.record(z.string(), z.unknown()),
+  status: z.enum(["draft", "submitted"]),
 });
 
 // ── Profile ──

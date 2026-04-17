@@ -1,11 +1,12 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { createGoalSchema } from "@/lib/validations";
 import { writeAuditLog } from "@/lib/audit";
 import { checkFeatureAccess } from "@/lib/plan-gate";
+import { requireAuthenticated } from "@/lib/auth/require-role";
+import type { Role } from "@/types/database";
 
 interface GoalInput {
   name: string;
@@ -20,6 +21,20 @@ interface GoalInput {
   parent_id?: string;
 }
 
+// Levels above "individual" are organisation-wide objectives that only
+// managers, admins, and super_admins may create or mutate. A plain member
+// must not be able to publish a "company" goal that would appear on every
+// teammate's dashboard.
+const MANAGER_LEVELS: ReadonlySet<GoalInput["level"]> = new Set([
+  "company",
+  "department",
+  "team",
+]);
+
+function isManager(role: Role): boolean {
+  return role === "manager" || role === "admin" || role === "super_admin";
+}
+
 export async function createGoal(input: GoalInput): Promise<{
   success: boolean;
   error?: string;
@@ -30,27 +45,36 @@ export async function createGoal(input: GoalInput): Promise<{
   }
 
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const auth = await requireAuthenticated();
+    if (!auth.ok) return { success: false, error: auth.error };
+    const { dbUser, user } = auth;
 
-    if (!user) {
-      return { success: false, error: "認証が必要です" };
+    if (MANAGER_LEVELS.has(input.level) && !isManager(dbUser.role)) {
+      return {
+        success: false,
+        error: "組織レベルの目標を作成する権限がありません",
+      };
     }
 
-    const { data: dbUser } = await supabase
-      .from("users")
-      .select("tenant_id")
-      .eq("id", user.id)
-      .single();
-
-    if (!dbUser) {
-      return { success: false, error: "ユーザーが見つかりません" };
+    // An individual goal owned by someone other than the creator is an
+    // assignment — only managers can hand out goals to other users.
+    if (
+      input.level === "individual" &&
+      input.owner_id &&
+      input.owner_id !== user.id &&
+      !isManager(dbUser.role)
+    ) {
+      return {
+        success: false,
+        error: "他のメンバーの目標を作成する権限がありません",
+      };
     }
 
-    // Validate date range
-    if (input.period_start && input.period_end && new Date(input.period_start) > new Date(input.period_end)) {
+    if (
+      input.period_start &&
+      input.period_end &&
+      new Date(input.period_start) > new Date(input.period_end)
+    ) {
       return { success: false, error: "開始日は終了日より前に設定してください" };
     }
 
@@ -63,8 +87,43 @@ export async function createGoal(input: GoalInput): Promise<{
       return { success: false, error: gate.error };
     }
 
-    // Use admin client to bypass RLS (tenant_id is validated server-side)
     const adminClient = createAdminClient();
+
+    // If the caller references an owner / team / parent, verify each belongs
+    // to the same tenant. The admin client bypasses RLS so this check has to
+    // happen explicitly — otherwise a crafted payload could link a goal to a
+    // row in another tenant.
+    if (input.owner_id) {
+      const { data: owner } = await adminClient
+        .from("users")
+        .select("id, tenant_id")
+        .eq("id", input.owner_id)
+        .single();
+      if (!owner || owner.tenant_id !== dbUser.tenant_id) {
+        return { success: false, error: "担当者が見つかりません" };
+      }
+    }
+    if (input.team_id) {
+      const { data: team } = await adminClient
+        .from("teams")
+        .select("id, tenant_id")
+        .eq("id", input.team_id)
+        .single();
+      if (!team || team.tenant_id !== dbUser.tenant_id) {
+        return { success: false, error: "チームが見つかりません" };
+      }
+    }
+    if (input.parent_id) {
+      const { data: parent } = await adminClient
+        .from("goals")
+        .select("id, tenant_id")
+        .eq("id", input.parent_id)
+        .single();
+      if (!parent || parent.tenant_id !== dbUser.tenant_id) {
+        return { success: false, error: "親目標が見つかりません" };
+      }
+    }
+
     const { error } = await adminClient.from("goals").insert({
       tenant_id: dbUser.tenant_id,
       name: input.name,
@@ -111,26 +170,66 @@ export async function updateGoal(
   input: Partial<GoalInput>
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { success: false, error: "認証が必要です" };
-    }
-
-    const { data: dbUser } = await supabase
-      .from("users")
-      .select("tenant_id")
-      .eq("id", user.id)
-      .single();
-
-    if (!dbUser) {
-      return { success: false, error: "ユーザーが見つかりません" };
-    }
+    const auth = await requireAuthenticated();
+    if (!auth.ok) return { success: false, error: auth.error };
+    const { dbUser, user } = auth;
 
     const adminClient = createAdminClient();
+
+    // Fetch the existing goal for authorization decisions. We need both the
+    // current level and the owner_id so a member can edit their own
+    // individual goal but cannot escalate it to "team"/"company".
+    const { data: existing } = await adminClient
+      .from("goals")
+      .select("id, tenant_id, level, owner_id")
+      .eq("id", goalId)
+      .single();
+
+    if (!existing || existing.tenant_id !== dbUser.tenant_id) {
+      return { success: false, error: "目標が見つかりません" };
+    }
+
+    const existingLevel = existing.level as GoalInput["level"];
+    const targetLevel = (input.level ?? existingLevel) as GoalInput["level"];
+    const touchesManagerLevel =
+      MANAGER_LEVELS.has(existingLevel) || MANAGER_LEVELS.has(targetLevel);
+
+    if (touchesManagerLevel && !isManager(dbUser.role)) {
+      return {
+        success: false,
+        error: "組織レベルの目標を変更する権限がありません",
+      };
+    }
+
+    if (
+      !touchesManagerLevel &&
+      existing.owner_id &&
+      existing.owner_id !== user.id &&
+      !isManager(dbUser.role)
+    ) {
+      return {
+        success: false,
+        error: "他のメンバーの目標を変更する権限がありません",
+      };
+    }
+
+    if (input.owner_id && input.owner_id !== existing.owner_id) {
+      if (!isManager(dbUser.role)) {
+        return {
+          success: false,
+          error: "担当者を変更する権限がありません",
+        };
+      }
+      const { data: owner } = await adminClient
+        .from("users")
+        .select("id, tenant_id")
+        .eq("id", input.owner_id)
+        .single();
+      if (!owner || owner.tenant_id !== dbUser.tenant_id) {
+        return { success: false, error: "担当者が見つかりません" };
+      }
+    }
+
     const { error } = await adminClient
       .from("goals")
       .update({
@@ -195,27 +294,42 @@ export async function deleteGoal(
   goalId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const auth = await requireAuthenticated();
+    if (!auth.ok) return { success: false, error: auth.error };
+    const { dbUser, user } = auth;
 
-    if (!user) {
-      return { success: false, error: "認証が必要です" };
-    }
+    const adminClient = createAdminClient();
 
-    const { data: dbUser } = await supabase
-      .from("users")
-      .select("tenant_id")
-      .eq("id", user.id)
+    const { data: existing } = await adminClient
+      .from("goals")
+      .select("id, tenant_id, level, owner_id")
+      .eq("id", goalId)
       .single();
 
-    if (!dbUser) {
-      return { success: false, error: "ユーザーが見つかりません" };
+    if (!existing || existing.tenant_id !== dbUser.tenant_id) {
+      return { success: false, error: "目標が見つかりません" };
     }
 
-    // Check if goal has children
-    const adminClient = createAdminClient();
+    const existingLevel = existing.level as GoalInput["level"];
+    if (MANAGER_LEVELS.has(existingLevel) && !isManager(dbUser.role)) {
+      return {
+        success: false,
+        error: "組織レベルの目標を削除する権限がありません",
+      };
+    }
+
+    if (
+      existingLevel === "individual" &&
+      existing.owner_id &&
+      existing.owner_id !== user.id &&
+      !isManager(dbUser.role)
+    ) {
+      return {
+        success: false,
+        error: "他のメンバーの目標を削除する権限がありません",
+      };
+    }
+
     const { data: children } = await adminClient
       .from("goals")
       .select("id")

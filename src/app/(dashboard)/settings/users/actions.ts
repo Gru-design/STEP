@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { writeAuditLog } from "@/lib/audit";
+import { inviteUserSchema } from "@/lib/validations";
 import type { Role } from "@/types/database";
 
 async function requireAdmin() {
@@ -32,6 +33,15 @@ export async function inviteUser(
   error?: string;
   user?: { id: string; name: string; email: string; role: string; created_at: string; tempPassword: string };
 }> {
+  // Validate at the boundary. `role: Role` is a compile-time type that a
+  // client cannot rely on — the Server Action is reachable from anywhere, so
+  // we must reject super_admin here (only `updateUserRole` previously did).
+  const parsed = inviteUserSchema.safeParse({ email, name, role });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
+  }
+  const input = parsed.data;
+
   try {
     const admin = await requireAdmin();
     if (!admin) return { success: false, error: "権限がありません" };
@@ -45,10 +55,10 @@ export async function inviteUser(
 
     const { data: authData, error: authError } =
       await supabase.auth.admin.createUser({
-        email,
+        email: input.email,
         password: tempPassword,
         email_confirm: true,
-        user_metadata: { tenant_id: tenantId, name, role },
+        user_metadata: { tenant_id: tenantId, name: input.name, role: input.role },
       });
 
     if (authError) {
@@ -73,15 +83,15 @@ export async function inviteUser(
       await supabase.from("users").insert({
         id: authData.user.id,
         tenant_id: tenantId,
-        email,
-        name,
-        role,
+        email: input.email,
+        name: input.name,
+        role: input.role,
       });
     } else {
       // Update role if trigger set default
       await supabase
         .from("users")
-        .update({ role })
+        .update({ role: input.role })
         .eq("id", authData.user.id);
     }
 
@@ -91,16 +101,16 @@ export async function inviteUser(
       action: "create",
       resource: "user",
       resourceId: authData.user.id,
-      details: { email, role },
+      details: { email: input.email, role: input.role },
     });
 
     return {
       success: true,
       user: {
         id: authData.user.id,
-        name,
-        email,
-        role,
+        name: input.name,
+        email: input.email,
+        role: input.role,
         created_at: new Date().toISOString(),
         tempPassword,
       },

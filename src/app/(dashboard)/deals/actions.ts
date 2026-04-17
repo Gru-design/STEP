@@ -2,10 +2,11 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { createDealSchema } from "@/lib/validations";
+import { createDealSchema, updateDealSchema } from "@/lib/validations";
 import { writeAuditLog } from "@/lib/audit";
 import { dispatchWebhook } from "@/lib/webhook-outbound";
 import { checkFeatureAccess } from "@/lib/plan-gate";
+import type { z } from "zod";
 
 interface CreateDealInput {
   company: string;
@@ -15,14 +16,7 @@ interface CreateDealInput {
   stage_id: string;
 }
 
-interface UpdateDealInput {
-  company?: string;
-  title?: string;
-  value?: number;
-  due_date?: string;
-  status?: "active" | "won" | "lost" | "hold";
-  persona?: Record<string, unknown>;
-}
+type UpdateDealInput = z.input<typeof updateDealSchema>;
 
 export async function createDeal(data: CreateDealInput) {
   const parsed = createDealSchema.safeParse(data);
@@ -102,6 +96,15 @@ export async function createDeal(data: CreateDealInput) {
 }
 
 export async function updateDeal(id: string, data: UpdateDealInput) {
+  // Parse at the boundary. Without this, a client could spread arbitrary
+  // fields like `approval_status`, `user_id`, `tenant_id`, `stage_id` into
+  // the update — RLS would still accept same-tenant rows, so a caller could
+  // self-approve or seize another user's deal.
+  const parsed = updateDealSchema.safeParse(data);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
+  }
+
   try {
     const supabase = await createClient();
     const {
@@ -124,7 +127,7 @@ export async function updateDeal(id: string, data: UpdateDealInput) {
 
     const { error } = await supabase
       .from("deals")
-      .update({ ...data, updated_at: new Date().toISOString() })
+      .update({ ...parsed.data, updated_at: new Date().toISOString() })
       .eq("id", id)
       .eq("tenant_id", dbUser.tenant_id);
 
