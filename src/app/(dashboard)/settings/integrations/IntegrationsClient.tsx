@@ -27,7 +27,7 @@ const providers: ProviderConfig[] = [
     key: "chatwork",
     name: "Chatwork",
     description:
-      "日報提出通知、リマインダー、週刊STEPをChatworkルームに配信します。",
+      "日報提出通知とリマインダーを Chatwork ルームに配信します。",
     hasWebhook: false,
     comingSoon: false,
   },
@@ -35,7 +35,7 @@ const providers: ProviderConfig[] = [
     key: "slack",
     name: "Slack",
     description:
-      "日報提出通知、リマインダー、週刊STEPをSlackチャンネルに配信します。",
+      "日報提出通知とリマインダーを Slack チャンネルに配信します。",
     hasWebhook: true,
     comingSoon: false,
   },

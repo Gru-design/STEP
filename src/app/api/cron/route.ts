@@ -5,7 +5,6 @@ import { checkSubmissionReminder, checkMotivationDrop } from "@/lib/nudge/engine
 import { sendPendingNudges } from "@/lib/nudge/sender";
 import { snapshotAllGoals } from "@/lib/goals/progress";
 import { generateDeviationAlerts } from "@/lib/goals/deviation";
-import { generateWeeklyDigest } from "@/lib/digest/generator";
 import { batchUpdateExecutionRates } from "@/lib/plans/execution-rate";
 import { sendMorningReminder } from "@/lib/notifications/morning-reminder";
 import { jstParts, jstDateString, addDaysToDateString } from "@/lib/tz";
@@ -24,7 +23,6 @@ export const maxDuration = 60;
  * - 毎日(平日): 朝の未提出リマインダー (Chatwork通知)
  * - 毎日(平日): 前日未提出リマインダー(アプリ内ナッジ) + モチベーション低下チェック
  * - 毎日(平日): 目標スナップショット + 乖離アラート
- * - 月曜: 週刊STEP生成
  * - 金曜: 計画実行率計算
  */
 export async function GET(request: Request) {
@@ -45,9 +43,9 @@ export async function GET(request: Request) {
     const supabase = createAdminClient();
 
     // Guard the whole pipeline with a Postgres advisory lock so Vercel cron
-    // retries or accidental double-schedules cannot double-send reminders or
-    // regenerate digests. If another invocation is already holding the lock,
-    // return 202 so Vercel's retry logic does not treat this as a failure.
+    // retries or accidental double-schedules cannot double-send reminders. If
+    // another invocation is already holding the lock, return 202 so Vercel's
+    // retry logic does not treat this as a failure.
     const lockResult = await withCronLock(supabase, "unified-cron", async () => {
       return runUnifiedCron(supabase);
     });
@@ -140,21 +138,7 @@ async function runUnifiedCron(supabase: Supabase) {
       }
     }
 
-    // ── 3. 週刊STEP生成 (月曜のみ) ──
-    if (jstDay === 1) {
-      try {
-        // Monday: jstToday is this Monday → last Monday is -7 days.
-        const weekStart = addDaysToDateString(jstToday, -7);
-
-        await generateWeeklyDigest(supabase, tenant.id, weekStart);
-        results.digestsGenerated =
-          ((results.digestsGenerated as number) || 0) + 1;
-      } catch (e) {
-        console.error(`Digest error tenant ${tenant.id}:`, e);
-      }
-    }
-
-    // ── 4. 計画実行率 (金曜のみ) ──
+    // ── 3. 計画実行率 (金曜のみ) ──
     if (jstDay === 5) {
       try {
         // Friday: Monday of this week is -4 days.

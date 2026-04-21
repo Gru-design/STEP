@@ -333,20 +333,6 @@ export interface KnowledgePost {
   updated_at: string;
 }
 
-// ── Weekly Digests ──
-
-export interface WeeklyDigest {
-  id: string;
-  tenant_id: string;
-  week_start: string;
-  rankings: Record<string, unknown>;
-  mvp: Record<string, unknown>;
-  stats: Record<string, unknown>;
-  badges_earned: Record<string, unknown>[];
-  recommendations: Record<string, unknown>[];
-  created_at: string;
-}
-
 // ── Integrations ──
 
 export type IntegrationProvider = "google_calendar" | "gmail" | "slack" | "chatwork" | "teams" | "cti";

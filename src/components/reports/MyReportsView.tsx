@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarDays, List } from "lucide-react";
+import { CalendarDays, List, FileText } from "lucide-react";
+import { EmptyState } from "@/components/shared/EmptyState";
 
 interface MyReportEntry {
   id: string;
@@ -279,9 +280,12 @@ function ListView({
 
   if (entries.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16">
-        <p className="text-sm text-muted-foreground">日報がまだありません</p>
-      </div>
+      <EmptyState
+        icon={FileText}
+        title="まだ日報がありません"
+        description="最初の日報を書いて、今日の 1STEP を記録しましょう。"
+        action={{ label: "日報を書く", href: "/reports/new" }}
+      />
     );
   }
 

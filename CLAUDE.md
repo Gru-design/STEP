@@ -43,12 +43,11 @@ step/
 │   │   │   ├── deals/           # 案件管理
 │   │   │   ├── goals/           # 目標ツリー
 │   │   │   ├── knowledge/       # ナレッジ
-│   │   │   ├── weekly-digest/   # 週刊STEP
 │   │   │   ├── team/            # チーム管理
 │   │   │   ├── settings/        # テナント設定
 │   │   │   └── admin/           # スーパーアドミン
 │   │   ├── api/
-│   │   │   ├── cron/            # Vercel Cron (ナッジ、週刊STEP生成)
+│   │   │   ├── cron/            # Vercel Cron (ナッジ・目標スナップショット・計画実行率)
 │   │   │   └── webhooks/        # 外部連携Webhook
 │   │   ├── layout.tsx
 │   │   └── page.tsx             # ランディングページ
@@ -74,7 +73,6 @@ step/
 │   │   ├── nudge/               # ナッジエンジン
 │   │   ├── gamification/        # レベル・バッジ計算
 │   │   ├── goals/               # 目標進捗計算・乖離検知
-│   │   ├── digest/              # 週刊STEP生成
 │   │   └── utils.ts
 │   ├── hooks/                   # カスタムフック
 │   ├── types/                   # 型定義
@@ -244,7 +242,7 @@ users テーブルに以下の連絡先・プロフィール情報を持つ:
 
 ### フィールドタイプ
 
-text, textarea, number, select_single, select_multi, date, rating, file, link, section, repeater
+text, textarea, number, select_single, select_multi, date, rating, link, section, repeater
 
 ### schema JSONB 構造
 
@@ -365,6 +363,6 @@ Lv1: 0, Lv2: 100, Lv3: 500, Lv4: 1500, Lv5: 5000
 | 2 | 日報コア | docs/phases/phase-2.md |
 | 3 | ナッジ & ゲーミフィケーション | docs/phases/phase-3.md |
 | 4 | 目標 & ファネル & ダッシュボード | docs/phases/phase-4.md |
-| 5 | 計画 & 承認 & 週刊STEP | docs/phases/phase-5.md |
+| 5 | 計画 & 承認 | docs/phases/phase-5.md |
 | 6 | 外部連携 | docs/phases/phase-6.md |
 | 7 | 商用化 | docs/phases/phase-7.md |

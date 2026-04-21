@@ -1,5 +1,7 @@
 import React from "react";
+import { Award } from "lucide-react";
 import type { Badge } from "@/types/database";
+import { EmptyState } from "@/components/shared/EmptyState";
 
 type BadgeWithEarned = Badge & { earned: boolean };
 
@@ -31,7 +33,11 @@ const rarityTextColors: Record<string, string> = {
 export function BadgeDisplay({ badges }: BadgeDisplayProps) {
   if (badges.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">バッジはまだありません</p>
+      <EmptyState
+        icon={Award}
+        title="バッジはまだありません"
+        description="日報提出・目標達成・ナレッジ投稿など日々のアクションでバッジを獲得できます。"
+      />
     );
   }
 
