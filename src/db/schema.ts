@@ -388,28 +388,6 @@ export const knowledgePosts = pgTable("knowledge_posts", {
     .notNull(),
 });
 
-// ── Weekly Digests ──
-
-export const weeklyDigests = pgTable(
-  "weekly_digests",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    tenantId: uuid("tenant_id")
-      .references(() => tenants.id)
-      .notNull(),
-    weekStart: date("week_start").notNull(),
-    rankings: jsonb("rankings").notNull().default({}),
-    mvp: jsonb("mvp").notNull().default({}),
-    stats: jsonb("stats").notNull().default({}),
-    badgesEarned: jsonb("badges_earned").default([]),
-    recommendations: jsonb("recommendations").default([]),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [unique().on(table.tenantId, table.weekStart)]
-);
-
 // ── Integrations ──
 
 export const integrations = pgTable("integrations", {

@@ -74,9 +74,6 @@ export function formatNudgeNotification(content: string): string {
 }
 
 /**
- * Format a weekly digest summary notification for Chatwork.
- */
-/**
  * Format a morning reminder for yesterday's non-submitters.
  */
 export function formatMorningReminder(
@@ -94,30 +91,3 @@ export function formatMorningReminder(
   ].join("\n");
 }
 
-export function formatWeeklyDigestNotification(digest: {
-  weekStart: string;
-  submissionRate?: number;
-  mvpName?: string;
-  topAchievements?: string[];
-}): string {
-  const lines = [`[info][title]週刊STEP (${digest.weekStart}〜)[/title]`];
-
-  if (digest.submissionRate !== undefined) {
-    lines.push(`提出率: ${Math.round(digest.submissionRate * 100)}%`);
-  }
-
-  if (digest.mvpName) {
-    lines.push(`MVP: ${digest.mvpName}`);
-  }
-
-  if (digest.topAchievements && digest.topAchievements.length > 0) {
-    lines.push("");
-    lines.push("今週のハイライト:");
-    for (const achievement of digest.topAchievements) {
-      lines.push(`・${achievement}`);
-    }
-  }
-
-  lines.push("[/info]");
-  return lines.join("\n");
-}

@@ -13,7 +13,6 @@ import {
   Award,
   Settings,
   Search,
-  Newspaper,
   User,
   CalendarDays,
 } from "lucide-react";
@@ -138,13 +137,6 @@ export function CommandPalette() {
       label: "バッジ",
       icon: Award,
       action: () => navigate("/badges"),
-      category: "navigation",
-    },
-    {
-      id: "nav-digest",
-      label: "週刊STEP",
-      icon: Newspaper,
-      action: () => navigate("/weekly-digest"),
       category: "navigation",
     },
     {

@@ -11,6 +11,7 @@ import { OptionalSelect } from "@/components/shared/OptionalSelect";
 import { DynamicForm } from "@/components/reports/DynamicForm";
 import { ReactionBar } from "@/components/reports/ReactionBar";
 import { CommentThread } from "@/components/reports/CommentThread";
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   getReactions,
 } from "@/app/(dashboard)/reports/actions";
@@ -237,10 +238,12 @@ export function ReportFeed({
 
       {/* Empty state */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <FileText className="h-12 w-12 text-slate-200 mb-3" />
-          <p className="text-sm text-muted-foreground">日報がまだありません</p>
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="日報はまだありません"
+          description="チームメンバーが日報を提出すると、ここにフィード形式で表示されます。"
+          action={{ label: "日報を書く", href: "/reports/new" }}
+        />
       ) : (
         <>
           {/* Mobile: simple list */}

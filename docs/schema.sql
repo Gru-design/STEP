@@ -249,19 +249,6 @@ CREATE TABLE knowledge_posts (
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE weekly_digests (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  tenant_id UUID REFERENCES tenants(id) NOT NULL,
-  week_start DATE NOT NULL,
-  rankings JSONB NOT NULL DEFAULT '{}',
-  mvp JSONB NOT NULL DEFAULT '{}',
-  stats JSONB NOT NULL DEFAULT '{}',
-  badges_earned JSONB DEFAULT '[]',
-  recommendations JSONB DEFAULT '[]',
-  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-  UNIQUE (tenant_id, week_start)
-);
-
 -- ── Infrastructure ──
 
 CREATE TABLE integrations (
@@ -448,7 +435,6 @@ ALTER TABLE badges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_badges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_levels ENABLE ROW LEVEL SECURITY;
 ALTER TABLE knowledge_posts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE weekly_digests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE integrations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
 
