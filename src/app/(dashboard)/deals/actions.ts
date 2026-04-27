@@ -226,61 +226,32 @@ export async function approveDeal(dealId: string, comment?: string) {
       return { success: false, error: "認証が必要です" };
     }
 
-    const { data: dbUser } = await supabase
-      .from("users")
-      .select("tenant_id, role")
-      .eq("id", user.id)
-      .single();
+    // Atomic: state update + approval_log + activity_log all happen in
+    // one PL/pgSQL function = one transaction. Role and tenant checks
+    // run inside the function from public.users (never JWT metadata).
+    const { data: rpcResult, error: rpcError } = await supabase.rpc(
+      "approve_deal_atomic",
+      { p_deal_id: dealId, p_comment: comment ?? null }
+    );
 
-    if (!dbUser || (dbUser.role !== "admin" && dbUser.role !== "manager" && dbUser.role !== "super_admin")) {
-      return { success: false, error: "承認権限がありません" };
-    }
-
-    const { data: deal } = await supabase
-      .from("deals")
-      .select("id, user_id, approval_status")
-      .eq("id", dealId)
-      .eq("tenant_id", dbUser.tenant_id)
-      .single();
-
-    if (!deal) {
-      return { success: false, error: "案件が見つかりません" };
-    }
-
-    if (deal.user_id === user.id) {
-      return { success: false, error: "自分の案件は承認できません" };
-    }
-
-    if (deal.approval_status !== "submitted") {
-      return { success: false, error: "この案件は承認待ちではありません" };
-    }
-
-    const { error } = await supabase
-      .from("deals")
-      .update({ approval_status: "approved", updated_at: new Date().toISOString() })
-      .eq("id", dealId)
-      .eq("tenant_id", dbUser.tenant_id);
-
-    if (error) {
+    if (rpcError) {
+      console.error("[Deals] approve_deal_atomic rpc error:", rpcError.message);
       return { success: false, error: "承認に失敗しました" };
     }
 
-    // Record approval log
-    await supabase.from("approval_logs").insert({
-      tenant_id: dbUser.tenant_id,
-      target_type: "deal",
-      target_id: dealId,
-      action: "approved",
-      actor_id: user.id,
-      comment: comment?.trim() || null,
-    });
+    const result = rpcResult as
+      | { success: true; tenant_id: string; deal_id: string; deal_owner: string; deal_company: string; comment: string | null }
+      | { success: false; error: string };
 
-    await writeAuditLog({
-      tenantId: dbUser.tenant_id,
-      userId: user.id,
-      action: "approve",
-      resource: "deal",
-      resourceId: dealId,
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+
+    await dispatchWebhook(result.tenant_id, "deal.approved", {
+      deal_id: result.deal_id,
+      approved_by: user.id,
+      company: result.deal_company,
+      comment: result.comment,
     });
 
     revalidatePath("/deals");
@@ -293,10 +264,6 @@ export async function approveDeal(dealId: string, comment?: string) {
 }
 
 export async function rejectDeal(dealId: string, comment: string) {
-  if (!comment.trim()) {
-    return { success: false, error: "差し戻しコメントは必須です" };
-  }
-
   try {
     const supabase = await createClient();
     const {
@@ -307,73 +274,27 @@ export async function rejectDeal(dealId: string, comment: string) {
       return { success: false, error: "認証が必要です" };
     }
 
-    const { data: dbUser } = await supabase
-      .from("users")
-      .select("tenant_id, role")
-      .eq("id", user.id)
-      .single();
+    // Atomic: state update + approval_log + activity_log + nudge all in
+    // one transaction. Comment-required validation runs inside the
+    // function so the contract is enforced even if a future caller
+    // forgets the client-side check.
+    const { data: rpcResult, error: rpcError } = await supabase.rpc(
+      "reject_deal_atomic",
+      { p_deal_id: dealId, p_comment: comment }
+    );
 
-    if (!dbUser || (dbUser.role !== "admin" && dbUser.role !== "manager" && dbUser.role !== "super_admin")) {
-      return { success: false, error: "差し戻し権限がありません" };
-    }
-
-    const { data: deal } = await supabase
-      .from("deals")
-      .select("id, user_id, approval_status")
-      .eq("id", dealId)
-      .eq("tenant_id", dbUser.tenant_id)
-      .single();
-
-    if (!deal) {
-      return { success: false, error: "案件が見つかりません" };
-    }
-
-    if (deal.user_id === user.id) {
-      return { success: false, error: "自分の案件は差し戻しできません" };
-    }
-
-    const { error } = await supabase
-      .from("deals")
-      .update({ approval_status: "rejected", updated_at: new Date().toISOString() })
-      .eq("id", dealId)
-      .eq("tenant_id", dbUser.tenant_id);
-
-    if (error) {
+    if (rpcError) {
+      console.error("[Deals] reject_deal_atomic rpc error:", rpcError.message);
       return { success: false, error: "差し戻しに失敗しました" };
     }
 
-    await supabase.from("approval_logs").insert({
-      tenant_id: dbUser.tenant_id,
-      target_type: "deal",
-      target_id: dealId,
-      action: "rejected",
-      actor_id: user.id,
-      comment: comment.trim(),
-    });
+    const result = rpcResult as
+      | { success: true; tenant_id: string; deal_id: string; deal_owner: string; deal_company: string; comment: string }
+      | { success: false; error: string };
 
-    await writeAuditLog({
-      tenantId: dbUser.tenant_id,
-      userId: user.id,
-      action: "reject",
-      resource: "deal",
-      resourceId: dealId,
-    });
-
-    // Create nudge notification for the deal owner
-    const { data: actor } = await supabase
-      .from("users")
-      .select("name")
-      .eq("id", user.id)
-      .single();
-    const actorName = actor?.name ?? "マネージャー";
-
-    await supabase.from("nudges").insert({
-      tenant_id: dbUser.tenant_id,
-      target_user_id: deal.user_id,
-      trigger_type: "deal_rejected",
-      content: `${actorName}が案件を差し戻しました: ${comment.trim()}`,
-      status: "pending",
-    });
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
 
     revalidatePath("/deals");
     revalidatePath(`/deals/${dealId}`);

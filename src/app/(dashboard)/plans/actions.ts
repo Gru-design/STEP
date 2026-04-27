@@ -170,69 +170,31 @@ export async function approvePlan(planId: string, comment?: string): Promise<Act
       return { success: false, error: "認証が必要です" };
     }
 
-    // Verify manager/admin role
-    const { data: dbUser } = await supabase
-      .from("users")
-      .select("tenant_id, role")
-      .eq("id", user.id)
-      .single();
+    // Atomic: state update + approval_log + activity_log all happen in
+    // one PL/pgSQL function = one transaction. Role and tenant checks
+    // run inside the function from public.users (never JWT metadata).
+    const { data: rpcResult, error: rpcError } = await supabase.rpc(
+      "approve_plan_atomic",
+      { p_plan_id: planId, p_comment: comment ?? null }
+    );
 
-    if (!dbUser || !["admin", "manager", "super_admin"].includes(dbUser.role)) {
-      return { success: false, error: "承認権限がありません" };
-    }
-
-    // Prevent self-approval and ensure tenant isolation
-    const { data: targetPlan } = await supabase
-      .from("weekly_plans")
-      .select("tenant_id, user_id")
-      .eq("id", planId)
-      .single();
-
-    if (!targetPlan || targetPlan.tenant_id !== dbUser.tenant_id) {
-      return { success: false, error: "対象の計画が見つかりません" };
-    }
-
-    if (targetPlan.user_id === user.id) {
-      return { success: false, error: "自分の計画は承認できません" };
-    }
-
-    const { error } = await supabase
-      .from("weekly_plans")
-      .update({
-        status: "approved",
-        approved_by: user.id,
-        approved_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", planId)
-      .eq("tenant_id", dbUser.tenant_id);
-
-    if (error) {
+    if (rpcError) {
+      console.error("[Plans] approve_plan_atomic rpc error:", rpcError.message);
       return { success: false, error: "承認に失敗しました" };
     }
 
-    await supabase.from("approval_logs").insert({
-      tenant_id: dbUser.tenant_id,
-      target_type: "weekly_plan",
-      target_id: planId,
-      action: "approved",
-      actor_id: user.id,
-      comment: comment?.trim() || null,
-    });
+    const result = rpcResult as
+      | { success: true; tenant_id: string; plan_id: string; plan_owner: string; comment: string | null }
+      | { success: false; error: string };
 
-    await writeAuditLog({
-      tenantId: dbUser.tenant_id,
-      userId: user.id,
-      action: "approve",
-      resource: "weekly_plan",
-      resourceId: planId,
-      details: comment?.trim() ? { comment: comment.trim() } : undefined,
-    });
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
 
-    await dispatchWebhook(dbUser.tenant_id, "plan.approved", {
-      plan_id: planId,
+    await dispatchWebhook(result.tenant_id, "plan.approved", {
+      plan_id: result.plan_id,
       approved_by: user.id,
-      comment: comment?.trim() || null,
+      comment: result.comment,
     });
 
     revalidatePath("/plans");
@@ -257,87 +219,32 @@ export async function rejectPlan(
       return { success: false, error: "認証が必要です" };
     }
 
-    if (!comment || comment.trim().length === 0) {
-      return { success: false, error: "差し戻しコメントは必須です" };
-    }
+    // Atomic: state update + approval_log + activity_log + nudge all in
+    // one transaction. Comment-required validation runs inside the
+    // function so the contract is enforced even if a future caller
+    // forgets the client-side check.
+    const { data: rpcResult, error: rpcError } = await supabase.rpc(
+      "reject_plan_atomic",
+      { p_plan_id: planId, p_comment: comment }
+    );
 
-    // Verify manager/admin role
-    const { data: dbUser } = await supabase
-      .from("users")
-      .select("tenant_id, role")
-      .eq("id", user.id)
-      .single();
-
-    if (!dbUser || !["admin", "manager", "super_admin"].includes(dbUser.role)) {
-      return { success: false, error: "承認権限がありません" };
-    }
-
-    // Prevent self-rejection and ensure tenant isolation
-    const { data: targetPlan } = await supabase
-      .from("weekly_plans")
-      .select("tenant_id, user_id")
-      .eq("id", planId)
-      .single();
-
-    if (!targetPlan || targetPlan.tenant_id !== dbUser.tenant_id) {
-      return { success: false, error: "対象の計画が見つかりません" };
-    }
-
-    if (targetPlan.user_id === user.id) {
-      return { success: false, error: "自分の計画は差し戻しできません" };
-    }
-
-    const { error } = await supabase
-      .from("weekly_plans")
-      .update({
-        status: "rejected",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", planId)
-      .eq("tenant_id", dbUser.tenant_id);
-
-    if (error) {
+    if (rpcError) {
+      console.error("[Plans] reject_plan_atomic rpc error:", rpcError.message);
       return { success: false, error: "差し戻しに失敗しました" };
     }
 
-    await supabase.from("approval_logs").insert({
-      tenant_id: dbUser.tenant_id,
-      target_type: "weekly_plan",
-      target_id: planId,
-      action: "rejected",
-      actor_id: user.id,
-      comment: comment.trim(),
-    });
+    const result = rpcResult as
+      | { success: true; tenant_id: string; plan_id: string; plan_owner: string; comment: string }
+      | { success: false; error: string };
 
-    await writeAuditLog({
-      tenantId: dbUser.tenant_id,
-      userId: user.id,
-      action: "reject",
-      resource: "weekly_plan",
-      resourceId: planId,
-      details: { comment: comment.trim() },
-    });
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
 
-    await dispatchWebhook(dbUser.tenant_id, "plan.rejected", {
-      plan_id: planId,
+    await dispatchWebhook(result.tenant_id, "plan.rejected", {
+      plan_id: result.plan_id,
       rejected_by: user.id,
-      comment: comment.trim(),
-    });
-
-    // Create nudge notification for the plan submitter
-    const { data: actor } = await supabase
-      .from("users")
-      .select("name")
-      .eq("id", user.id)
-      .single();
-    const actorName = actor?.name ?? "マネージャー";
-
-    await supabase.from("nudges").insert({
-      tenant_id: dbUser.tenant_id,
-      target_user_id: targetPlan.user_id,
-      trigger_type: "plan_rejected",
-      content: `${actorName}が週次計画を差し戻しました: ${comment.trim()}`,
-      status: "pending",
+      comment: result.comment,
     });
 
     revalidatePath("/plans");
