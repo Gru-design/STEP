@@ -277,3 +277,146 @@ export async function testChatworkConnection(apiToken: string, roomId: string) {
     return { success: false, error: "予期しないエラーが発生しました" };
   }
 }
+
+// ── Public API key issuance ──
+//
+// The plaintext is returned exactly once and never stored. Only the
+// HMAC-SHA256 digest is persisted, looked up by the partial unique
+// index on credentials->>'api_key_hash' (migration 00036).
+
+interface IssueApiKeyResult {
+  success: boolean;
+  error?: string;
+  /** Returned only on the issuing call. Show it to the admin once. */
+  plaintext?: string;
+  prefix?: string;
+  integrationId?: string;
+}
+
+export async function issueApiKey(label?: string): Promise<IssueApiKeyResult> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+
+    if (!authUser) {
+      return { success: false, error: "認証されていません" };
+    }
+
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("tenant_id, role")
+      .eq("id", authUser.id)
+      .single();
+
+    if (!dbUser || !["admin", "super_admin"].includes(dbUser.role)) {
+      return { success: false, error: "権限がありません" };
+    }
+
+    const trimmedLabel = label?.trim().slice(0, 64) || null;
+
+    let issued;
+    try {
+      issued = generateApiKey();
+    } catch (e) {
+      console.error("[Integrations] issueApiKey: secret missing", e);
+      return {
+        success: false,
+        error: "APIキー発行に必要なサーバ設定が不足しています",
+      };
+    }
+
+    const admin = createAdminClient();
+    const { data: inserted, error } = await admin
+      .from("integrations")
+      .insert({
+        tenant_id: dbUser.tenant_id,
+        provider: "api",
+        credentials: {
+          api_key_hash: issued.hash,
+          key_prefix: issued.prefix,
+          label: trimmedLabel,
+        },
+        settings: {},
+        status: "active",
+      })
+      .select("id")
+      .single();
+
+    if (error || !inserted) {
+      console.error("[Integrations] issueApiKey insert error:", error);
+      return { success: false, error: "APIキーの発行に失敗しました" };
+    }
+
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: authUser.id,
+      action: "create",
+      resource: "api_key",
+      resourceId: inserted.id,
+      details: { prefix: issued.prefix, label: trimmedLabel },
+    });
+
+    revalidatePath("/settings/integrations");
+
+    return {
+      success: true,
+      plaintext: issued.plaintext,
+      prefix: issued.prefix,
+      integrationId: inserted.id,
+    };
+  } catch (err) {
+    console.error("[Integrations] issueApiKey unexpected error:", err);
+    return { success: false, error: "予期しないエラーが発生しました" };
+  }
+}
+
+export async function revokeApiKey(integrationId: string) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+
+    if (!authUser) {
+      return { success: false, error: "認証されていません" };
+    }
+
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("tenant_id, role")
+      .eq("id", authUser.id)
+      .single();
+
+    if (!dbUser || !["admin", "super_admin"].includes(dbUser.role)) {
+      return { success: false, error: "権限がありません" };
+    }
+
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from("integrations")
+      .delete()
+      .eq("id", integrationId)
+      .eq("tenant_id", dbUser.tenant_id)
+      .eq("provider", "api");
+
+    if (error) {
+      return { success: false, error: "APIキーの取り消しに失敗しました" };
+    }
+
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: authUser.id,
+      action: "delete",
+      resource: "api_key",
+      resourceId: integrationId,
+    });
+
+    revalidatePath("/settings/integrations");
+    return { success: true };
+  } catch (err) {
+    console.error("[Integrations] revokeApiKey unexpected error:", err);
+    return { success: false, error: "予期しないエラーが発生しました" };
+  }
+}
