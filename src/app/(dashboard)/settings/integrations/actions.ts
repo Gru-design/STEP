@@ -6,7 +6,12 @@ import { revalidatePath } from "next/cache";
 import { sendSlackNotification } from "@/lib/integrations/slack";
 import { sendChatworkMessage } from "@/lib/integrations/chatwork";
 import { writeAuditLog } from "@/lib/audit";
+import { generateApiKey } from "@/lib/api-keys";
 
+// 'api' is intentionally excluded — public-API key issuance is gated to
+// issueApiKey() so plaintext is never accepted from the client. Allowing
+// it here would let a caller bypass the hash by sending their own
+// credentials JSON.
 type IntegrationProvider = "google_calendar" | "gmail" | "slack" | "chatwork" | "teams" | "cti";
 
 interface SaveIntegrationInput {
