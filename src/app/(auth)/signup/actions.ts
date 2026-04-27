@@ -1,8 +1,10 @@
 "use server";
 
+import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { signupSchema } from "@/lib/validations";
 import { writeAuditLog } from "@/lib/audit";
+import { rateLimit } from "@/lib/rate-limit";
 
 interface SignupResult {
   success: boolean;
@@ -10,6 +12,20 @@ interface SignupResult {
 }
 
 export async function signupAction(input: unknown): Promise<SignupResult> {
+  // Anonymous endpoint that creates a tenant and admin auth user. Cap
+  // it hard per IP so a script cannot enumerate emails or spam tenant
+  // creation. 5/hour is plenty for a real human signing up.
+  const headerList = await headers();
+  const ip =
+    headerList.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const rl = await rateLimit(`signup:${ip}`, { limit: 5, windowSeconds: 3600 });
+  if (!rl.success) {
+    return {
+      success: false,
+      error: "リクエストが多すぎます。しばらくしてからお試しください。",
+    };
+  }
+
   const parsed = signupSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0].message };
