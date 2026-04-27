@@ -21,7 +21,7 @@ export async function authenticateApiRequest(
   // Rate limit by IP
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  const rl = rateLimit(`api:${ip}`, { limit: 120, windowSeconds: 60 });
+  const rl = await rateLimit(`api:${ip}`, { limit: 120, windowSeconds: 60 });
   if (!rl.success) {
     return NextResponse.json(
       { error: "Rate limit exceeded" },

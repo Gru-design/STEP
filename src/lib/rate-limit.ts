@@ -1,29 +1,27 @@
+import { createAdminClient } from "@/lib/supabase/admin";
+
 /**
- * Simple in-memory rate limiter for API routes.
- * For production at scale, use Redis-backed rate limiting (e.g., @upstash/ratelimit).
+ * Postgres-backed fixed-window rate limiter.
+ *
+ * The previous implementation kept counters in a Node Map, which made
+ * the limit local to each Vercel Function instance — a caller who
+ * round-robined across cold-started instances multiplied the effective
+ * limit by N. The counter now lives in rate_limit_counters and is
+ * mutated atomically via the consume_rate_limit RPC (migration 00037),
+ * so the same limit applies regardless of which instance handles the
+ * request.
+ *
+ * Failure mode: fail-open. If the RPC errors (DB outage, connectivity)
+ * we log and let the caller through. Rate limiting is a defense in
+ * depth; it should not take the whole product down when Postgres
+ * hiccups. Auth-critical endpoints can wrap this with stricter
+ * behaviour later.
  */
 
-interface RateLimitEntry {
-  count: number;
-  resetAt: number;
-}
-
-const store = new Map<string, RateLimitEntry>();
-
-// Cleanup stale entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of store) {
-    if (entry.resetAt < now) {
-      store.delete(key);
-    }
-  }
-}, 5 * 60 * 1000);
-
 interface RateLimitConfig {
-  /** Max requests allowed in the window */
+  /** Max requests allowed in the window. Must be > 0. */
   limit: number;
-  /** Window duration in seconds */
+  /** Window duration in seconds. Must be > 0. */
   windowSeconds: number;
 }
 
@@ -33,28 +31,47 @@ interface RateLimitResult {
   resetAt: number;
 }
 
-export function rateLimit(
+interface ConsumeRpcRow {
+  allowed: boolean;
+  count: number;
+  remaining: number;
+  reset_at: string;
+}
+
+export async function rateLimit(
   key: string,
   config: RateLimitConfig = { limit: 60, windowSeconds: 60 }
-): RateLimitResult {
-  const now = Date.now();
-  const entry = store.get(key);
+): Promise<RateLimitResult> {
+  const supabase = createAdminClient();
+  try {
+    const { data, error } = await supabase.rpc("consume_rate_limit", {
+      p_key: key,
+      p_limit: config.limit,
+      p_window_seconds: config.windowSeconds,
+    });
 
-  if (!entry || entry.resetAt < now) {
-    const resetAt = now + config.windowSeconds * 1000;
-    store.set(key, { count: 1, resetAt });
-    return { success: true, remaining: config.limit - 1, resetAt };
+    if (error || !data) {
+      console.error("[rate-limit] consume_rate_limit rpc error:", error?.message);
+      return failOpen(config);
+    }
+
+    const row = data as ConsumeRpcRow;
+    return {
+      success: row.allowed,
+      remaining: row.remaining,
+      resetAt: new Date(row.reset_at).getTime(),
+    };
+  } catch (e) {
+    console.error("[rate-limit] consume_rate_limit threw:", e);
+    return failOpen(config);
   }
+}
 
-  entry.count++;
-  if (entry.count > config.limit) {
-    return { success: false, remaining: 0, resetAt: entry.resetAt };
-  }
-
+function failOpen(config: RateLimitConfig): RateLimitResult {
   return {
     success: true,
-    remaining: config.limit - entry.count,
-    resetAt: entry.resetAt,
+    remaining: config.limit,
+    resetAt: Date.now() + config.windowSeconds * 1000,
   };
 }
 
