@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,10 +17,37 @@ import {
 } from "@/components/ui/card";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const code = searchParams.get("error");
+    if (!code) return;
+    if (code === "auth_callback_failed") {
+      setError(
+        "パスワードリセットリンクの確認に失敗しました。リンクの有効期限が切れているか、別のブラウザで開かれた可能性があります。再度リセットメールを送信してください。"
+      );
+    } else if (code === "auth_callback_missing") {
+      setError(
+        "認証情報が見つかりませんでした。パスワードリセットメールを再送し、メール本文のリンクを直接クリックしてください。"
+      );
+    } else if (code === "no_user_record") {
+      setError(
+        "アカウント情報が見つかりません。管理者にお問い合わせください。"
+      );
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
