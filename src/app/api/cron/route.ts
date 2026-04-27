@@ -155,5 +155,23 @@ async function runUnifiedCron(supabase: Supabase) {
     results.tenantsProcessed = (results.tenantsProcessed as number) + 1;
   }
 
+  // ── 4. Tenant-agnostic housekeeping ──
+  // Purge rate-limit windows older than 24h. The unique
+  // (key, window_start) PK keeps live windows small, but old rows
+  // accumulate forever without this sweep.
+  try {
+    const { data: purged, error: purgeError } = await supabase.rpc(
+      "purge_rate_limit_counters",
+      { p_keep_seconds: 86400 }
+    );
+    if (purgeError) {
+      console.error("Rate-limit purge error:", purgeError.message);
+    } else {
+      results.rateLimitRowsPurged = (purged as number) ?? 0;
+    }
+  } catch (e) {
+    console.error("Rate-limit purge threw:", e);
+  }
+
   return results;
 }
