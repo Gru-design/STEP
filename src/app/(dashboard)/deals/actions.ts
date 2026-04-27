@@ -247,13 +247,6 @@ export async function approveDeal(dealId: string, comment?: string) {
       return { success: false, error: result.error };
     }
 
-    await dispatchWebhook(result.tenant_id, "deal.approved", {
-      deal_id: result.deal_id,
-      approved_by: user.id,
-      company: result.deal_company,
-      comment: result.comment,
-    });
-
     revalidatePath("/deals");
     revalidatePath(`/deals/${dealId}`);
     revalidatePath("/approval");
