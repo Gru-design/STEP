@@ -15,23 +15,28 @@ export const runtime = "nodejs";
 export async function GET() {
   const start = Date.now();
 
-  const checks: Record<string, { status: "ok" | "error"; latency_ms: number; error?: string }> = {};
+  // Anonymous endpoint: never include error.message / stack / table names in
+  // the response — Postgres errors can leak schema details. Log full reason
+  // server-side, expose only ok/error + latency to the caller.
+  const checks: Record<string, { status: "ok" | "error"; latency_ms: number }> = {};
 
   // Database check
   try {
     const dbStart = Date.now();
     const supabase = createAdminClient();
     const { error } = await supabase.from("tenants").select("id").limit(1);
+    if (error) {
+      console.error("[health] database check failed:", error.message);
+    }
     checks.database = {
       status: error ? "error" : "ok",
       latency_ms: Date.now() - dbStart,
-      ...(error && { error: error.message }),
     };
   } catch (e) {
+    console.error("[health] database check threw:", e);
     checks.database = {
       status: "error",
       latency_ms: Date.now() - start,
-      error: String(e),
     };
   }
 
@@ -40,16 +45,18 @@ export async function GET() {
     const authStart = Date.now();
     const supabase = createAdminClient();
     const { error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1 });
+    if (error) {
+      console.error("[health] auth check failed:", error.message);
+    }
     checks.auth = {
       status: error ? "error" : "ok",
       latency_ms: Date.now() - authStart,
-      ...(error && { error: error.message }),
     };
   } catch (e) {
+    console.error("[health] auth check threw:", e);
     checks.auth = {
       status: "error",
       latency_ms: Date.now() - start,
-      error: String(e),
     };
   }
 
