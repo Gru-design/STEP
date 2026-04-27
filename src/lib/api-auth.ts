@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/rate-limit";
-import crypto from "crypto";
+import { hashApiKey } from "@/lib/api-keys";
 
 interface ApiUser {
   tenantId: string;
@@ -21,7 +21,7 @@ export async function authenticateApiRequest(
   // Rate limit by IP
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  const rl = rateLimit(`api:${ip}`, { limit: 120, windowSeconds: 60 });
+  const rl = await rateLimit(`api:${ip}`, { limit: 120, windowSeconds: 60 });
   if (!rl.success) {
     return NextResponse.json(
       { error: "Rate limit exceeded" },
@@ -41,45 +41,44 @@ export async function authenticateApiRequest(
 
   const supabase = createAdminClient();
 
-  // Option 1: API Key authentication
+  // Option 1: API Key authentication. Plaintext is HMAC'd and looked up
+  // by hash via the partial unique index on credentials->>'api_key_hash'
+  // (migration 00036). The plaintext is never compared against stored
+  // values; the DB only stores hashes.
   if (apiKey) {
-    // Fetch ALL active API integrations and check each (prevents single-tenant match bug)
-    const { data: integrations } = await supabase
-      .from("integrations")
-      .select("tenant_id, credentials")
-      .eq("provider", "api" as string)
-      .eq("status", "active");
-
-    let matchedTenantId: string | null = null;
-
-    for (const integration of integrations ?? []) {
-      const storedKey =
-        (integration.credentials as { api_key?: string })?.api_key ?? "";
-      // Timing-safe comparison to prevent timing attacks
-      if (
-        storedKey.length === apiKey.length &&
-        crypto.timingSafeEqual(
-          Buffer.from(storedKey),
-          Buffer.from(apiKey)
-        )
-      ) {
-        matchedTenantId = integration.tenant_id;
-        break;
-      }
+    let keyHash: string;
+    try {
+      keyHash = hashApiKey(apiKey);
+    } catch (e) {
+      // API_KEY_HMAC_SECRET is not configured. Fail closed and surface a
+      // server error so the misconfiguration is visible.
+      console.error("[api-auth] hashApiKey threw:", e);
+      return NextResponse.json(
+        { error: "API key authentication is not configured" },
+        { status: 503 }
+      );
     }
 
-    if (matchedTenantId) {
+    const { data: integration } = await supabase
+      .from("integrations")
+      .select("tenant_id, status")
+      .eq("provider", "api")
+      .eq("status", "active")
+      .filter("credentials->>api_key_hash", "eq", keyHash)
+      .maybeSingle();
+
+    if (integration) {
       const { data: adminUser } = await supabase
         .from("users")
         .select("id, role")
-        .eq("tenant_id", matchedTenantId)
+        .eq("tenant_id", integration.tenant_id)
         .eq("role", "admin")
         .limit(1)
         .single();
 
       if (adminUser) {
         return {
-          tenantId: matchedTenantId,
+          tenantId: integration.tenant_id,
           userId: adminUser.id,
           role: adminUser.role,
         };

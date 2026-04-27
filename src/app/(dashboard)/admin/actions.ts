@@ -119,7 +119,9 @@ export async function createTenant(data: CreateTenantData) {
 
     if (tenantError) throw tenantError;
 
-    // 2. Create admin user via Supabase Auth
+    // 2. Create admin user via Supabase Auth. Do NOT put tenant_id or
+    // role in user_metadata — see 00034 for the trigger removal that
+    // makes public.users the only source of truth for those fields.
     const tempPassword = crypto.randomUUID().slice(0, 16) + "Aa1!";
     const { data: authUser, error: authError } =
       await adminClient.auth.admin.createUser({
@@ -127,38 +129,23 @@ export async function createTenant(data: CreateTenantData) {
         password: tempPassword,
         email_confirm: true,
         user_metadata: {
-          tenant_id: tenant.id,
-          role: "admin",
           name: data.adminName,
         },
       });
 
     if (authError) throw authError;
 
-    // 3. handle_new_user trigger may have already created the user record
-    const { data: existingUser } = await adminClient
-      .from("users")
-      .select("id")
-      .eq("id", authUser.user.id)
-      .single();
+    // 3. Insert the public.users row with server-controlled tenant_id and
+    // role. The handle_new_user trigger no longer exists.
+    const { error: userError } = await adminClient.from("users").insert({
+      id: authUser.user.id,
+      tenant_id: tenant.id,
+      email: data.adminEmail,
+      name: data.adminName,
+      role: "admin",
+    });
 
-    if (existingUser) {
-      // Trigger created it — ensure role is correct
-      await adminClient
-        .from("users")
-        .update({ role: "admin", name: data.adminName })
-        .eq("id", authUser.user.id);
-    } else {
-      const { error: userError } = await adminClient.from("users").insert({
-        id: authUser.user.id,
-        tenant_id: tenant.id,
-        email: data.adminEmail,
-        name: data.adminName,
-        role: "admin",
-      });
-
-      if (userError) throw userError;
-    }
+    if (userError) throw userError;
 
     // 4. Auto-apply global templates to the new tenant
     const templateResult = await applyGlobalTemplatesToTenant(tenant.id);

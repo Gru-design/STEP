@@ -20,7 +20,7 @@ function maskEmail(email: string): string {
 }
 
 export async function GET(request: Request) {
-  const rl = rateLimit(`search:${getClientKey(request)}`, {
+  const rl = await rateLimit(`search:${getClientKey(request)}`, {
     limit: 30,
     windowSeconds: 60,
   });
