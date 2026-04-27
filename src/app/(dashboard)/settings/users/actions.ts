@@ -53,12 +53,14 @@ export async function inviteUser(
     // Create auth user with temporary password
     const tempPassword = crypto.randomUUID().slice(0, 16) + "Aa1!";
 
+    // Do NOT put tenant_id or role in user_metadata — public.users is the
+    // single source of truth that the JWT hook reads from. See 00034.
     const { data: authData, error: authError } =
       await supabase.auth.admin.createUser({
         email: input.email,
         password: tempPassword,
         email_confirm: true,
-        user_metadata: { tenant_id: tenantId, name: input.name, role: input.role },
+        user_metadata: { name: input.name },
       });
 
     if (authError) {
@@ -72,27 +74,23 @@ export async function inviteUser(
       return { success: false, error: "ユーザーの作成に失敗しました" };
     }
 
-    // Check if handle_new_user trigger already created the record
-    const { data: existingUser } = await supabase
-      .from("users")
-      .select("id")
-      .eq("id", authData.user.id)
-      .single();
+    const { error: userError } = await supabase.from("users").insert({
+      id: authData.user.id,
+      tenant_id: tenantId,
+      email: input.email,
+      name: input.name,
+      role: input.role,
+    });
 
-    if (!existingUser) {
-      await supabase.from("users").insert({
-        id: authData.user.id,
-        tenant_id: tenantId,
-        email: input.email,
-        name: input.name,
-        role: input.role,
-      });
-    } else {
-      // Update role if trigger set default
-      await supabase
-        .from("users")
-        .update({ role: input.role })
-        .eq("id", authData.user.id);
+    if (userError) {
+      // Roll the auth user back so the next invite attempt with the same
+      // email is not blocked by a half-created account.
+      try {
+        await supabase.auth.admin.deleteUser(authData.user.id);
+      } catch (rollbackErr) {
+        console.error("[Users] Rollback: failed to delete auth user:", rollbackErr);
+      }
+      return { success: false, error: "ユーザーの作成に失敗しました" };
     }
 
     await writeAuditLog({
@@ -159,10 +157,9 @@ export async function updateUserRole(
 
     if (error) return { success: false, error: "ロールの更新に失敗しました" };
 
-    // Update auth metadata too
-    await supabase.auth.admin.updateUserById(userId, {
-      user_metadata: { role: newRole },
-    });
+    // Do not mirror role into auth.user_metadata. The JWT hook reads role
+    // from public.users, and user_metadata is mutable by the user, so
+    // writing it would only create a misleading second copy.
 
     await writeAuditLog({
       tenantId: admin.tenant_id,
