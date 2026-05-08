@@ -67,9 +67,15 @@ export function NewTemplateForm() {
     );
   };
 
-  const handleSchemaSave = useCallback((s: TemplateSchema) => {
-    setSchema(s);
-  }, []);
+  // For a brand-new template no renames need to cascade — there are no
+  // saved goals referencing any of these keys yet.
+  const handleSchemaSave = useCallback(
+    (s: TemplateSchema, _renames: Record<string, string>) => {
+      void _renames;
+      setSchema(s);
+    },
+    []
+  );
 
   const handleSubmit = (publish: boolean) => {
     if (!name.trim()) {

@@ -48,7 +48,19 @@ interface TemplateBuilderProps {
   initialSchema?: TemplateSchema;
   templateName: string;
   templateType: TemplateType;
-  onSave: (schema: TemplateSchema) => void;
+  /**
+   * Called whenever the schema changes.
+   *
+   * `keyRenames` maps each originally-saved field key to its current key
+   * within this editing session. When non-empty it lets the server-side
+   * update action cascade the rename to any goals.kpi_field_key that
+   * referenced the old key, so KPI tracking doesn't silently break when
+   * an admin renames a field.
+   */
+  onSave: (
+    schema: TemplateSchema,
+    keyRenames: Record<string, string>
+  ) => void;
 }
 
 let fieldCounter = 0;
@@ -71,6 +83,32 @@ export function TemplateBuilder({
     initialSchema?.sections ?? []
   );
   const [selectedFieldKey, setSelectedFieldKey] = useState<string | null>(null);
+
+  // Snapshot the keys present when the editor first mounted. We need this
+  // so we know which renames originated from a previously-saved field
+  // (and therefore need to cascade to goals.kpi_field_key) versus a
+  // brand-new field renamed before the first save (no cascade needed).
+  const [initialKeys] = useState<Set<string>>(() => {
+    const set = new Set<string>();
+    for (const s of initialSchema?.sections ?? []) {
+      for (const f of s.fields) set.add(f.key);
+    }
+    return set;
+  });
+
+  // Maps each *original* field key (from initialSchema) to its current key
+  // in this edit session. Empty when nothing was renamed.
+  const [keyRenames, setKeyRenames] = useState<Record<string, string>>({});
+
+  // Set of keys that exist in the current schema. Used as the sibling set
+  // for uniqueness validation when renaming.
+  const allTemplateKeys = useMemo(() => {
+    const keys: string[] = [];
+    for (const s of sections) {
+      for (const f of s.fields) keys.push(f.key);
+    }
+    return keys;
+  }, [sections]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -146,6 +184,46 @@ export function TemplateBuilder({
     setSelectedFieldKey((prev) => (prev === fieldKey ? null : prev));
   }, []);
 
+  // Rename a field's key. Updates the schema and records the mapping so
+  // the server can cascade to any goals.kpi_field_key referencing it.
+  const handleRenameFieldKey = useCallback(
+    (oldKey: string, newKey: string) => {
+      if (oldKey === newKey) return;
+
+      setSections((prev) =>
+        prev.map((section) => ({
+          ...section,
+          fields: section.fields.map((f) =>
+            f.key === oldKey ? { ...f, key: newKey } : f
+          ),
+        }))
+      );
+
+      setKeyRenames((prev) => {
+        const next = { ...prev };
+        // Chain renames: if some originally-saved key already mapped to
+        // oldKey, redirect that mapping to the new key.
+        let chained = false;
+        for (const [orig, curr] of Object.entries(next)) {
+          if (curr === oldKey) {
+            next[orig] = newKey;
+            chained = true;
+            break;
+          }
+        }
+        // Otherwise, only track this rename if oldKey was present at
+        // mount time — renames of brand-new fields don't need a cascade.
+        if (!chained && initialKeys.has(oldKey)) {
+          next[oldKey] = newKey;
+        }
+        return next;
+      });
+
+      setSelectedFieldKey((prev) => (prev === oldKey ? newKey : prev));
+    },
+    [initialKeys]
+  );
+
   // Update section label
   const handleUpdateSectionLabel = useCallback(
     (sectionId: string, label: string) => {
@@ -191,10 +269,10 @@ export function TemplateBuilder({
     );
   }, []);
 
-  // Sync sections to parent on every change (auto-save)
+  // Sync sections + rename map to parent on every change (auto-save)
   useEffect(() => {
-    onSave({ sections });
-  }, [sections, onSave]);
+    onSave({ sections }, keyRenames);
+  }, [sections, keyRenames, onSave]);
 
   // Toggle field selection (expand/collapse inline properties)
   const handleSelectField = useCallback((key: string) => {
@@ -220,6 +298,7 @@ export function TemplateBuilder({
             key={section.id}
             section={section}
             fields={section.fields}
+            allTemplateKeys={allTemplateKeys}
             selectedFieldKey={selectedFieldKey}
             onSelectField={handleSelectField}
             onUpdateSectionLabel={(label) =>
@@ -232,6 +311,7 @@ export function TemplateBuilder({
               handleAddFieldToSection(section.id, type)
             }
             onUpdateField={handleUpdateField}
+            onRenameFieldKey={handleRenameFieldKey}
             onDeleteField={handleDeleteField}
           />
         ))}

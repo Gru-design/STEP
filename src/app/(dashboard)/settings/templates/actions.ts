@@ -21,6 +21,12 @@ interface UpdateTemplateData {
   type?: TemplateType;
   targetRoles?: string[];
   schema?: TemplateSchema;
+  /**
+   * Map of original-field-key → new-field-key for any fields renamed
+   * during this edit. Used to cascade to goals.kpi_field_key so KPI
+   * tracking stays linked to the renamed field.
+   */
+  keyRenames?: Record<string, string>;
   visibilityOverride?: ReportVisibility | null;
   isPublished?: boolean;
 }
@@ -169,16 +175,69 @@ export async function updateTemplate(id: string, data: UpdateTemplateData) {
       return { success: false, error: "テンプレートの更新に失敗しました" };
     }
 
+    // Cascade field-key renames to any goals referencing this template's
+    // KPI fields. Without this, renaming a field in the builder would
+    // silently break the goal's auto-aggregation (the saved
+    // kpi_field_key would point at a key that no longer exists in the
+    // schema, so calculateGoalProgress would always return 0).
+    const renames = data.keyRenames ?? {};
+    const renameEntries = Object.entries(renames).filter(
+      ([oldKey, newKey]) => oldKey && newKey && oldKey !== newKey
+    );
+    let cascadedGoalCount = 0;
+    if (renameEntries.length > 0) {
+      const oldKeys = renameEntries.map(([oldKey]) => oldKey);
+      const { data: affectedGoals, error: goalsFetchError } = await admin
+        .from("goals")
+        .select("id, kpi_field_key")
+        .eq("tenant_id", user.tenant_id)
+        .eq("template_id", id)
+        .in("kpi_field_key", oldKeys);
+
+      if (goalsFetchError) {
+        console.error(
+          "[Templates] failed to fetch goals for key cascade:",
+          goalsFetchError
+        );
+      } else if (affectedGoals && affectedGoals.length > 0) {
+        const renameMap = new Map(renameEntries);
+        for (const goal of affectedGoals) {
+          const newKey = renameMap.get(goal.kpi_field_key as string);
+          if (!newKey) continue;
+          const { error: goalUpdateError } = await admin
+            .from("goals")
+            .update({ kpi_field_key: newKey })
+            .eq("id", goal.id)
+            .eq("tenant_id", user.tenant_id);
+          if (goalUpdateError) {
+            console.error(
+              "[Templates] failed to cascade kpi_field_key to goal:",
+              { goalId: goal.id, goalUpdateError }
+            );
+          } else {
+            cascadedGoalCount++;
+          }
+        }
+      }
+    }
+
     await writeAuditLog({
       tenantId: user.tenant_id,
       userId: user.id,
       action: "update",
       resource: "template",
       resourceId: id,
+      details:
+        cascadedGoalCount > 0
+          ? { cascaded_goal_kpi_renames: cascadedGoalCount }
+          : undefined,
     });
 
     revalidatePath("/settings/templates");
     revalidatePath(`/settings/templates/${id}`);
+    if (cascadedGoalCount > 0) {
+      revalidatePath("/goals");
+    }
     revalidateTag(templatesCacheTag(user.tenant_id), "default");
     return { success: true };
   } catch (err) {

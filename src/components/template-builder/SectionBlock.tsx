@@ -64,24 +64,29 @@ const CATEGORY_LABELS: Record<string, string> = {
 interface SectionBlockProps {
   section: TemplateSection;
   fields: TemplateField[];
+  /** All keys across the template — used for uniqueness validation on rename. */
+  allTemplateKeys: string[];
   selectedFieldKey: string | null;
   onSelectField: (key: string) => void;
   onUpdateSectionLabel: (label: string) => void;
   onDeleteSection: () => void;
   onAddField: (type: FieldType) => void;
   onUpdateField: (field: TemplateField) => void;
+  onRenameFieldKey: (oldKey: string, newKey: string) => void;
   onDeleteField: (fieldKey: string) => void;
 }
 
 export function SectionBlock({
   section,
   fields,
+  allTemplateKeys,
   selectedFieldKey,
   onSelectField,
   onUpdateSectionLabel,
   onDeleteSection,
   onAddField,
   onUpdateField,
+  onRenameFieldKey,
   onDeleteField,
 }: SectionBlockProps) {
   const [isEditingLabel, setIsEditingLabel] = useState(false);
@@ -205,9 +210,14 @@ export function SectionBlock({
                 <SortableFieldItem
                   key={field.key}
                   field={field}
+                  // Sibling keys = every other key in the entire template,
+                  // not just this section, since keys must be globally unique
+                  // within the schema (report data is a flat object).
+                  siblingKeys={allTemplateKeys.filter((k) => k !== field.key)}
                   isSelected={selectedFieldKey === field.key}
                   onSelect={() => onSelectField(field.key)}
                   onUpdate={onUpdateField}
+                  onRenameKey={onRenameFieldKey}
                   onDelete={() => onDeleteField(field.key)}
                 />
               ))}
@@ -309,17 +319,21 @@ const FIELD_TYPE_COLORS: Record<string, string> = {
 
 interface SortableFieldItemProps {
   field: TemplateField;
+  siblingKeys: string[];
   isSelected: boolean;
   onSelect: () => void;
   onUpdate: (field: TemplateField) => void;
+  onRenameKey: (oldKey: string, newKey: string) => void;
   onDelete: () => void;
 }
 
 function SortableFieldItem({
   field,
+  siblingKeys,
   isSelected,
   onSelect,
   onUpdate,
+  onRenameKey,
   onDelete,
 }: SortableFieldItemProps) {
   const {
@@ -376,6 +390,12 @@ function SortableFieldItem({
           >
             {FIELD_TYPE_LABELS[field.type] ?? field.type}
           </Badge>
+          <span
+            className="hidden shrink-0 truncate rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline-block max-w-[140px]"
+            title={field.key}
+          >
+            {field.key}
+          </span>
           {field.required && (
             <span className="shrink-0 text-[10px] font-bold text-danger">
               必須
@@ -396,7 +416,9 @@ function SortableFieldItem({
         <div className="border-t border-border px-3 pb-3 pt-3 animate-in slide-in-from-top-1 fade-in duration-150">
           <InlineFieldProperties
             field={field}
+            siblingKeys={siblingKeys}
             onUpdate={onUpdate}
+            onRenameKey={onRenameKey}
             onDelete={onDelete}
           />
         </div>
