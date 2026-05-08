@@ -1,24 +1,65 @@
 "use client";
 
-import { Plus, Trash2, X } from "lucide-react";
+import { useState } from "react";
+import { AlertCircle, Plus, Trash2, X } from "lucide-react";
 import type { TemplateField } from "@/types/database";
+import { isKpiEligible, isValidFieldKey } from "@/lib/templates/fields";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
 interface InlineFieldPropertiesProps {
   field: TemplateField;
+  /**
+   * Keys belonging to other fields in the same template — used to detect
+   * duplicate-key entries when the user renames this field.
+   */
+  siblingKeys: string[];
   onUpdate: (field: TemplateField) => void;
+  onRenameKey: (oldKey: string, newKey: string) => void;
   onDelete: () => void;
 }
 
 export function InlineFieldProperties({
   field,
+  siblingKeys,
   onUpdate,
+  onRenameKey,
   onDelete,
 }: InlineFieldPropertiesProps) {
   const update = (partial: Partial<TemplateField>) => {
     onUpdate({ ...field, ...partial });
+  };
+
+  // Local state for the field key input. We only commit the rename on
+  // blur (or Enter) so users can type freely without each keystroke
+  // triggering a rename + cascade. The parent renders this component
+  // with `key={field.key}` on the surrounding sortable item, so a rename
+  // remounts this subtree and the local state resets correctly.
+  const [keyDraft, setKeyDraft] = useState(field.key);
+  const [keyError, setKeyError] = useState<string | null>(null);
+
+  const commitKey = () => {
+    const next = keyDraft.trim();
+    if (next === field.key) {
+      setKeyError(null);
+      return;
+    }
+    if (!next) {
+      setKeyError("キーを入力してください");
+      setKeyDraft(field.key);
+      return;
+    }
+    if (!isValidFieldKey(next)) {
+      setKeyError("半角英数字とアンダースコアのみ（先頭は英字または_）");
+      return;
+    }
+    if (siblingKeys.includes(next)) {
+      setKeyError("このキーは他のフィールドで使用されています");
+      return;
+    }
+    setKeyError(null);
+    onRenameKey(field.key, next);
   };
 
   const showUnit = field.type === "number";
@@ -55,6 +96,55 @@ export function InlineFieldProperties({
           />
           <span className="text-xs">必須</span>
         </label>
+      </div>
+
+      {/* Field key editor — visible & editable. Fixes the previous UX gap
+          where auto-generated keys like "field_1730000000_1" were invisible
+          and unrenamable, so goal-side KPI references had no way to align
+          with template field names. */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-[11px] font-medium text-muted-foreground">
+            フィールドキー
+          </Label>
+          {isKpiEligible(field.type) && (
+            <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary">
+              KPI集計可
+            </span>
+          )}
+        </div>
+        <Input
+          value={keyDraft}
+          onChange={(e) => {
+            setKeyDraft(e.target.value);
+            if (keyError) setKeyError(null);
+          }}
+          onBlur={commitKey}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              (e.target as HTMLInputElement).blur();
+            }
+            if (e.key === "Escape") {
+              setKeyDraft(field.key);
+              setKeyError(null);
+              (e.target as HTMLInputElement).blur();
+            }
+          }}
+          aria-invalid={keyError ? "true" : undefined}
+          className={`h-8 font-mono text-xs ${keyError ? "border-danger focus-visible:ring-danger" : ""}`}
+          placeholder="recommendation_count"
+        />
+        {keyError ? (
+          <p className="flex items-start gap-1 text-[11px] text-danger">
+            <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+            <span>{keyError}</span>
+          </p>
+        ) : (
+          <p className="text-[10px] text-muted-foreground">
+            目標管理のKPIフィールド指定で参照されるキーです。リネームすると関連目標も自動で更新されます。
+          </p>
+        )}
       </div>
 
       {/* Row 2: Placeholder (when applicable) */}

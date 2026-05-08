@@ -93,10 +93,11 @@ export default async function GoalsPage() {
 
   const teams = (teamsData ?? []) as Pick<Team, "id" | "name">[];
 
-  // Fetch templates for KPI field key
+  // Fetch templates for KPI field key (schema is needed to populate the
+  // KPI field selector with the template's numeric/rating fields)
   const { data: templatesData, error: templatesError } = await adminClient
     .from("report_templates")
-    .select("id, name, type")
+    .select("id, name, type, schema")
     .eq("tenant_id", tenantId)
     .eq("is_published", true)
     .order("name");
@@ -107,7 +108,7 @@ export default async function GoalsPage() {
 
   const templates = (templatesData ?? []) as Pick<
     ReportTemplate,
-    "id" | "name" | "type"
+    "id" | "name" | "type" | "schema"
   >[];
 
   return (

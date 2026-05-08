@@ -6,7 +6,45 @@ import { createGoalSchema } from "@/lib/validations";
 import { writeAuditLog } from "@/lib/audit";
 import { checkFeatureAccess } from "@/lib/plan-gate";
 import { requireAuthenticated } from "@/lib/auth/require-role";
-import type { Role } from "@/types/database";
+import { getKpiCandidateFields } from "@/lib/templates/fields";
+import type { Role, TemplateSchema } from "@/types/database";
+
+/**
+ * Verify that a goal's kpi_field_key actually exists as a numeric/rating
+ * field in the linked template's schema. This guards against the common
+ * sync bug where a free-text key was typed but didn't match any real
+ * field — leaving the goal silently unable to aggregate progress.
+ */
+async function validateKpiFieldKey(
+  adminClient: ReturnType<typeof createAdminClient>,
+  tenantId: string,
+  templateId: string,
+  kpiFieldKey: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data: template, error } = await adminClient
+    .from("report_templates")
+    .select("schema, tenant_id")
+    .eq("id", templateId)
+    .single();
+  if (error || !template) {
+    return { ok: false, error: "テンプレートが見つかりません" };
+  }
+  // Allow the global system template (tenant_id = null) plus the caller's
+  // own tenant; reject any other tenant's template (would leak across).
+  if (template.tenant_id && template.tenant_id !== tenantId) {
+    return { ok: false, error: "テンプレートが見つかりません" };
+  }
+  const candidates = getKpiCandidateFields(template.schema as TemplateSchema);
+  const exists = candidates.some((c) => c.key === kpiFieldKey);
+  if (!exists) {
+    return {
+      ok: false,
+      error:
+        "選択したテンプレートに該当するKPIフィールドが見つかりません。テンプレート編集画面で確認してください。",
+    };
+  }
+  return { ok: true };
+}
 
 interface GoalInput {
   name: string;
@@ -124,6 +162,18 @@ export async function createGoal(input: GoalInput): Promise<{
       }
     }
 
+    if (input.template_id && input.kpi_field_key) {
+      const validation = await validateKpiFieldKey(
+        adminClient,
+        dbUser.tenant_id,
+        input.template_id,
+        input.kpi_field_key
+      );
+      if (!validation.ok) {
+        return { success: false, error: validation.error };
+      }
+    }
+
     const { error } = await adminClient.from("goals").insert({
       tenant_id: dbUser.tenant_id,
       name: input.name,
@@ -179,9 +229,11 @@ export async function updateGoal(
     // Fetch the existing goal for authorization decisions. We need both the
     // current level and the owner_id so a member can edit their own
     // individual goal but cannot escalate it to "team"/"company".
+    // Also pull the existing template_id / kpi_field_key so we can
+    // validate the KPI link even when only one side is being changed.
     const { data: existing } = await adminClient
       .from("goals")
-      .select("id, tenant_id, level, owner_id")
+      .select("id, tenant_id, level, owner_id, template_id, kpi_field_key")
       .eq("id", goalId)
       .single();
 
@@ -227,6 +279,30 @@ export async function updateGoal(
         .single();
       if (!owner || owner.tenant_id !== dbUser.tenant_id) {
         return { success: false, error: "担当者が見つかりません" };
+      }
+    }
+
+    // Resolve the post-update (template_id, kpi_field_key) pair, then
+    // validate that the key actually exists in the template's schema.
+    // Empty string is the form's "clear" sentinel; undefined means
+    // "leave unchanged".
+    const resolvedTemplateId =
+      input.template_id === undefined
+        ? (existing.template_id as string | null)
+        : input.template_id || null;
+    const resolvedKpiFieldKey =
+      input.kpi_field_key === undefined
+        ? (existing.kpi_field_key as string | null)
+        : input.kpi_field_key || null;
+    if (resolvedTemplateId && resolvedKpiFieldKey) {
+      const validation = await validateKpiFieldKey(
+        adminClient,
+        dbUser.tenant_id,
+        resolvedTemplateId,
+        resolvedKpiFieldKey
+      );
+      if (!validation.ok) {
+        return { success: false, error: validation.error };
       }
     }
 

@@ -69,6 +69,7 @@ export function EditTemplateClient({ template }: EditTemplateClientProps) {
   const [schema, setSchema] = useState<TemplateSchema>(
     template.schema ?? { sections: [] }
   );
+  const [keyRenames, setKeyRenames] = useState<Record<string, string>>({});
 
   const toggleRole = (role: string) => {
     setTargetRoles((prev) =>
@@ -76,9 +77,13 @@ export function EditTemplateClient({ template }: EditTemplateClientProps) {
     );
   };
 
-  const handleSchemaSave = useCallback((s: TemplateSchema) => {
-    setSchema(s);
-  }, []);
+  const handleSchemaSave = useCallback(
+    (s: TemplateSchema, renames: Record<string, string>) => {
+      setSchema(s);
+      setKeyRenames(renames);
+    },
+    []
+  );
 
   const handleSubmit = (publish: boolean) => {
     if (!name.trim()) {
@@ -92,6 +97,7 @@ export function EditTemplateClient({ template }: EditTemplateClientProps) {
         type,
         targetRoles,
         schema,
+        keyRenames,
         visibilityOverride:
           visibilityOverride === "inherit"
             ? null

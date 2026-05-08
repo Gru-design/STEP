@@ -11,7 +11,9 @@ import {
   Users,
   User as UserIcon,
   Calendar,
+  AlertTriangle,
 } from "lucide-react";
+import { getKpiCandidateFields } from "@/lib/templates/fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,7 +52,7 @@ interface GoalsTreeViewProps {
   snapshotMap: Record<string, GoalSnapshot>;
   users: Pick<User, "id" | "name" | "role">[];
   teams: Pick<Team, "id" | "name">[];
-  templates: Pick<ReportTemplate, "id" | "name" | "type">[];
+  templates: Pick<ReportTemplate, "id" | "name" | "type" | "schema">[];
   currentUserRole: Role;
 }
 
@@ -71,6 +73,146 @@ const levelColors: Record<GoalLevel, string> = {
 interface GoalNode extends Goal {
   children: GoalNode[];
   snapshot: GoalSnapshot | null;
+}
+
+interface KpiSourceSectionProps {
+  templates: Pick<ReportTemplate, "id" | "name" | "type" | "schema">[];
+  defaultTemplateId: string | null;
+  defaultKpiFieldKey: string | null;
+}
+
+/**
+ * Linked template + KPI field selector for the goal form.
+ *
+ * Selecting a template populates the KPI field dropdown with that
+ * template's numeric/rating fields, eliminating the manual key typing
+ * that previously caused goals to silently fail to aggregate.
+ */
+function KpiSourceSection({
+  templates,
+  defaultTemplateId,
+  defaultKpiFieldKey,
+}: KpiSourceSectionProps) {
+  const [templateId, setTemplateId] = useState<string | null>(defaultTemplateId);
+  const [kpiFieldKey, setKpiFieldKey] = useState<string | null>(
+    defaultKpiFieldKey
+  );
+
+  const selectedTemplate = templateId
+    ? templates.find((t) => t.id === templateId) ?? null
+    : null;
+
+  const candidates = selectedTemplate
+    ? getKpiCandidateFields(selectedTemplate.schema)
+    : [];
+
+  // If the saved key references a field that no longer exists in the
+  // template (renamed/deleted), surface it as an orphan so the user can
+  // re-link rather than silently losing tracking.
+  const isOrphan = Boolean(
+    kpiFieldKey &&
+      selectedTemplate &&
+      !candidates.some((c) => c.key === kpiFieldKey)
+  );
+
+  const handleTemplateChange = (next: string | null) => {
+    setTemplateId(next);
+    // Clear the KPI field selection when the template changes — the old
+    // key won't apply to a different template's schema.
+    if (next !== templateId) setKpiFieldKey(null);
+  };
+
+  return (
+    <div className="space-y-3 rounded-xl border border-border bg-muted/40 p-4">
+      <div className="flex items-center gap-2">
+        <Target className="h-3.5 w-3.5 text-primary" />
+        <span className="text-xs font-semibold text-foreground">
+          自動集計の設定（任意）
+        </span>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="template_id" className="text-xs text-muted-foreground">
+          集計対象テンプレート
+        </Label>
+        <OptionalSelect
+          name="template_id"
+          placeholder="テンプレートを選択"
+          noneLabel="自動集計しない"
+          value={templateId}
+          onValueChange={handleTemplateChange}
+        >
+          {templates.map((t) => (
+            <SelectItem key={t.id} value={t.id}>
+              {t.name}
+            </SelectItem>
+          ))}
+        </OptionalSelect>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="kpi_field_key" className="text-xs text-muted-foreground">
+          KPI集計フィールド
+        </Label>
+        {!templateId ? (
+          <div className="rounded-lg border border-dashed border-border bg-white px-3 py-2.5 text-xs text-muted-foreground">
+            先にテンプレートを選択してください
+          </div>
+        ) : candidates.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-warning/40 bg-warning/5 px-3 py-2.5 text-xs text-warning">
+            このテンプレートには集計可能な数値・評価フィールドがありません
+          </div>
+        ) : (
+          <>
+            <OptionalSelect
+              name="kpi_field_key"
+              placeholder="集計するフィールドを選択"
+              noneLabel="集計しない"
+              value={kpiFieldKey}
+              onValueChange={setKpiFieldKey}
+            >
+              {/* Show orphan key first so the user can clearly see it's broken */}
+              {isOrphan && kpiFieldKey && (
+                <SelectItem value={kpiFieldKey}>
+                  <span className="flex items-center gap-1.5 text-warning">
+                    <AlertTriangle className="h-3 w-3" />
+                    {kpiFieldKey}（フィールドが見つかりません）
+                  </span>
+                </SelectItem>
+              )}
+              {candidates.map((field) => (
+                <SelectItem key={field.key} value={field.key}>
+                  <span className="inline-flex items-center gap-2">
+                    <span className="font-medium">{field.label}</span>
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      {field.type === "rating" ? "評価" : "数値"}
+                      {field.unit ? ` / ${field.unit}` : ""}
+                    </span>
+                    <span className="font-mono text-[10px] text-muted-foreground">
+                      {field.key}
+                    </span>
+                  </span>
+                </SelectItem>
+              ))}
+            </OptionalSelect>
+            {isOrphan && (
+              <p className="flex items-start gap-1.5 text-xs text-warning">
+                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                <span>
+                  保存済みのフィールドキーがテンプレートに存在しません。
+                  テンプレートでフィールドが削除またはリネームされた可能性があります。
+                  正しいフィールドを再選択してください。
+                </span>
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              選択したフィールドの提出値が、目標期間内で自動集計されます
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function buildTree(
@@ -417,7 +559,7 @@ export function GoalsTreeView({
       name: formData.get("name") as string,
       level: formData.get("level") as GoalLevel,
       target_value: Number(formData.get("target_value")),
-      kpi_field_key: (formData.get("kpi_field_key") as string) || undefined,
+      kpi_field_key: parseOptionalSelect(formData, "kpi_field_key"),
       template_id: parseOptionalSelect(formData, "template_id"),
       period_start: formData.get("period_start") as string,
       period_end: formData.get("period_end") as string,
@@ -438,8 +580,10 @@ export function GoalsTreeView({
         name: formData.get("name") as string,
         level: formData.get("level") as GoalLevel,
         target_value: Number(formData.get("target_value")),
-        kpi_field_key: (formData.get("kpi_field_key") as string) || undefined,
-        template_id: parseOptionalSelect(formData, "template_id"),
+        // Send "" (instead of undefined) on edit so the server treats
+        // "集計しない" as an explicit clear rather than "leave unchanged".
+        kpi_field_key: parseOptionalSelect(formData, "kpi_field_key") ?? "",
+        template_id: parseOptionalSelect(formData, "template_id") ?? "",
         period_start: formData.get("period_start") as string,
         period_end: formData.get("period_end") as string,
         owner_id: parseOptionalSelect(formData, "owner_id"),
@@ -502,33 +646,11 @@ export function GoalsTreeView({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="kpi_field_key">KPIフィールドキー</Label>
-        <Input
-          id="kpi_field_key"
-          name="kpi_field_key"
-          defaultValue={defaults?.kpi_field_key ?? ""}
-          placeholder="例: recommendation_count"
-        />
-        <p className="text-xs text-muted-foreground">
-          日報テンプレートのフィールドキーを指定すると自動集計されます
-        </p>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="template_id">テンプレート</Label>
-        <OptionalSelect
-          name="template_id"
-          placeholder="テンプレート選択（任意）"
-          defaultValue={defaults?.template_id ?? undefined}
-        >
-          {templates.map((t) => (
-            <SelectItem key={t.id} value={t.id}>
-              {t.name}
-            </SelectItem>
-          ))}
-        </OptionalSelect>
-      </div>
+      <KpiSourceSection
+        templates={templates}
+        defaultTemplateId={defaults?.template_id ?? null}
+        defaultKpiFieldKey={defaults?.kpi_field_key ?? null}
+      />
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
