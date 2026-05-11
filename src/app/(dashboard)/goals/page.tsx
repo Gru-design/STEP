@@ -125,6 +125,7 @@ export default async function GoalsPage() {
         teams={teams}
         templates={templates}
         currentUserRole={(dbUser as User).role}
+        currentUserId={(dbUser as User).id}
       />
     </div>
   );
