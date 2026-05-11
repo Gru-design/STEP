@@ -267,6 +267,28 @@ export interface GoalSnapshot {
   created_at: string;
 }
 
+export interface GoalPreset {
+  id: string;
+  tenant_id: string;
+  name: string;
+  description: string | null;
+  default_level: GoalLevel;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GoalPresetItem {
+  id: string;
+  preset_id: string;
+  name: string;
+  report_template_id: string | null;
+  kpi_field_key: string | null;
+  default_target_value: number;
+  sort_order: number;
+  created_at: string;
+}
+
 // ── Weekly Plans ──
 
 export type PlanStatus = "draft" | "submitted" | "approved" | "rejected" | "review_pending" | "reviewed";

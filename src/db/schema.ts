@@ -253,6 +253,47 @@ export const goalSnapshots = pgTable("goal_snapshots", {
     .notNull(),
 });
 
+export const goalPresets = pgTable("goal_presets", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: uuid("tenant_id")
+    .references(() => tenants.id, { onDelete: "cascade" })
+    .notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  defaultLevel: text("default_level", {
+    enum: ["company", "department", "team", "individual"],
+  })
+    .notNull()
+    .default("individual"),
+  createdBy: uuid("created_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const goalPresetItems = pgTable("goal_preset_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  presetId: uuid("preset_id")
+    .references(() => goalPresets.id, { onDelete: "cascade" })
+    .notNull(),
+  name: text("name").notNull(),
+  reportTemplateId: uuid("report_template_id").references(
+    () => reportTemplates.id,
+    { onDelete: "set null" }
+  ),
+  kpiFieldKey: text("kpi_field_key"),
+  defaultTargetValue: numeric("default_target_value").notNull().default("0"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 // ── Pipeline & Deals ──
 
 export const pipelineStages = pgTable("pipeline_stages", {

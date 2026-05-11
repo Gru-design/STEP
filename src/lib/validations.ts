@@ -71,6 +71,42 @@ export const createGoalSchema = z.object({
   parent_id: z.string().uuid().optional(),
 });
 
+// ── Goal Presets ──
+
+export const goalPresetItemInputSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().min(1, "項目名を入力してください").max(200),
+  report_template_id: z.string().uuid().nullable().optional(),
+  kpi_field_key: z.string().nullable().optional(),
+  default_target_value: z
+    .number()
+    .nonnegative("目標値は0以上で入力してください"),
+  sort_order: z.number().int().nonnegative().optional(),
+});
+
+export const upsertGoalPresetSchema = z.object({
+  name: z.string().min(1, "プリセット名を入力してください").max(200),
+  description: z.string().max(1000).nullable().optional(),
+  default_level: z.enum(["company", "department", "team", "individual"]),
+  items: z.array(goalPresetItemInputSchema).min(1, "1件以上の項目が必要です"),
+});
+
+export const bulkCreateGoalsFromPresetSchema = z.object({
+  preset_id: z.string().uuid(),
+  period_start: z.string().min(1, "開始日を入力してください"),
+  period_end: z.string().min(1, "終了日を入力してください"),
+  parent_id: z.string().uuid().nullable().optional(),
+  assignments: z
+    .array(
+      z.object({
+        owner_id: z.string().uuid().nullable().optional(),
+        team_id: z.string().uuid().nullable().optional(),
+        targets: z.record(z.string().uuid(), z.number().nonnegative()),
+      })
+    )
+    .min(1, "対象を1件以上選択してください"),
+});
+
 // ── Reports ──
 
 export const createReportSchema = z.object({
