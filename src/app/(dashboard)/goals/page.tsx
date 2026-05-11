@@ -3,7 +3,15 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeGoalProgressMap } from "@/lib/goals/progress";
 import { GoalsTreeView } from "./GoalsTreeView";
-import type { Goal, GoalSnapshot, User, Team, ReportTemplate } from "@/types/database";
+import type {
+  Goal,
+  GoalSnapshot,
+  User,
+  Team,
+  ReportTemplate,
+  GoalPreset,
+  GoalPresetItem,
+} from "@/types/database";
 
 export default async function GoalsPage() {
   const supabase = await createClient();
@@ -110,6 +118,33 @@ export default async function GoalsPage() {
     "id" | "name" | "type" | "schema"
   >[];
 
+  // Fetch goal presets + items so the bulk-create dialog has data without
+  // an extra round-trip on dialog open.
+  const [presetsRes, presetItemsRes] = await Promise.all([
+    adminClient
+      .from("goal_presets")
+      .select(
+        "id, tenant_id, name, description, default_level, created_by, created_at, updated_at"
+      )
+      .eq("tenant_id", tenantId)
+      .order("created_at", { ascending: false }),
+    adminClient
+      .from("goal_preset_items")
+      .select(
+        "id, preset_id, name, report_template_id, kpi_field_key, default_target_value, sort_order, created_at"
+      )
+      .order("sort_order", { ascending: true }),
+  ]);
+
+  const presets = (presetsRes.data ?? []) as GoalPreset[];
+  const presetIdSet = new Set(presets.map((p) => p.id));
+  const allPresetItems = (presetItemsRes.data ?? []) as GoalPresetItem[];
+  const presetItemsByPreset: Record<string, GoalPresetItem[]> = {};
+  for (const item of allPresetItems) {
+    if (!presetIdSet.has(item.preset_id)) continue;
+    (presetItemsByPreset[item.preset_id] ??= []).push(item);
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -125,6 +160,8 @@ export default async function GoalsPage() {
         teams={teams}
         templates={templates}
         currentUserRole={(dbUser as User).role}
+        presets={presets}
+        presetItemsByPreset={presetItemsByPreset}
       />
     </div>
   );

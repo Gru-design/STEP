@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
+import Link from "next/link";
 import {
   ChevronRight,
   ChevronDown,
@@ -12,6 +13,8 @@ import {
   User as UserIcon,
   Calendar,
   AlertTriangle,
+  Copy,
+  Settings,
 } from "lucide-react";
 import { getKpiCandidateFields } from "@/lib/templates/fields";
 import { Button } from "@/components/ui/button";
@@ -36,6 +39,7 @@ import {
   parseOptionalSelect,
 } from "@/components/shared/OptionalSelect";
 import { createGoal, deleteGoal, updateGoal } from "./actions";
+import { BulkCreateDialog } from "./BulkCreateDialog";
 import { useServerAction } from "@/hooks/useServerAction";
 import type {
   Goal,
@@ -45,6 +49,8 @@ import type {
   User,
   Team,
   ReportTemplate,
+  GoalPreset,
+  GoalPresetItem,
 } from "@/types/database";
 
 interface GoalsTreeViewProps {
@@ -54,6 +60,8 @@ interface GoalsTreeViewProps {
   teams: Pick<Team, "id" | "name">[];
   templates: Pick<ReportTemplate, "id" | "name" | "type" | "schema">[];
   currentUserRole: Role;
+  presets: GoalPreset[];
+  presetItemsByPreset: Record<string, GoalPresetItem[]>;
 }
 
 const levelLabels: Record<GoalLevel, string> = {
@@ -261,6 +269,42 @@ function buildTree(
 function formatDateShort(dateStr: string): string {
   const d = new Date(dateStr);
   return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+/**
+ * Shift a YYYY-MM-DD date string forward by `months` months, preserving
+ * the day-of-month where possible (capping at the last day of the new
+ * month so 2026-01-31 + 1 month becomes 2026-02-28).
+ */
+function shiftDateByMonths(dateStr: string, months: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  if (!y || !m || !d) return dateStr;
+  const targetMonthIdx = m - 1 + months;
+  const targetYear = y + Math.floor(targetMonthIdx / 12);
+  const targetMonth = ((targetMonthIdx % 12) + 12) % 12;
+  const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate();
+  const day = Math.min(d, lastDay);
+  const mm = (targetMonth + 1).toString().padStart(2, "0");
+  const dd = day.toString().padStart(2, "0");
+  return `${targetYear}-${mm}-${dd}`;
+}
+
+/**
+ * Build a synthetic GoalNode-shaped object that the create form can
+ * consume as its `defaults`. Name is suffixed with " (コピー)" and the
+ * period is shifted +1 month so the typical "copy last month's goal"
+ * flow lands on the new period without manual editing.
+ */
+function buildDuplicateDefaults(source: Goal): GoalNode {
+  return {
+    ...source,
+    id: "",
+    name: `${source.name} (コピー)`,
+    period_start: shiftDateByMonths(source.period_start, 1),
+    period_end: shiftDateByMonths(source.period_end, 1),
+    children: [],
+    snapshot: null,
+  };
 }
 
 function GoalNodeRow({
@@ -518,9 +562,15 @@ export function GoalsTreeView({
   teams,
   templates,
   currentUserRole,
+  presets,
+  presetItemsByPreset,
 }: GoalsTreeViewProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editNode, setEditNode] = useState<GoalNode | null>(null);
+  // When the user clicks "複製" on an existing goal we pre-fill the
+  // create dialog with that goal's values (period shifted by +1 month,
+  // name suffixed with "(コピー)") instead of creating a separate path.
+  const [createDefaults, setCreateDefaults] = useState<GoalNode | null>(null);
 
   const tree = buildTree(goals, snapshotMap);
 
@@ -736,7 +786,28 @@ export function GoalsTreeView({
             目標ツリー
           </h2>
           {canCreate && (
-            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <div className="flex items-center gap-2">
+              <BulkCreateDialog
+                presets={presets}
+                itemsByPreset={presetItemsByPreset}
+                users={users}
+                teams={teams}
+              />
+              <Link
+                href="/goals/presets"
+                className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 px-2 py-1"
+                title="プリセット管理"
+              >
+                <Settings className="h-3.5 w-3.5" />
+                プリセット
+              </Link>
+            <Dialog
+              open={createDialogOpen}
+              onOpenChange={(open) => {
+                setCreateDialogOpen(open);
+                if (!open) setCreateDefaults(null);
+              }}
+            >
               <DialogTrigger asChild>
                 <Button size="sm" className="bg-primary hover:bg-primary/90">
                   <Plus className="h-4 w-4 mr-1" />
@@ -745,10 +816,12 @@ export function GoalsTreeView({
               </DialogTrigger>
               <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>目標作成</DialogTitle>
+                  <DialogTitle>
+                    {createDefaults ? "目標を複製して作成" : "目標作成"}
+                  </DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleCreateSubmit} className="space-y-4">
-                  {goalFormFields()}
+                  {goalFormFields(createDefaults)}
                   {createError && (
                     <p className="text-sm text-danger">{createError}</p>
                   )}
@@ -771,6 +844,7 @@ export function GoalsTreeView({
                 </form>
               </DialogContent>
             </Dialog>
+            </div>
           )}
         </div>
 
@@ -868,6 +942,18 @@ export function GoalsTreeView({
                     削除
                   </Button>
                   <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setCreateDefaults(buildDuplicateDefaults(editNode));
+                        setEditNode(null);
+                        setCreateDialogOpen(true);
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-1" />
+                      複製
+                    </Button>
                     <Button
                       type="button"
                       variant="outline"

@@ -2,7 +2,10 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
-import { createGoalSchema } from "@/lib/validations";
+import {
+  bulkCreateGoalsFromPresetSchema,
+  createGoalSchema,
+} from "@/lib/validations";
 import { writeAuditLog } from "@/lib/audit";
 import { checkFeatureAccess } from "@/lib/plan-gate";
 import { requireAuthenticated } from "@/lib/auth/require-role";
@@ -446,6 +449,260 @@ export async function deleteGoal(
     return { success: true };
   } catch (err) {
     console.error("[Goals] deleteGoal unexpected error:", err);
+    return { success: false, error: "予期しないエラーが発生しました" };
+  }
+}
+
+// ── Bulk creation from a preset ──
+
+interface BulkAssignmentInput {
+  owner_id?: string | null;
+  team_id?: string | null;
+  targets: Record<string, number>;
+}
+
+interface BulkCreateInput {
+  preset_id: string;
+  period_start: string;
+  period_end: string;
+  parent_id?: string | null;
+  assignments: BulkAssignmentInput[];
+}
+
+interface BulkCreateResult {
+  success: boolean;
+  createdCount?: number;
+  error?: string;
+}
+
+function isManagerRole(role: Role): boolean {
+  return role === "manager" || role === "admin" || role === "super_admin";
+}
+
+/**
+ * Create N (assignments) × M (preset items) goals in one transaction.
+ *
+ * The preset itself stores only the structure (item names + KPI bindings +
+ * default targets); per-assignment targets can be overridden in the
+ * grid UI before submit. KPI bindings on each item are re-validated against
+ * the linked template's schema so a stale preset cannot silently insert
+ * goals that fail to aggregate.
+ */
+export async function bulkCreateGoalsFromPreset(
+  input: BulkCreateInput
+): Promise<BulkCreateResult> {
+  const parsed = bulkCreateGoalsFromPresetSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
+  }
+
+  try {
+    const auth = await requireAuthenticated();
+    if (!auth.ok) return { success: false, error: auth.error };
+    const { dbUser, user } = auth;
+
+    if (!isManagerRole(dbUser.role)) {
+      return {
+        success: false,
+        error: "目標を一括作成する権限がありません",
+      };
+    }
+
+    if (new Date(input.period_start) > new Date(input.period_end)) {
+      return { success: false, error: "開始日は終了日より前に設定してください" };
+    }
+
+    const gate = await checkFeatureAccess(dbUser.tenant_id, "goals");
+    if (!gate.allowed) {
+      return { success: false, error: gate.error };
+    }
+
+    const adminClient = createAdminClient();
+
+    // Load preset + items (tenant-scoped)
+    const { data: preset, error: presetError } = await adminClient
+      .from("goal_presets")
+      .select("id, tenant_id, default_level")
+      .eq("id", input.preset_id)
+      .single();
+    if (presetError || !preset || preset.tenant_id !== dbUser.tenant_id) {
+      return { success: false, error: "プリセットが見つかりません" };
+    }
+
+    const presetLevel = preset.default_level as
+      | "company"
+      | "department"
+      | "team"
+      | "individual";
+
+    const { data: items, error: itemsError } = await adminClient
+      .from("goal_preset_items")
+      .select(
+        "id, name, report_template_id, kpi_field_key, default_target_value, sort_order"
+      )
+      .eq("preset_id", input.preset_id)
+      .order("sort_order", { ascending: true });
+    if (itemsError || !items || items.length === 0) {
+      return { success: false, error: "プリセットの項目が空です" };
+    }
+
+    // Re-validate KPI bindings against current template schemas
+    const templateIds = Array.from(
+      new Set(
+        items
+          .map((i) => i.report_template_id)
+          .filter((v): v is string => !!v)
+      )
+    );
+    const templateSchemaMap = new Map<string, TemplateSchema | null>();
+    if (templateIds.length > 0) {
+      const { data: templates } = await adminClient
+        .from("report_templates")
+        .select("id, tenant_id, schema")
+        .in("id", templateIds);
+      for (const t of templates ?? []) {
+        if (t.tenant_id && t.tenant_id !== dbUser.tenant_id) continue;
+        templateSchemaMap.set(t.id, t.schema as TemplateSchema | null);
+      }
+    }
+    for (const item of items) {
+      if (!item.report_template_id || !item.kpi_field_key) continue;
+      const schema = templateSchemaMap.get(item.report_template_id);
+      if (schema === undefined) {
+        return {
+          success: false,
+          error: `項目「${item.name}」のテンプレートが見つかりません`,
+        };
+      }
+      const candidates = getKpiCandidateFields(schema);
+      if (!candidates.some((c) => c.key === item.kpi_field_key)) {
+        return {
+          success: false,
+          error: `項目「${item.name}」のKPIフィールドがテンプレートで見つかりません`,
+        };
+      }
+    }
+
+    // Validate parent_id is same-tenant
+    if (input.parent_id) {
+      const { data: parent } = await adminClient
+        .from("goals")
+        .select("id, tenant_id")
+        .eq("id", input.parent_id)
+        .single();
+      if (!parent || parent.tenant_id !== dbUser.tenant_id) {
+        return { success: false, error: "親目標が見つかりません" };
+      }
+    }
+
+    // Validate owner_id / team_id same-tenant in bulk
+    const ownerIds = Array.from(
+      new Set(
+        input.assignments
+          .map((a) => a.owner_id)
+          .filter((v): v is string => !!v)
+      )
+    );
+    const teamIds = Array.from(
+      new Set(
+        input.assignments
+          .map((a) => a.team_id)
+          .filter((v): v is string => !!v)
+      )
+    );
+    if (ownerIds.length > 0) {
+      const { data: owners } = await adminClient
+        .from("users")
+        .select("id, tenant_id")
+        .in("id", ownerIds);
+      const valid = new Set(
+        (owners ?? [])
+          .filter((u) => u.tenant_id === dbUser.tenant_id)
+          .map((u) => u.id)
+      );
+      if (valid.size !== ownerIds.length) {
+        return { success: false, error: "担当者の一部が見つかりません" };
+      }
+    }
+    if (teamIds.length > 0) {
+      const { data: teams } = await adminClient
+        .from("teams")
+        .select("id, tenant_id")
+        .in("id", teamIds);
+      const valid = new Set(
+        (teams ?? [])
+          .filter((t) => t.tenant_id === dbUser.tenant_id)
+          .map((t) => t.id)
+      );
+      if (valid.size !== teamIds.length) {
+        return { success: false, error: "チームの一部が見つかりません" };
+      }
+    }
+
+    // Build goal rows
+    const rows: Array<Record<string, unknown>> = [];
+    for (const assignment of input.assignments) {
+      for (const item of items) {
+        const overridden = assignment.targets[item.id];
+        const target =
+          overridden !== undefined
+            ? overridden
+            : Number(item.default_target_value);
+        if (!(target > 0)) {
+          // Skip non-positive targets — they would fail createGoalSchema
+          // anyway and tend to mean "not assigned to this person".
+          continue;
+        }
+        rows.push({
+          tenant_id: dbUser.tenant_id,
+          parent_id: input.parent_id ?? null,
+          level: presetLevel,
+          name: item.name,
+          target_value: target,
+          kpi_field_key: item.kpi_field_key ?? null,
+          template_id: item.report_template_id ?? null,
+          period_start: input.period_start,
+          period_end: input.period_end,
+          owner_id: assignment.owner_id ?? null,
+          team_id: assignment.team_id ?? null,
+        });
+      }
+    }
+
+    if (rows.length === 0) {
+      return {
+        success: false,
+        error: "作成する目標がありません。各担当に目標値を設定してください。",
+      };
+    }
+
+    const { data: inserted, error: insertError } = await adminClient
+      .from("goals")
+      .insert(rows)
+      .select("id");
+    if (insertError) {
+      console.error("[Goals] Bulk insert failed:", insertError);
+      return { success: false, error: "目標の一括作成に失敗しました" };
+    }
+
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: user.id,
+      action: "create",
+      resource: "goal",
+      details: {
+        preset_id: input.preset_id,
+        bulk: true,
+        count: inserted?.length ?? rows.length,
+        period_start: input.period_start,
+        period_end: input.period_end,
+      },
+    });
+
+    revalidatePath("/goals");
+    return { success: true, createdCount: inserted?.length ?? rows.length };
+  } catch (err) {
+    console.error("[Goals] bulkCreateGoalsFromPreset unexpected error:", err);
     return { success: false, error: "予期しないエラーが発生しました" };
   }
 }
