@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { computeGoalProgressMap } from "@/lib/goals/progress";
 import { GoalsTreeView } from "./GoalsTreeView";
 import type { Goal, GoalSnapshot, User, Team, ReportTemplate } from "@/types/database";
 
@@ -43,28 +44,26 @@ export default async function GoalsPage() {
 
   const goals = (goalsData ?? []) as Goal[];
 
-  // Fetch latest snapshots for each goal
-  const goalIds = goals.map((g) => g.id);
-  let snapshots: GoalSnapshot[] = [];
-  if (goalIds.length > 0) {
-    const { data: snapshotsData, error: snapshotsError } = await adminClient
-      .from("goal_snapshots")
-      .select("id, goal_id, actual_value, progress_rate, snapshot_date, created_at")
-      .in("goal_id", goalIds)
-      .order("snapshot_date", { ascending: false });
-
-    if (snapshotsError) {
-      console.error("[Goals] Failed to fetch snapshots:", snapshotsError);
-    }
-    snapshots = (snapshotsData ?? []) as GoalSnapshot[];
-  }
-
-  // Build a map: goal_id -> latest snapshot
+  // Compute live progress instead of reading the daily snapshot, so the
+  // user sees aggregation reflect their KPI configuration and any new
+  // report submissions immediately rather than waiting for the next cron.
+  const progressMap = await computeGoalProgressMap(adminClient, goals);
+  const today = new Date().toISOString().split("T")[0];
+  const nowIso = new Date().toISOString();
   const snapshotMap: Record<string, GoalSnapshot> = {};
-  for (const s of snapshots) {
-    if (!snapshotMap[s.goal_id]) {
-      snapshotMap[s.goal_id] = s;
-    }
+  for (const goal of goals) {
+    const progress = progressMap.get(goal.id) ?? {
+      actualValue: 0,
+      progressRate: 0,
+    };
+    snapshotMap[goal.id] = {
+      id: `live-${goal.id}`,
+      goal_id: goal.id,
+      actual_value: progress.actualValue,
+      progress_rate: progress.progressRate,
+      snapshot_date: today,
+      created_at: nowIso,
+    };
   }
 
   // Fetch users for owner selection
