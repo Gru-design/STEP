@@ -1,9 +1,79 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Goal } from "@/types/database";
 
-interface GoalProgress {
+export interface GoalProgress {
   actualValue: number;
   progressRate: number;
+}
+
+function computeProgressFromEntries(
+  goal: Goal,
+  entries: { data: unknown }[]
+): GoalProgress {
+  let actualValue = 0;
+  for (const entry of entries) {
+    const data = entry.data as Record<string, unknown>;
+    const value = Number(data[goal.kpi_field_key!]);
+    if (!isNaN(value)) {
+      actualValue += value;
+    }
+  }
+  const targetValue = Number(goal.target_value);
+  const progressRate =
+    targetValue > 0 ? Math.round((actualValue / targetValue) * 10000) / 100 : 0;
+  return { actualValue, progressRate };
+}
+
+/**
+ * Compute live KPI aggregation for a list of goals without writing to
+ * goal_snapshots. Groups goals by (tenant_id, template_id, period) so
+ * each unique combination becomes a single report_entries query, and
+ * scopes the query by tenant_id so a system template (tenant_id = null)
+ * cannot accidentally sum entries from other tenants.
+ */
+export async function computeGoalProgressMap(
+  supabase: SupabaseClient,
+  goals: Goal[]
+): Promise<Map<string, GoalProgress>> {
+  const progressMap = new Map<string, GoalProgress>();
+
+  const calculable = goals.filter((g) => g.kpi_field_key && g.template_id);
+  const nonCalculable = goals.filter(
+    (g) => !g.kpi_field_key || !g.template_id
+  );
+
+  const groupKey = (g: Goal) =>
+    `${g.tenant_id}|${g.template_id}|${g.period_start}|${g.period_end}`;
+  const grouped = new Map<string, Goal[]>();
+  for (const goal of calculable) {
+    const key = groupKey(goal);
+    const group = grouped.get(key) ?? [];
+    group.push(goal);
+    grouped.set(key, group);
+  }
+
+  for (const [, group] of grouped) {
+    const rep = group[0];
+    const { data: entries } = await supabase
+      .from("report_entries")
+      .select("data")
+      .eq("tenant_id", rep.tenant_id)
+      .eq("template_id", rep.template_id!)
+      .eq("status", "submitted")
+      .gte("report_date", rep.period_start)
+      .lte("report_date", rep.period_end)
+      .limit(10000);
+
+    for (const goal of group) {
+      progressMap.set(goal.id, computeProgressFromEntries(goal, entries ?? []));
+    }
+  }
+
+  for (const goal of nonCalculable) {
+    progressMap.set(goal.id, { actualValue: 0, progressRate: 0 });
+  }
+
+  return progressMap;
 }
 
 /**
@@ -14,7 +84,6 @@ export async function calculateGoalProgress(
   supabase: SupabaseClient,
   goalId: string
 ): Promise<GoalProgress> {
-  // Fetch goal
   const { data: goal, error: goalError } = await supabase
     .from("goals")
     .select("*")
@@ -25,45 +94,12 @@ export async function calculateGoalProgress(
     return { actualValue: 0, progressRate: 0 };
   }
 
-  const typedGoal = goal as Goal;
-
-  if (!typedGoal.kpi_field_key || !typedGoal.template_id) {
-    return { actualValue: 0, progressRate: 0 };
-  }
-
-  const { data: entries, error: entriesError } = await supabase
-    .from("report_entries")
-    .select("data")
-    .eq("template_id", typedGoal.template_id)
-    .eq("status", "submitted")
-    .gte("report_date", typedGoal.period_start)
-    .lte("report_date", typedGoal.period_end);
-
-  if (entriesError || !entries) {
-    return { actualValue: 0, progressRate: 0 };
-  }
-
-  let actualValue = 0;
-  for (const entry of entries) {
-    const data = entry.data as Record<string, unknown>;
-    const value = Number(data[typedGoal.kpi_field_key]);
-    if (!isNaN(value)) {
-      actualValue += value;
-    }
-  }
-
-  const targetValue = Number(typedGoal.target_value);
-  const progressRate =
-    targetValue > 0 ? Math.round((actualValue / targetValue) * 10000) / 100 : 0;
-
-  return { actualValue, progressRate };
+  const map = await computeGoalProgressMap(supabase, [goal as Goal]);
+  return map.get((goal as Goal).id) ?? { actualValue: 0, progressRate: 0 };
 }
 
 /**
  * Snapshot all goals for a tenant: calculate progress and insert into goal_snapshots.
- *
- * Optimized: fetches all goals with full data in one query, groups by
- * (template_id, period) to batch-fetch report entries, then batch-inserts snapshots.
  */
 export async function snapshotAllGoals(
   supabase: SupabaseClient,
@@ -82,67 +118,10 @@ export async function snapshotAllGoals(
   const typedGoals = goals as Goal[];
   const today = new Date().toISOString().split("T")[0];
 
-  // Separate goals that can be auto-calculated from those that can't
-  const calculableGoals = typedGoals.filter(
-    (g) => g.kpi_field_key && g.template_id
-  );
-  const nonCalculableGoals = typedGoals.filter(
-    (g) => !g.kpi_field_key || !g.template_id
-  );
+  const progressMap = await computeGoalProgressMap(supabase, typedGoals);
 
-  // Group calculable goals by (template_id, period_start, period_end) to batch queries
-  const groupKey = (g: Goal) => `${g.template_id}|${g.period_start}|${g.period_end}`;
-  const groupedGoals = new Map<string, Goal[]>();
-  for (const goal of calculableGoals) {
-    const key = groupKey(goal);
-    const group = groupedGoals.get(key) ?? [];
-    group.push(goal);
-    groupedGoals.set(key, group);
-  }
-
-  // Batch-fetch report entries per group (one query per unique template+period combo)
-  const goalProgressMap = new Map<string, GoalProgress>();
-
-  for (const [, group] of groupedGoals) {
-    const representative = group[0];
-    const { data: entries } = await supabase
-      .from("report_entries")
-      .select("data")
-      .eq("template_id", representative.template_id!)
-      .eq("status", "submitted")
-      .gte("report_date", representative.period_start)
-      .lte("report_date", representative.period_end)
-      .limit(10000);
-
-    // Calculate progress for each goal in this group from the shared entries
-    for (const goal of group) {
-      let actualValue = 0;
-      for (const entry of entries ?? []) {
-        const data = entry.data as Record<string, unknown>;
-        const value = Number(data[goal.kpi_field_key!]);
-        if (!isNaN(value)) {
-          actualValue += value;
-        }
-      }
-
-      const targetValue = Number(goal.target_value);
-      const progressRate =
-        targetValue > 0
-          ? Math.round((actualValue / targetValue) * 10000) / 100
-          : 0;
-
-      goalProgressMap.set(goal.id, { actualValue, progressRate });
-    }
-  }
-
-  // Non-calculable goals get zero progress
-  for (const goal of nonCalculableGoals) {
-    goalProgressMap.set(goal.id, { actualValue: 0, progressRate: 0 });
-  }
-
-  // Batch insert all snapshots at once
   const snapshots = typedGoals.map((goal) => {
-    const progress = goalProgressMap.get(goal.id) ?? {
+    const progress = progressMap.get(goal.id) ?? {
       actualValue: 0,
       progressRate: 0,
     };
