@@ -343,3 +343,103 @@ export async function deleteDeal(id: string) {
     return { success: false, error: "案件の削除に失敗しました" };
   }
 }
+
+/**
+ * Duplicate an existing deal. The new deal starts as `active` regardless
+ * of the source's status (since a copy is typically a fresh opportunity
+ * modelled on a previous one), keeps the same stage, and prefixes the
+ * title with "(コピー)" so it is visually distinct in the kanban.
+ * The persona JSON is copied as-is — the user can adjust afterward.
+ *
+ * `user_id` is set to the caller (not the source's owner) so the copier
+ * "owns" the new opportunity. RLS limits sourcing to the same tenant.
+ */
+export async function duplicateDeal(
+  id: string
+): Promise<{ success: boolean; error?: string; dealId?: string }> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "認証が必要です" };
+
+    const { data: dbUser } = await supabase
+      .from("users")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+    if (!dbUser) {
+      return { success: false, error: "ユーザーが見つかりません" };
+    }
+
+    const gate = await checkFeatureAccess(dbUser.tenant_id, "deals");
+    if (!gate.allowed) {
+      return { success: false, error: gate.error };
+    }
+
+    const { data: source, error: fetchError } = await supabase
+      .from("deals")
+      .select(
+        "id, tenant_id, stage_id, company, title, value, due_date, persona"
+      )
+      .eq("id", id)
+      .eq("tenant_id", dbUser.tenant_id)
+      .single();
+
+    if (fetchError || !source) {
+      return { success: false, error: "複製元の案件が見つかりません" };
+    }
+
+    const copiedTitle = source.title
+      ? `${source.title} (コピー)`
+      : "(コピー)";
+
+    const { data: created, error: insertError } = await supabase
+      .from("deals")
+      .insert({
+        tenant_id: dbUser.tenant_id,
+        user_id: user.id,
+        stage_id: source.stage_id,
+        company: source.company,
+        title: copiedTitle,
+        value: source.value,
+        due_date: source.due_date,
+        persona: source.persona ?? {},
+        status: "active",
+      })
+      .select("id")
+      .single();
+
+    if (insertError || !created) {
+      return { success: false, error: "案件の複製に失敗しました" };
+    }
+
+    await supabase.from("deal_history").insert({
+      deal_id: created.id,
+      from_stage: null,
+      to_stage: source.stage_id,
+    });
+
+    await writeAuditLog({
+      tenantId: dbUser.tenant_id,
+      userId: user.id,
+      action: "create",
+      resource: "deal",
+      resourceId: created.id,
+      details: { duplicated_from: source.id, company: source.company },
+    });
+    await dispatchWebhook(dbUser.tenant_id, "deal.created", {
+      deal_id: created.id,
+      company: source.company,
+      duplicated_from: source.id,
+    });
+
+    revalidatePath("/deals");
+    return { success: true, dealId: created.id };
+  } catch (err) {
+    console.error("[Deals] duplicateDeal unexpected error:", err);
+    return { success: false, error: "案件の複製に失敗しました" };
+  }
+}
+

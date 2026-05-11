@@ -2,10 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Copy, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Deal, PipelineStage, DealHistory } from "@/types/database";
-import { updateDeal, deleteDeal } from "../actions";
+import { updateDeal, deleteDeal, duplicateDeal } from "../actions";
 
 interface DealDetailClientProps {
   deal: Deal;
@@ -50,6 +57,75 @@ export function DealDetailClient({
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  // Basic-info edit dialog state. Decoupled from the persona edit panel
+  // so the user can independently fix mistakes in company/title/value/
+  // due_date after the deal is created (previously a missing flow).
+  const [basicEditOpen, setBasicEditOpen] = useState(false);
+  const [basicSaving, setBasicSaving] = useState(false);
+  const [basicError, setBasicError] = useState("");
+  const [editCompany, setEditCompany] = useState(deal.company);
+  const [editTitle, setEditTitle] = useState(deal.title ?? "");
+  const [editValue, setEditValue] = useState<string>(
+    deal.value !== null && deal.value !== undefined ? String(deal.value) : ""
+  );
+  const [editDueDate, setEditDueDate] = useState(deal.due_date ?? "");
+
+  const [duplicating, setDuplicating] = useState(false);
+
+  function openBasicEdit() {
+    setEditCompany(deal.company);
+    setEditTitle(deal.title ?? "");
+    setEditValue(
+      deal.value !== null && deal.value !== undefined ? String(deal.value) : ""
+    );
+    setEditDueDate(deal.due_date ?? "");
+    setBasicError("");
+    setBasicEditOpen(true);
+  }
+
+  async function handleSaveBasic(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBasicSaving(true);
+    setBasicError("");
+    const trimmedCompany = editCompany.trim();
+    if (!trimmedCompany) {
+      setBasicSaving(false);
+      setBasicError("企業名を入力してください");
+      return;
+    }
+    const parsedValue = editValue === "" ? undefined : Number(editValue);
+    if (parsedValue !== undefined && (Number.isNaN(parsedValue) || parsedValue < 0)) {
+      setBasicSaving(false);
+      setBasicError("金額は0以上の数値で入力してください");
+      return;
+    }
+    const result = await updateDeal(deal.id, {
+      company: trimmedCompany,
+      title: editTitle.trim() || undefined,
+      value: parsedValue,
+      due_date: editDueDate || undefined,
+    });
+    setBasicSaving(false);
+    if (result.success) {
+      setBasicEditOpen(false);
+      router.refresh();
+    } else {
+      setBasicError(result.error || "保存に失敗しました");
+    }
+  }
+
+  async function handleDuplicate() {
+    if (duplicating) return;
+    setDuplicating(true);
+    const result = await duplicateDeal(deal.id);
+    setDuplicating(false);
+    if (result.success && result.dealId) {
+      router.push(`/deals/${result.dealId}`);
+    } else {
+      alert(result.error || "案件の複製に失敗しました");
+    }
+  }
 
   // Persona fields
   const persona = (deal.persona || {}) as Record<string, string>;
@@ -131,7 +207,20 @@ export function DealDetailClient({
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={openBasicEdit}>
+            <Pencil className="mr-1 h-4 w-4" />
+            編集
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDuplicate}
+            disabled={duplicating}
+          >
+            <Copy className="mr-1 h-4 w-4" />
+            {duplicating ? "複製中..." : "複製"}
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
@@ -322,6 +411,73 @@ export function DealDetailClient({
           )}
         </div>
       </div>
+
+      {/* Basic info edit dialog */}
+      <Dialog open={basicEditOpen} onOpenChange={setBasicEditOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>案件の基本情報を編集</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveBasic} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-company">企業名 *</Label>
+              <Input
+                id="edit-company"
+                value={editCompany}
+                onChange={(e) => setEditCompany(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">案件名</Label>
+              <Input
+                id="edit-title"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="案件名を入力"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-value">金額 (円)</Label>
+              <Input
+                id="edit-value"
+                type="number"
+                min={0}
+                step="any"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-due-date">期限</Label>
+              <Input
+                id="edit-due-date"
+                type="date"
+                value={editDueDate}
+                onChange={(e) => setEditDueDate(e.target.value)}
+              />
+            </div>
+            {basicError && <p className="text-sm text-danger">{basicError}</p>}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setBasicEditOpen(false)}
+              >
+                キャンセル
+              </Button>
+              <Button
+                type="submit"
+                disabled={basicSaving}
+                className="bg-primary text-white hover:bg-primary/90"
+              >
+                {basicSaving ? "保存中..." : "保存"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
