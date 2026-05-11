@@ -6,8 +6,19 @@ export interface GoalProgress {
   progressRate: number;
 }
 
+type GoalForProgress = Pick<
+  Goal,
+  | "id"
+  | "tenant_id"
+  | "kpi_field_key"
+  | "template_id"
+  | "period_start"
+  | "period_end"
+  | "target_value"
+>;
+
 function computeProgressFromEntries(
-  goal: Goal,
+  goal: GoalForProgress,
   entries: { data: unknown }[]
 ): GoalProgress {
   let actualValue = 0;
@@ -33,7 +44,7 @@ function computeProgressFromEntries(
  */
 export async function computeGoalProgressMap(
   supabase: SupabaseClient,
-  goals: Goal[]
+  goals: GoalForProgress[]
 ): Promise<Map<string, GoalProgress>> {
   const progressMap = new Map<string, GoalProgress>();
 
@@ -42,9 +53,9 @@ export async function computeGoalProgressMap(
     (g) => !g.kpi_field_key || !g.template_id
   );
 
-  const groupKey = (g: Goal) =>
+  const groupKey = (g: GoalForProgress) =>
     `${g.tenant_id}|${g.template_id}|${g.period_start}|${g.period_end}`;
-  const grouped = new Map<string, Goal[]>();
+  const grouped = new Map<string, GoalForProgress[]>();
   for (const goal of calculable) {
     const key = groupKey(goal);
     const group = grouped.get(key) ?? [];
