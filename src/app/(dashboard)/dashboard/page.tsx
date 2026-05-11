@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import type { User, TenantSettings } from "@/types/database";
 import { MemberDashboard } from "./MemberDashboard";
 import { calculateStreak, LEVEL_THRESHOLDS } from "@/lib/gamification/level";
+import { computeGoalProgressMap } from "@/lib/goals/progress";
 import { getCachedDailyTemplateIds } from "@/lib/cache";
 import type { MemberStats, ManagerStats, AdminStats, ApprovalStats } from "./types";
 
@@ -79,7 +80,7 @@ async function fetchMemberStats(
       .eq("user_id", user.id),
     supabase
       .from("goals")
-      .select("id, name, target_value, kpi_field_key, template_id, period_start, period_end, level, owner_id, team_id")
+      .select("id, tenant_id, name, target_value, kpi_field_key, template_id, period_start, period_end, level, owner_id, team_id")
       .eq("tenant_id", user.tenant_id)
       .lte("period_start", today)
       .gte("period_end", today)
@@ -135,17 +136,18 @@ async function fetchMemberStats(
     ? [...new Set(bonusData.map((b) => b.from_user_id))]
     : [];
 
-  const [badgesResult, snapshotsResult, weekEntriesResult, sendersResult] = await Promise.all([
+  // Compute live KPI progress instead of reading goal_snapshots so the
+  // dashboard reflects new submissions and KPI config changes immediately
+  // rather than waiting for the next daily cron snapshot.
+  const goalProgressPromise = goalIds.length > 0
+    ? computeGoalProgressMap(supabase, relevantGoals)
+    : Promise.resolve(new Map<string, { actualValue: number; progressRate: number }>());
+
+  const [badgesResult, goalProgressMap, weekEntriesResult, sendersResult] = await Promise.all([
     badgeIds.length > 0
       ? supabase.from("badges").select("id, name, icon").in("id", badgeIds)
       : Promise.resolve({ data: [] as { id: string; name: string; icon: string }[] }),
-    goalIds.length > 0
-      ? supabase
-          .from("goal_snapshots")
-          .select("goal_id, actual_value, progress_rate, snapshot_date")
-          .in("goal_id", goalIds)
-          .order("snapshot_date", { ascending: false })
-      : Promise.resolve({ data: [] as { goal_id: string; actual_value: number; progress_rate: number; snapshot_date: string }[] }),
+    goalProgressPromise,
     goalsWithKPI.length > 0
       ? supabase
           .from("report_entries")
@@ -172,15 +174,13 @@ async function fetchMemberStats(
       .filter(Boolean) as typeof recentBadges;
   }
 
-  // Resolve goal progress
+  // Resolve goal progress from the live aggregation map.
   const latestSnapshots = new Map<string, { actual: number; rate: number }>();
-  for (const snap of snapshotsResult.data ?? []) {
-    if (!latestSnapshots.has(snap.goal_id)) {
-      latestSnapshots.set(snap.goal_id, {
-        actual: Number(snap.actual_value),
-        rate: Number(snap.progress_rate),
-      });
-    }
+  for (const [goalId, progress] of goalProgressMap) {
+    latestSnapshots.set(goalId, {
+      actual: progress.actualValue,
+      rate: progress.progressRate,
+    });
   }
 
   const weeklyContributions = new Map<string, number>();
@@ -384,7 +384,7 @@ async function ManagerSection({
     dailyTplIds.length > 0
       ? supabase.from("report_entries").select("user_id").eq("tenant_id", tenantId).eq("report_date", today).eq("status", "submitted").in("template_id", dailyTplIds)
       : Promise.resolve({ data: [] as { user_id: string }[] }),
-    supabase.from("goals").select("id, name, target_value, period_start, period_end, owner_id").eq("tenant_id", tenantId),
+    supabase.from("goals").select("id, tenant_id, name, target_value, kpi_field_key, template_id, period_start, period_end, owner_id").eq("tenant_id", tenantId),
     supabase.from("users").select("id, name").eq("tenant_id", tenantId),
     supabase.from("pipeline_stages").select("id, name, sort_order").eq("tenant_id", tenantId).order("sort_order", { ascending: true }),
     supabase.from("deals").select("stage_id").eq("tenant_id", tenantId).eq("status", "active"),
@@ -410,25 +410,20 @@ async function ManagerSection({
     return { name: team.name, memberCount: mems.length, submissionRate: mems.length > 0 ? Math.round((sub / mems.length) * 100) : 0 };
   });
 
-  // Deviation alerts
+  // Deviation alerts — compute progress live so admins see deviation
+  // based on the latest submissions rather than yesterday's snapshot.
   const goals = allGoalsRes.data ?? [];
-  const adminGoalIds = goals.map((g) => g.id);
-  const { data: adminSnapshotsData } = adminGoalIds.length > 0
-    ? await supabase.from("goal_snapshots").select("goal_id, progress_rate, snapshot_date").in("goal_id", adminGoalIds).order("snapshot_date", { ascending: false })
-    : { data: [] as { goal_id: string; progress_rate: number; snapshot_date: string }[] };
+  const adminProgressMap = goals.length > 0
+    ? await computeGoalProgressMap(supabase, goals)
+    : new Map<string, { actualValue: number; progressRate: number }>();
 
   const ownerMap = new Map((ownerUsersRes.data ?? []).map((u) => [u.id, u.name]));
-  const latestSnapshotMap = new Map<string, number>();
-  for (const snap of adminSnapshotsData ?? []) {
-    if (!latestSnapshotMap.has(snap.goal_id)) {
-      latestSnapshotMap.set(snap.goal_id, Number(snap.progress_rate));
-    }
-  }
 
   const deviationAlerts: { goalName: string; deviation: number; ownerName: string }[] = [];
   for (const goal of goals) {
-    const actualRate = latestSnapshotMap.get(goal.id);
-    if (actualRate === undefined) continue;
+    const progress = adminProgressMap.get(goal.id);
+    if (!progress) continue;
+    const actualRate = progress.progressRate;
     const start = new Date(goal.period_start).getTime();
     const end = new Date(goal.period_end).getTime();
     const elapsed = Math.max(0, Math.min(1, (nowMs - start) / (end - start)));
