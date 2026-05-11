@@ -171,8 +171,13 @@ export function PlansPageClient({
     setError(null);
     setSuccessMsg(null);
 
-    if (currentPlan && currentPlan.status === "draft") {
-      // First save, then submit
+    if (
+      currentPlan &&
+      (currentPlan.status === "draft" || currentPlan.status === "rejected")
+    ) {
+      // Persist the current form values before flipping to submitted.
+      // Without this, a resubmission after a rejection would keep the
+      // original items because submitPlan only updates the status column.
       const saveResult = await createOrUpdatePlan({
         weekStart: currentMonday,
         templateId: selectedTemplate,
